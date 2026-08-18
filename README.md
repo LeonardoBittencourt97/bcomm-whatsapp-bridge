@@ -1,77 +1,57 @@
-# 🤖 BComm WhatsApp Bridge
+# bcomm-whatsapp-bridge
 
-Bridge server FastAPI para conectar a **Evolution API** ao **Hermes Agent** — permitindo IA de atendimento, agendamento, CRM e financeiro via WhatsApp.
+Bridge server entre Evolution API (WhatsApp) e Hermes/LLM para automação de atendimento.
 
-## 📋 Funcionalidades
-
-- **Receber webhooks** da Evolution API
-- **Processar mensagens** com Hermes Agent
-- **Responder** via Evolution API
-- **Suporte a múltiplos profiles** Hermes
-- **Gerenciamento de sessão** por contato
-- **Rate limiting** e retry automático
-
-## 🏗️ Arquitetura
-
-```
-WhatsApp → Evolution API → BComm Bridge → Hermes Agent → Resposta
-```
-
-## 🛠️ Tecnologias
-
-- **Python 3.11+**
-- **FastAPI** — Framework web async
-- **Evolution API** — WhatsApp API
-- **Hermes Agent** — IA de processamento
-
-## 🚀 Setup
-
-### 1. Instalar dependências
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Configurar variáveis de ambiente
-
-```bash
-cp .env.example .env
-# Edite o .env com suas credenciais
-```
-
-### 3. Executar o servidor
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-## ⚙️ Variáveis de Ambiente
-
-| Variável | Descrição | Obrigatório |
-|----------|-----------|-------------|
-| `EVOLUTION_API_URL` | URL da Evolution API | ✅ |
-| `EVOLUTION_API_KEY` | Chave da API da Evolution | ✅ |
-| `HERMES_API_URL` | URL do Hermes Agent | ✅ |
-| `HERMES_API_KEY` | Chave do Hermes Agent | ✅ |
-| `HERMES_DEFAULT_PROFILE` | Profile padrão do Hermes | ❌ |
-| `WEBHOOK_SECRET` | Segredo para validar webhooks | ❌ |
-| `PORT` | Porta do servidor (padrão: 8000) | ❌ |
-
-## 📁 Estrutura do Projeto
+## Estrutura
 
 ```
 bcomm-whatsapp-bridge/
-├── main.py              # App FastAPI principal
-├── config.py            # Configurações
-├── webhook.py           # Handler de webhooks
-├── hermes_client.py     # Cliente Hermes Agent
-├── evolution_client.py  # Cliente Evolution API
-├── requirements.txt     # Dependências Python
-├── .env.example         # Template de configuração
-├── .gitignore           # Arquivos ignorados
-└── README.md            # Esta documentação
+├── main.py              # FastAPI app principal
+├── config.py            # Configurações (env vars)
+├── services/            # Clientes externos
+│   ├── evolution.py     # Evolution API
+│   ├── hermes.py        # Hermes CLI
+│   └── llm.py           # LLM (OpenAI-compatible)
+├── handlers/            # Lógica de negócio
+│   ├── webhook.py       # Extração de eventos
+│   └── messages.py      # Processamento + envio
+├── models/              # Schemas Pydantic
+├── prompts/             # Prompts por domínio
+├── tests/               # Testes
+├── Dockerfile
+└── docker-compose.yml
 ```
 
-## 📝 Licença
+## Setup
 
-MIT
+```bash
+cp .env.example .env
+# Edite .env com suas credenciais
+
+# Local
+pip install -r requirements.txt
+python main.py
+
+# Docker
+docker compose up --build
+```
+
+## Endpoints
+
+| Método | Path              | Descrição                    |
+|--------|-------------------|------------------------------|
+| GET    | `/health`         | Health check                 |
+| POST   | `/webhook/evolution` | Recebe webhooks Evolution API |
+| POST   | `/send`           | Enviar mensagem manual       |
+| GET    | `/docs`           | Swagger UI                   |
+
+## Fluxo
+
+1. Evolution API envia webhook → `/webhook/evolution`
+2. Handler extrai mensagem do payload
+3. Processa via Hermes CLI ou LLM direto
+4. Envia resposta via Evolution API
+
+## Variáveis de Ambiente
+
+Ver `.env.example` para referência completa.

@@ -1,130 +1,184 @@
 """
-BComm WhatsApp Bridge
-Bridge server FastAPI para conectar Evolution API ao Hermes Agent
+bcomm-whatsapp-bridge — FastAPI server
+
+Bridge entre Evolution API (WhatsApp) e Hermes/LLM.
 """
-
-import os
 import logging
+import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
+from typing import Optional
 
-load_dotenv()
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+
+from config import settings
+from handlers.messages import process_incoming_message
+from handlers.webhook import extract_message
+from models.schemas import (
+    HealthResponse,
+    SendMessageRequest,
+    SendMessageResponse,
+    WebhookEvent,
+)
+from services.evolution import EvolutionClient
+from services.hermes import HermesClient
+from services.llm import LLMClient
+
+# ── Logging ─────────────────────────────────────────────────────────
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=getattr(logging, settings.log_level.upper(), logging.INFO),
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bridge")
 
+# ── Global state ────────────────────────────────────────────────────
+
+_start_time = time.time()
+evolution_client = EvolutionClient()
+hermes_client = HermesClient()
+llm_client = LLMClient()
+
+
+# ── Lifespan ────────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
-    logger.info("🚀 BComm WhatsApp Bridge starting up...")
-    logger.info(f"Evolution API URL: {os.getenv('EVOLUTION_API_URL', 'not set')}")
-    logger.info(f"Hermes API URL: {os.getenv('HERMES_API_URL', 'not set')}")
-    yield
-    logger.info("👋 BComm WhatsApp Bridge shutting down...")
+    """Startup / shutdown hooks."""
+    logger.info("🚀 Bridge server iniciando...")
+    logger.info(f"   Evolution API: {settings.evolution_api_url}")
+    logger.info(f"   Instância:     {settings.evolution_instance}")
+    logger.info(f"   Hermes:        {settings.hermes_profile}")
+    logger.info(f"   LLM model:     {settings.opencode_model}")
+    logger.info(f"   Porta:         {settings.port}")
 
+    yield
+
+    logger.info("🛑 Encerrando bridge server...")
+    await evolution_client.close()
+    await llm_client.close()
+
+
+# ── App ─────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="BComm WhatsApp Bridge",
-    description="Bridge server para conectar Evolution API ao Hermes Agent",
-    version="0.1.0",
+    title="bcomm-whatsapp-bridge",
+    description="Bridge entre Evolution API e Hermes/LLM",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
-
-@app.get("/")
-async def root():
-    """Health check endpoint."""
-    return {
-        "service": "BComm WhatsApp Bridge",
-        "version": "0.1.0",
-        "status": "running",
-    }
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.get("/health")
-async def health():
-    """Health check for monitoring."""
-    return {"status": "healthy"}
+# ── Endpoints ───────────────────────────────────────────────────────
+
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    """Health check com status dos serviços dependentes."""
+    evo_ok = await evolution_client.health_check()
+    llm_ok = await llm_client.health_check()
+    hermes_ok = await hermes_client.is_available()
+
+    status = "ok" if evo_ok else "degraded"
+
+    return HealthResponse(
+        status=status,
+        evolution_api="ok" if evo_ok else "unavailable",
+        uptime_seconds=round(time.time() - _start_time, 1),
+    )
 
 
 @app.post("/webhook/evolution")
 async def webhook_evolution(request: Request):
     """
-    Webhook endpoint para receber mensagens da Evolution API.
-    
-    Processa mensagens recebidas via WhatsApp e encaminha para Hermes Agent.
+    Endpoint principal de webhook da Evolution API.
+
+    Recebe eventos, extrai mensagens e despacha para processamento.
     """
     try:
         body = await request.json()
-        logger.info(f"📨 Webhook received: {body.get('event', 'unknown')}")
-        
-        event_type = body.get("event", "")
-        
-        # Process different event types
-        if event_type == "messages.upsert":
-            return await handle_message(body)
-        elif event_type == "connection.update":
-            return await handle_connection_update(body)
-        else:
-            logger.info(f"ℹ️ Ignoring event type: {event_type}")
-            return JSONResponse(
-                status_code=200,
-                content={"status": "ignored", "event": event_type},
-            )
-    
-    except Exception as e:
-        logger.error(f"❌ Error processing webhook: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # Parse do evento
+    event = WebhookEvent(
+        event=body.get("event", body.get("eventName", "unknown")),
+        instance=body.get("instance", body.get("instanceName", settings.evolution_instance)),
+        data=body.get("data", body),
+        sender=body.get("sender"),
+        timestamp=body.get("timestamp"),
+    )
+
+    logger.info(f"Webhook recebido: event={event.event}, instance={event.instance}")
+
+    # Extrair mensagem
+    message = extract_message(event)
+    if message is None:
+        return {"status": "ignored", "event": event.event}
+
+    # Processar (assíncrono, sem bloquear o webhook)
+    # Em produção, usar Celery/ARQ para filas
+    response = await process_incoming_message(
+        message=message,
+        evolution=evolution_client,
+        hermes=hermes_client,
+        llm=llm_client,
+        use_hermes=False,  # Toggle: True para usar Hermes CLI
+    )
+
+    return {
+        "status": "processed",
+        "message_id": message.message_id,
+        "source": response.source.value,
+        "processing_time_ms": response.processing_time_ms,
+    }
 
 
-async def handle_message(body: dict) -> JSONResponse:
-    """Process incoming WhatsApp messages."""
-    data = body.get("data", {})
-    message = data.get("message", {})
-    key = data.get("key", {})
-    
-    # Extract message info
-    sender = key.get("remoteJid", "")
-    message_text = message.get("conversation") or message.get("extendedTextMessage", {}).get("text", "")
-    
-    logger.info(f"💬 Message from {sender}: {message_text[:50]}...")
-    
-    # TODO: Forward to Hermes Agent and get response
-    # response = await hermes_client.process_message(sender, message_text)
-    # await evolution_client.send_message(sender, response)
-    
-    return JSONResponse(
-        status_code=200,
-        content={"status": "received", "sender": sender},
+@app.post("/send", response_model=SendMessageResponse)
+async def send_message(req: SendMessageRequest):
+    """
+    Enviar mensagem manualmente via Evolution API.
+    """
+    result = await evolution_client.send_text(
+        to_number=req.to_number,
+        message=req.message,
+        instance=req.instance,
+    )
+
+    return SendMessageResponse(
+        success=result["success"],
+        message_id=result.get("message_id"),
+        error=result.get("error"),
     )
 
 
-async def handle_connection_update(body: dict) -> JSONResponse:
-    """Handle connection status updates."""
-    state = body.get("data", {}).get("state", "unknown")
-    logger.info(f"🔗 Connection state: {state}")
-    
-    return JSONResponse(
-        status_code=200,
-        content={"status": "ok", "state": state},
-    )
+@app.get("/")
+async def root():
+    """Root endpoint."""
+    return {
+        "service": "bcomm-whatsapp-bridge",
+        "version": "1.0.0",
+        "docs": "/docs",
+    }
 
+
+# ── Run ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import uvicorn
-    
-    port = int(os.getenv("PORT", "8000"))
-    host = os.getenv("HOST", "0.0.0.0")
-    
+
     uvicorn.run(
         "main:app",
-        host=host,
-        port=port,
-        reload=True,
+        host="0.0.0.0",
+        port=settings.port,
+        reload=settings.debug,
+        log_level=settings.log_level.lower(),
     )

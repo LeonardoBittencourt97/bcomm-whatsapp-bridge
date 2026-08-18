@@ -1,0 +1,22 @@
+services:
+  bridge:
+    build: .
+    container_name: bcomm-whatsapp-bridge
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - bcomm
+
+networks:
+  bcomm:
+    driver: bridge
