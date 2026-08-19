@@ -66,7 +66,8 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
             message_type = "audio"
             media_type = "audio"
             content = "[áudio]"
-            media_url = src["audioMessage"].get("mediaKey") or src["audioMessage"].get("url")
+            # Priorizar URL (para download), mediaKey é binário
+            media_url = src["audioMessage"].get("url") or src["audioMessage"].get("mediaKey")
             break
         elif "documentMessage" in src:
             message_type = "document"
