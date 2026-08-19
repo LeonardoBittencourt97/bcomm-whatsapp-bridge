@@ -67,16 +67,14 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
             message_type = "audio"
             media_type = "audio"
             content = "[áudio]"
-            # Priorizar mediaKey (Evolution API desencripta), URL como fallback
+            # Armazenar mediaKey raw (dict binário) para descriptografia
             mk = src["audioMessage"].get("mediaKey")
-            url = src["audioMessage"].get("url")
             if isinstance(mk, dict):
-                # mediaKey é binário — converter para base64 para download via Evolution API
-                media_url = base64.b64encode(bytes(mk.values())).decode()
+                media_url = str(mk)  # Armazenar como string do dict
             elif isinstance(mk, str):
                 media_url = mk
             else:
-                media_url = url
+                media_url = src["audioMessage"].get("url")
             break
         elif "documentMessage" in src:
             message_type = "document"
@@ -94,6 +92,14 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
     remote_jid = key.get("remoteJid", "")
     from_number = remote_jid.replace("@s.whatsapp.net", "").replace("@lid", "")
 
+    # Extrair CDN URL se disponível (para download de mídia encriptada)
+    cdn_url = None
+    if message_type == "audio":
+        for src in sources:
+            if "audioMessage" in src:
+                cdn_url = src["audioMessage"].get("url")
+                break
+
     msg = IncomingMessage(
         message_id=key.get("id", "unknown"),
         from_number=from_number,
@@ -104,6 +110,7 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
         caption=caption,
         media_url=media_url,
         media_type=media_type,
+        media_cdn_url=cdn_url,
     )
 
     logger.info(

@@ -48,6 +48,7 @@ class IncomingMessage(BaseModel):
     caption: Optional[str] = Field(default=None, description="Legenda (para mídia)")
     media_url: Optional[Union[str, dict, None]] = Field(default=None, description="URL/chave da mídia")
     media_type: Optional[str] = Field(default=None, description="Tipo de mídia: audio, image, video")
+    media_cdn_url: Optional[str] = Field(default=None, description="URL CDN para download da mídia")
 
 
 # ── LLM ────────────────────────────────────────────────────────────
