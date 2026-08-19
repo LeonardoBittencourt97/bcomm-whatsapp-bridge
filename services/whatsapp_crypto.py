@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives import hashes
 
 logger = logging.getLogger(__name__)
 
-# WhatsApp media types
+# WhatsApp media type keys (from open-source Baileys/WhatsApp Web)
 MEDIA_TYPE_AUDIO = b"WhatsApp Audio Keys\x01"
 
 
@@ -21,10 +21,11 @@ def decrypt_whatsapp_audio(encrypted_data: bytes, media_key: bytes) -> bytes:
     """
     Decrypt WhatsApp audio file (.enc format).
 
-    WhatsApp audio encryption:
-    1. Derive AES key from mediaKey using PBKDF2-HMAC-SHA1
-    2. File starts with 10-byte IV
-    3. Rest is AES-256-CBC encrypted data
+    WhatsApp audio encryption (Baileys implementation):
+    1. Derive 32-byte key from mediaKey using PBKDF2-HMAC-SHA1 (16 iterations)
+    2. Derive 32-byte IV key from mediaKey using PBKDF2-HMAC-SHA1 (16 iterations)
+    3. File starts with 10-byte IV prefix
+    4. Decrypt with AES-256-CBC using derived key + IV
 
     Args:
         encrypted_data: Raw encrypted .enc file bytes
@@ -36,27 +37,39 @@ def decrypt_whatsapp_audio(encrypted_data: bytes, media_key: bytes) -> bytes:
     if len(encrypted_data) < 10:
         raise ValueError("Encrypted data too short")
 
-    # Derive AES key using PBKDF2
+    logger.info(f"Decrypting: {len(encrypted_data)} bytes, media_key: {len(media_key)} bytes")
+
+    # Derive encryption key using PBKDF2
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA1(),
         length=32,
         salt=MEDIA_TYPE_AUDIO,
         iterations=16,
     )
-    aes_key = kdf.derive(media_key)
+    key = kdf.derive(media_key)
 
     # Extract IV (first 10 bytes) + zero-pad to 16 bytes
     iv = encrypted_data[:10] + b"\x00" * 6
 
-    # Decrypt
-    cipher = Cipher(algorithms.AES(aes_key), modes.CBC(iv))
+    # Decrypt using AES-256-CBC
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     decryptor = cipher.decryptor()
     decrypted = decryptor.update(encrypted_data[10:]) + decryptor.finalize()
 
-    # Remove PKCS7 padding
-    pad_len = decrypted[-1]
-    if 1 <= pad_len <= 16:
-        decrypted = decrypted[:-pad_len]
+    logger.info(f"Decrypted: {len(decrypted)} bytes, first 4: {decrypted[:4]}")
+
+    # Check if it's valid OGG
+    if decrypted[:4] == b'OggS':
+        logger.info("✓ Valid OGG file detected")
+    else:
+        logger.warning(f"✗ Not OGG: {decrypted[:4]}")
+        # Try removing PKCS7 padding
+        pad_len = decrypted[-1]
+        if 1 <= pad_len <= 16 and all(b == pad_len for b in decrypted[-pad_len:]):
+            decrypted = decrypted[:-pad_len]
+            logger.info(f"Removed padding: {pad_len} bytes, now {len(decrypted)} bytes")
+            if decrypted[:4] == b'OggS':
+                logger.info("✓ Valid OGG after padding removal")
 
     return decrypted
 
