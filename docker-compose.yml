@@ -9,6 +9,7 @@ services:
       - .env
     environment:
       - PORT=8000
+      - STT_API_URL=http://localhost:8001/v1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -16,29 +17,7 @@ services:
       retries: 3
     networks:
       - coolify
-      - bcomm
-
-  stt:
-    build: ./stt-server
-    container_name: bcomm-stt
-    restart: unless-stopped
-    expose:
-      - "8001"
-    environment:
-      - WHISPER_MODEL=small
-      - WHISPER_DEVICE=cpu
-      - WHISPER_COMPUTE_TYPE=int8
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-    networks:
-      - coolify
-      - bcomm
 
 networks:
   coolify:
     external: true
-  bcomm:
-    driver: bridge
