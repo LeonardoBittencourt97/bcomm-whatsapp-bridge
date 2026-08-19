@@ -31,6 +31,9 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
     message_data = data.get("data", data)
     key = data.get("key", message_data.get("key", {}))
 
+    # Evolution API aninha o conteúdo em message_data["message"]
+    inner = message_data.get("message", {})
+
     # Ignorar mensagens enviadas por nós mesmos
     if key.get("fromMe", False):
         logger.debug("Ignorando mensagem enviada por nós")
@@ -41,20 +44,28 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
     content = ""
     caption = None
 
-    if "conversation" in message_data:
-        content = message_data["conversation"]
-    elif "extendedTextMessage" in message_data:
-        content = message_data["extendedTextMessage"].get("text", "")
-    elif "imageMessage" in message_data:
-        message_type = "image"
-        content = message_data["imageMessage"].get("caption", "[imagem]")
-        caption = message_data["imageMessage"].get("caption")
-    elif "audioMessage" in message_data:
-        message_type = "audio"
-        content = "[áudio]"
-    elif "documentMessage" in message_data:
-        message_type = "document"
-        content = message_data["documentMessage"].get("fileName", "[documento]")
+    # Check both top-level message_data and the nested "message" dict
+    sources = [message_data, inner]
+    for src in sources:
+        if "conversation" in src:
+            content = src["conversation"]
+            break
+        elif "extendedTextMessage" in src:
+            content = src["extendedTextMessage"].get("text", "")
+            break
+        elif "imageMessage" in src:
+            message_type = "image"
+            content = src["imageMessage"].get("caption", "[imagem]")
+            caption = src["imageMessage"].get("caption")
+            break
+        elif "audioMessage" in src:
+            message_type = "audio"
+            content = "[áudio]"
+            break
+        elif "documentMessage" in src:
+            message_type = "document"
+            content = src["documentMessage"].get("fileName", "[documento]")
+            break
     else:
         logger.warning(f"Tipo de mensagem não suportado: {list(message_data.keys())}")
         return None

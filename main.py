@@ -109,13 +109,17 @@ async def webhook_evolution(request: Request):
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
     # Parse do evento
-    event = WebhookEvent(
-        event=body.get("event", body.get("eventName", "unknown")),
-        instance=body.get("instance", body.get("instanceName", settings.evolution_instance)),
-        data=body.get("data", body),
-        sender=body.get("sender"),
-        timestamp=body.get("timestamp"),
-    )
+    try:
+        event = WebhookEvent(
+            event=body.get("event", body.get("eventName", "unknown")),
+            instance=body.get("instance", body.get("instanceName", settings.evolution_instance)),
+            data=body.get("data", body),
+            sender=body.get("sender"),
+            timestamp=body.get("timestamp"),
+        )
+    except Exception as e:
+        logger.warning(f"Erro ao parsear evento webhook: {e}")
+        return {"status": "ignored", "event": body.get("event", "unknown")}
 
     logger.info(f"Webhook recebido: event={event.event}, instance={event.instance}")
 

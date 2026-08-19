@@ -3,7 +3,7 @@ Pydantic schemas para o bridge server.
 """
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -31,7 +31,7 @@ class WebhookEvent(BaseModel):
     """Evento recebido do webhook da Evolution API."""
     event: str = Field(..., description="Tipo do evento")
     instance: str = Field(..., description="Nome da instância")
-    data: Optional[dict] = Field(default=None, description="Dados do evento")
+    data: Optional[Union[dict, list]] = Field(default=None, description="Dados do evento")
     sender: Optional[str] = Field(default=None, description="Remetente")
     timestamp: Optional[int] = Field(default=None, description="Timestamp do evento")
 
