@@ -150,12 +150,12 @@ async def _transcribe_audio(
             encrypted_data = resp.content
             logger.info(f"Áudio encriptado baixado: {len(encrypted_data)} bytes")
 
-            # Extrair mediaKey do dict string
+            # Extrair mediaKey raw bytes do dict string
             import ast
             mk_dict = ast.literal_eval(message.media_url)
             media_key = bytes(mk_dict.values())
 
-            # Desencriptar
+            # Desencriptar com algoritmo Baileys
             from services.whatsapp_crypto import decrypt_whatsapp_audio
             audio_bytes = decrypt_whatsapp_audio(encrypted_data, media_key)
             logger.info(f"Áudio desencriptado: {len(audio_bytes)} bytes, magic: {audio_bytes[:4]}")

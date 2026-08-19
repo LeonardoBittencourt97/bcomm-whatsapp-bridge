@@ -1,88 +1,68 @@
 """
 Decrypt WhatsApp audio files (.enc) using mediaKey.
-WhatsApp encrypts media with AES-256-CBC. This module handles decryption.
-"""
-import hashlib
-import hmac
-import logging
-import struct
+Based on the actual Baileys (@whiskeysockets/baileys) implementation.
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+Key derivation: HKDF-SHA256 to 112 bytes
+- IV: first 16 bytes of expanded key
+- Cipher key: bytes 16-48
+- MAC key: bytes 48-80
+
+The encrypted file has a 10-byte MAC suffix that must be removed before decryption.
+"""
+import base64
+import hashlib
+import logging
+
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 logger = logging.getLogger(__name__)
 
-# WhatsApp media type keys (from open-source Baileys/WhatsApp Web)
-MEDIA_TYPE_AUDIO = b"WhatsApp Audio Keys\x01"
 
-
-def decrypt_whatsapp_audio(encrypted_data: bytes, media_key: bytes) -> bytes:
+def decrypt_whatsapp_audio(encrypted_data: bytes, media_key_bytes: bytes) -> bytes:
     """
-    Decrypt WhatsApp audio file (.enc format).
-
-    WhatsApp audio encryption (Baileys implementation):
-    1. Derive 32-byte key from mediaKey using PBKDF2-HMAC-SHA1 (16 iterations)
-    2. Derive 32-byte IV key from mediaKey using PBKDF2-HMAC-SHA1 (16 iterations)
-    3. File starts with 10-byte IV prefix
-    4. Decrypt with AES-256-CBC using derived key + IV
+    Decrypt WhatsApp audio file using the exact Baileys algorithm.
 
     Args:
-        encrypted_data: Raw encrypted .enc file bytes
-        media_key: The mediaKey from the webhook (raw bytes)
+        encrypted_data: Raw encrypted .enc file bytes from WhatsApp CDN
+        media_key_bytes: Raw 32-byte mediaKey
 
     Returns:
         Decrypted audio bytes (OGG Opus)
     """
-    if len(encrypted_data) < 10:
-        raise ValueError("Encrypted data too short")
+    logger.info(f"Decrypting: {len(encrypted_data)} bytes, media_key: {len(media_key_bytes)} bytes")
 
-    logger.info(f"Decrypting: {len(encrypted_data)} bytes, media_key: {len(media_key)} bytes")
-
-    # Derive encryption key using PBKDF2
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA1(),
-        length=32,
-        salt=MEDIA_TYPE_AUDIO,
-        iterations=16,
+    # Derive 112 bytes using HKDF-SHA256 with info="WhatsApp Audio Keys"
+    hkdf = HKDF(
+        algorithm=hashes.SHA256(),
+        length=112,
+        salt=None,
+        info=b"WhatsApp Audio Keys",
     )
-    key = kdf.derive(media_key)
+    expanded = hkdf.derive(media_key_bytes)
 
-    # Extract IV (first 10 bytes) + zero-pad to 16 bytes
-    iv = encrypted_data[:10] + b"\x00" * 6
+    # Extract keys from expanded buffer
+    iv = expanded[:16]          # IV from HKDF, NOT from file
+    cipher_key = expanded[16:48]  # AES-256-CBC key
+    # mac_key = expanded[48:80]  # Not needed for decryption
 
-    # Decrypt using AES-256-CBC
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+    # Remove 10-byte MAC suffix from end of encrypted file
+    enc_data = encrypted_data[:-10]
+
+    # Verify alignment
+    if len(enc_data) % 16 != 0:
+        logger.warning(f"Encrypted data not aligned: {len(enc_data)} % 16 = {len(enc_data) % 16}")
+
+    # Decrypt with AES-256-CBC
+    cipher = Cipher(algorithms.AES(cipher_key), modes.CBC(iv))
     decryptor = cipher.decryptor()
-    decrypted = decryptor.update(encrypted_data[10:]) + decryptor.finalize()
+    decrypted = decryptor.update(enc_data) + decryptor.finalize()
 
-    logger.info(f"Decrypted: {len(decrypted)} bytes, first 4: {decrypted[:4]}")
+    # Remove PKCS7 padding
+    pad_len = decrypted[-1]
+    if 1 <= pad_len <= 16 and all(b == pad_len for b in decrypted[-pad_len:]):
+        decrypted = decrypted[:-pad_len]
 
-    # Check if it's valid OGG
-    if decrypted[:4] == b'OggS':
-        logger.info("✓ Valid OGG file detected")
-    else:
-        logger.warning(f"✗ Not OGG: {decrypted[:4]}")
-        # Try removing PKCS7 padding
-        pad_len = decrypted[-1]
-        if 1 <= pad_len <= 16 and all(b == pad_len for b in decrypted[-pad_len:]):
-            decrypted = decrypted[:-pad_len]
-            logger.info(f"Removed padding: {pad_len} bytes, now {len(decrypted)} bytes")
-            if decrypted[:4] == b'OggS':
-                logger.info("✓ Valid OGG after padding removal")
-
+    logger.info(f"Decrypted: {len(decrypted)} bytes, magic: {decrypted[:4]}")
     return decrypted
-
-
-def media_key_from_dict(mk_dict: dict) -> bytes:
-    """
-    Convert mediaKey dict (from webhook) to raw bytes.
-    WhatsApp sends mediaKey as dict with numeric keys representing byte values.
-
-    Args:
-        mk_dict: Dict like {0: 1, 1: 24, 2: 39, ...}
-
-    Returns:
-        Raw bytes
-    """
-    return bytes(mk_dict.values())
