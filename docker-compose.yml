@@ -1,0 +1,27 @@
+services:
+  bridge:
+    build: .
+    container_name: bcomm-whatsapp-bridge
+    restart: unless-stopped
+    networks:
+      - coolify
+    expose:
+      - "8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bridge.rule=Host(`wa-bot.agent-bcomm.space`)"
+      - "traefik.http.routers.bridge.entrypoints=https"
+      - "traefik.http.routers.bridge.tls=true"
+      - "traefik.http.routers.bridge.tls.certresolver=letsencrypt"
+      - "traefik.http.services.bridge.loadbalancer.server.port=8000"
+      - "traefik.http.routers.bridge-https.rule=Host(`wa-bot.agent-bcomm.space`)"
+      - "traefik.http.routers.bridge-https.entrypoints=http"
+      - "traefik.http.routers.bridge-https.middlewares=redirect-to-https"
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+
+networks:
+  coolify:
+    external: true
