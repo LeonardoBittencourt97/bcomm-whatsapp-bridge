@@ -2,3 +2,4 @@ fastapi==0.115.*
 uvicorn[standard]==0.34.*
 faster-whisper==1.1.*
 python-multipart
+requests
