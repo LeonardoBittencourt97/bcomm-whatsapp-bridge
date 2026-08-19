@@ -115,8 +115,8 @@ async def _transcribe_audio(
     """
     Transcreve áudio de uma mensagem.
 
-    Tenta download via URL direta primeiro,
-    depois fallback para Evolution API (mediaKey).
+    Tenta download via Evolution API (mediaKey desencripta),
+    depois fallback para URL direta se disponível.
 
     Returns:
         Texto transcrito ou None
@@ -125,11 +125,11 @@ async def _transcribe_audio(
         logger.warning("Mensagem de áudio sem media_url")
         return None
 
-    logger.info(f"Transcrevendo áudio: media_url={str(message.media_url)[:100]}")
+    logger.info(f"Transcrevendo áudio: media_url={str(message.media_url)[:80]}")
 
     audio_bytes = None
 
-    # Se media_url é uma string que parece URL, baixar diretamente
+    # Se media_url parece URL HTTP, tentar download direto
     if isinstance(message.media_url, str) and message.media_url.startswith("http"):
         try:
             client = await evolution._get_client()
@@ -140,10 +140,10 @@ async def _transcribe_audio(
         except Exception as e:
             logger.warning(f"Falha ao baixar via URL: {e}")
 
-    # Fallback: tentar via Evolution API downloadMedia (mediaKey)
-    if not audio_bytes:
+    # Fallback: usar Evolution API downloadMedia (desencripta com mediaKey)
+    if not audio_bytes and message.media_url:
         audio_bytes = await evolution.download_media(
-            media_key=str(message.media_url) if not isinstance(message.media_url, str) or not message.media_url.startswith("http") else "",
+            media_key=str(message.media_url),
             instance=message.instance,
         )
 

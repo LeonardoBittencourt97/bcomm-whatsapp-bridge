@@ -2,6 +2,7 @@
 Handler de webhooks da Evolution API.
 Extrai mensagens do payload e despacha para processamento.
 """
+import base64
 import logging
 from typing import Optional
 
@@ -66,8 +67,16 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
             message_type = "audio"
             media_type = "audio"
             content = "[áudio]"
-            # Priorizar URL (para download), mediaKey é binário
-            media_url = src["audioMessage"].get("url") or src["audioMessage"].get("mediaKey")
+            # Priorizar mediaKey (Evolution API desencripta), URL como fallback
+            mk = src["audioMessage"].get("mediaKey")
+            url = src["audioMessage"].get("url")
+            if isinstance(mk, dict):
+                # mediaKey é binário — converter para base64 para download via Evolution API
+                media_url = base64.b64encode(bytes(mk.values())).decode()
+            elif isinstance(mk, str):
+                media_url = mk
+            else:
+                media_url = url
             break
         elif "documentMessage" in src:
             message_type = "document"
