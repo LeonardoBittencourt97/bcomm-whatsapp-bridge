@@ -35,9 +35,9 @@ class Settings(BaseSettings):
     )
 
     # STT (Speech-to-Text via Whisper)
-    stt_api_url: str = Field(default="https://api.openai.com/v1", description="URL da API STT")
+    stt_api_url: str = Field(default="https://openrouter.ai/api/v1", description="URL da API STT (OpenRouter)")
     stt_api_key: str = Field(default="", description="API key para STT (usa OPENCODE_API_KEY se vazio)")
-    stt_model: str = Field(default="whisper-1", description="Modelo STT")
+    stt_model: str = Field(default="openai/whisper-1", description="Modelo STT (openai/whisper-1 ou openai/whisper-large-v3-turbo)")
 
     # Logging
     log_level: str = Field(default="INFO", description="Nível de log")
