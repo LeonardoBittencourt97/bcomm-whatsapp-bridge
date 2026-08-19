@@ -4,6 +4,7 @@ Responsável por enviar mensagens via WhatsApp.
 """
 import logging
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 
@@ -95,7 +96,7 @@ class EvolutionClient:
         """
         inst = instance or self.default_instance
         client = await self._get_client()
-        url = f"/chat/downloadMedia/{inst}/{media_key}"
+        url = f"/chat/downloadMedia/{inst}/{quote(media_key, safe='')}"
 
         logger.info(f"Baixando mídia: mediaKey={media_key}")
 
