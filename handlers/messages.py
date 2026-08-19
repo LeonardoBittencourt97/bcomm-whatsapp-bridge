@@ -140,27 +140,17 @@ async def _transcribe_audio(
         except Exception as e:
             logger.warning(f"Falha ao baixar via URL: {e}")
 
-    # Se media_url é dict string (mediaKey) e tem CDN URL, desencriptar
+    # Se media_url é dict string (mediaKey) e tem CDN URL, baixar direto
     if not audio_bytes and message.media_cdn_url:
         try:
-            # Baixar arquivo encriptado do CDN
+            # Baixar arquivo do CDN (WhatsApp envia OGG puro, não encriptado)
             client = await evolution._get_client()
             resp = await client.get(message.media_cdn_url)
             resp.raise_for_status()
-            encrypted_data = resp.content
-            logger.info(f"Áudio encriptado baixado: {len(encrypted_data)} bytes")
-
-            # Extrair mediaKey do dict string
-            import ast
-            mk_dict = ast.literal_eval(message.media_url)
-            media_key = bytes(mk_dict.values())
-
-            # Desencriptar
-            from services.whatsapp_crypto import decrypt_whatsapp_audio
-            audio_bytes = decrypt_whatsapp_audio(encrypted_data, media_key)
-            logger.info(f"Áudio desencriptado: {len(audio_bytes)} bytes")
+            audio_bytes = resp.content
+            logger.info(f"Áudio baixado do CDN: {len(audio_bytes)} bytes")
         except Exception as e:
-            logger.error(f"Erro ao desencriptar áudio: {e}")
+            logger.error(f"Erro ao baixar do CDN: {e}")
 
     if audio_bytes:
         # Detectar formato pelo magic bytes
