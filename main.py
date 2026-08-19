@@ -23,6 +23,7 @@ from models.schemas import (
 from services.evolution import EvolutionClient
 from services.hermes import HermesClient
 from services.llm import LLMClient
+from services.stt import STTClient
 
 # ── Logging ─────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ _start_time = time.time()
 evolution_client = EvolutionClient()
 hermes_client = HermesClient()
 llm_client = LLMClient()
+stt_client = STTClient()
 
 
 # ── Lifespan ────────────────────────────────────────────────────────
@@ -51,6 +53,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"   Instância:     {settings.evolution_instance}")
     logger.info(f"   Hermes:        {settings.hermes_profile}")
     logger.info(f"   LLM model:     {settings.opencode_model}")
+    logger.info(f"   STT model:     {settings.stt_model}")
     logger.info(f"   Porta:         {settings.port}")
 
     yield
@@ -58,6 +61,7 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Encerrando bridge server...")
     await evolution_client.close()
     await llm_client.close()
+    await stt_client.close()
 
 
 # ── App ─────────────────────────────────────────────────────────────
@@ -85,6 +89,7 @@ async def health_check():
     """Health check com status dos serviços dependentes."""
     evo_ok = await evolution_client.health_check()
     llm_ok = await llm_client.health_check()
+    stt_ok = await stt_client.health_check()
     hermes_ok = await hermes_client.is_available()
 
     status = "ok" if evo_ok else "degraded"
@@ -135,6 +140,7 @@ async def webhook_evolution(request: Request):
         evolution=evolution_client,
         hermes=hermes_client,
         llm=llm_client,
+        stt=stt_client,
         use_hermes=False,  # Toggle: True para usar Hermes CLI
     )
 

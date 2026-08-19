@@ -34,6 +34,11 @@ class Settings(BaseSettings):
         default=20, description="Máximo de mensagens por minuto por contato"
     )
 
+    # STT (Speech-to-Text via Whisper)
+    stt_api_url: str = Field(default="https://api.openai.com/v1", description="URL da API STT")
+    stt_api_key: str = Field(default="", description="API key para STT (usa OPENCODE_API_KEY se vazio)")
+    stt_model: str = Field(default="whisper-1", description="Modelo STT")
+
     # Logging
     log_level: str = Field(default="INFO", description="Nível de log")
 

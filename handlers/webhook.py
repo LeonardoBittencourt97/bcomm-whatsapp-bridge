@@ -43,6 +43,8 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
     message_type = "text"
     content = ""
     caption = None
+    media_url = None
+    media_type = None
 
     # Check both top-level message_data and the nested "message" dict
     sources = [message_data, inner]
@@ -55,12 +57,16 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
             break
         elif "imageMessage" in src:
             message_type = "image"
+            media_type = "image"
             content = src["imageMessage"].get("caption", "[imagem]")
             caption = src["imageMessage"].get("caption")
+            media_url = src["imageMessage"].get("mediaKey") or src["imageMessage"].get("url")
             break
         elif "audioMessage" in src:
             message_type = "audio"
+            media_type = "audio"
             content = "[áudio]"
+            media_url = src["audioMessage"].get("mediaKey") or src["audioMessage"].get("url")
             break
         elif "documentMessage" in src:
             message_type = "document"
@@ -86,6 +92,8 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
         instance=event.instance,
         message_type=message_type,
         caption=caption,
+        media_url=media_url,
+        media_type=media_type,
     )
 
     logger.info(

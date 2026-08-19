@@ -78,6 +78,42 @@ class EvolutionClient:
             logger.error(f"Erro ao enviar mensagem: {e}")
             return {"success": False, "error": str(e)}
 
+    async def download_media(
+        self,
+        media_key: str,
+        instance: Optional[str] = None,
+    ) -> Optional[bytes]:
+        """
+        Baixa mídia (áudio/imagem) via Evolution API.
+
+        Args:
+            media_key: Chave da mídia (mediaKey da mensagem)
+            instance: Nome da instância (usa default se omitido)
+
+        Returns:
+            Bytes do arquivo ou None em caso de erro
+        """
+        inst = instance or self.default_instance
+        client = await self._get_client()
+        url = f"/chat/downloadMedia/{inst}/{media_key}"
+
+        logger.info(f"Baixando mídia: mediaKey={media_key}")
+
+        try:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            logger.info(f"Mídia baixada: {len(resp.content)} bytes")
+            return resp.content
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"Erro HTTP ao baixar mídia: {e.response.status_code} - "
+                f"{e.response.text[:200]}"
+            )
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao baixar mídia: {e}")
+            return None
+
     async def health_check(self) -> bool:
         """Verifica se a Evolution API está acessível."""
         client = await self._get_client()

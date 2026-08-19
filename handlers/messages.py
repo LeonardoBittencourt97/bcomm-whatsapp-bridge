@@ -11,6 +11,7 @@ from models.schemas import IncomingMessage, LLMResponse, MessageSource
 from services.evolution import EvolutionClient
 from services.hermes import HermesClient
 from services.llm import LLMClient
+from services.stt import STTClient
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,6 @@ def _check_rate_limit(phone: str) -> bool:
     _rate_limits[phone].append(now)
     return True
 
-
 # ── Prompts ─────────────────────────────────────────────────────────
 
 def _load_prompt(name: str) -> str:
@@ -51,6 +51,109 @@ def _load_prompt(name: str) -> str:
         return ""
 
 
+# ── Fallback chain ──────────────────────────────────────────────────
+
+async def _try_llm_with_fallback(
+    llm: LLMClient,
+    prompt: str,
+    system_prompt: Optional[str],
+) -> tuple[Optional[str], Optional[str], str]:
+    """
+    Tenta gerar resposta via LLM com cadeia de fallback.
+
+    Returns:
+        (response_content, model_used, source_label)
+    """
+    # 1. Tentar com configuração padrão
+    result = await llm.generate(
+        prompt=prompt,
+        system_prompt=system_prompt or None,
+    )
+    if result:
+        return result["content"], result["model"], "llm"
+
+    logger.warning("LLM padrão falhou, tentando com temperatura baixa...")
+
+    # 2. Tentar com temperatura mais baixa
+    result = await llm.generate(
+        prompt=prompt,
+        system_prompt=system_prompt or None,
+        temperature=0.2,
+    )
+    if result:
+        return result["content"], result["model"], "llm_low_temp"
+
+    logger.warning("LLM com temperatura baixa falhou, tentando prompt simplificado...")
+
+    # 3. Tentar com prompt simplificado
+    simplified = "Responda de forma breve e direta: " + prompt
+    result = await llm.generate(
+        prompt=simplified,
+        system_prompt=None,
+        temperature=0.3,
+        max_tokens=512,
+    )
+    if result:
+        return result["content"], result["model"], "llm_simplified"
+
+    # 4. Fallback final — mensagem de ajuda
+    fallback_msg = (
+        "Desculpe, não consegui processar sua mensagem no momento. "
+        "Nossa equipe foi notificada. "
+        "Para contato direto, acesse: https://bcomm.com.br/contato"
+    )
+    return fallback_msg, None, "fallback"
+
+
+# ── Audio transcription ─────────────────────────────────────────────
+
+async def _transcribe_audio(
+    message: IncomingMessage,
+    evolution: EvolutionClient,
+    stt: STTClient,
+) -> Optional[str]:
+    """
+    Transcreve áudio de uma mensagem.
+
+    Tenta primeiro baixar via Evolution API (mediaKey),
+    depois fallback para URL direta se disponível.
+
+    Returns:
+        Texto transcrito ou None
+    """
+    if not message.media_url:
+        logger.warning("Mensagem de áudio sem media_url")
+        return None
+
+    logger.info(f"Transcrevendo áudio: media_url={message.media_url}")
+
+    # Tentar download via Evolution API (mediaKey)
+    audio_bytes = await evolution.download_media(
+        media_key=message.media_url,
+        instance=message.instance,
+    )
+
+    if audio_bytes:
+        # Detectar formato pelo magic bytes
+        filename = "audio.ogg"
+        if audio_bytes[:4] == b"RIFF":
+            filename = "audio.wav"
+        elif audio_bytes[:3] == b"ID3" or audio_bytes[:2] == b"\xff\xfb":
+            filename = "audio.mp3"
+        elif audio_bytes[:4] == b"fLaC":
+            filename = "audio.flac"
+
+        text = await stt.transcribe(
+            audio_bytes=audio_bytes,
+            filename=filename,
+        )
+        if text:
+            return text
+
+    logger.error("Falha ao transcrever áudio")
+    return None
+
+
 # ── Processamento ───────────────────────────────────────────────────
 
 async def process_incoming_message(
@@ -58,6 +161,7 @@ async def process_incoming_message(
     evolution: EvolutionClient,
     hermes: HermesClient,
     llm: LLMClient,
+    stt: Optional[STTClient] = None,
     use_hermes: bool = False,
 ) -> LLMResponse:
     """
@@ -68,6 +172,7 @@ async def process_incoming_message(
         evolution: Cliente Evolution API
         hermes: Cliente Hermes CLI
         llm: Cliente LLM
+        stt: Cliente STT (Speech-to-Text)
         use_hermes: Se True, usa Hermes CLI ao invés de LLM direto
 
     Returns:
@@ -84,6 +189,22 @@ async def process_incoming_message(
 
     logger.info(f"Processando mensagem de {message.from_number}: {message.content[:100]}...")
 
+    # ── Transcrever áudio se necessário ──────────────────────────────
+    content = message.content
+    transcription_note = None
+
+    if message.message_type == "audio" and message.media_url and stt:
+        logger.info(f"Áudio detectado, transcrevendo... media_url={message.media_url}")
+        transcribed = await _transcribe_audio(message, evolution, stt)
+
+        if transcribed:
+            content = transcribed
+            transcription_note = transcribed
+            logger.info(f"Áudio transcrito: {transcribed[:100]}...")
+        else:
+            content = "[Não foi possível transcrever o áudio]"
+            logger.warning("Falha na transcrição do áudio")
+
     # Carregar prompt de sistema
     system_prompt = _load_prompt("atendimento")
 
@@ -94,7 +215,7 @@ async def process_incoming_message(
     # Tentar Hermes CLI primeiro (se habilitado)
     if use_hermes:
         hermes_response = await hermes.chat(
-            f"Usuário WhatsApp {message.from_number} diz: {message.content}"
+            f"Usuário WhatsApp {message.from_number} diz: {content}"
         )
         if hermes_response:
             response_content = hermes_response
@@ -102,18 +223,23 @@ async def process_incoming_message(
         else:
             logger.warning("Hermes falhou, fallback para LLM")
 
-    # Fallback: LLM direto
+    # Fallback: LLM direto com cadeia de fallback
     if response_content is None:
-        llm_result = await llm.generate(
-            prompt=message.content,
-            system_prompt=system_prompt or None,
+        response_content, model_used, source_label = await _try_llm_with_fallback(
+            llm=llm,
+            prompt=content,
+            system_prompt=system_prompt,
         )
-        if llm_result:
-            response_content = llm_result["content"]
-            model_used = llm_result["model"]
-        else:
-            response_content = "Desculpe, não consegui processar sua mensagem no momento. Tente novamente mais tarde."
+        if source_label == "fallback":
             source = MessageSource.MANUAL
+        elif source_label == "llm_simplified":
+            source = MessageSource.LLM
+        else:
+            source = MessageSource.LLM
+
+    # Adicionar nota de transcrição se aplicável
+    if transcription_note:
+        response_content = f"(Áudio transcrito: {transcription_note})\n\n{response_content}"
 
     elapsed_ms = (time.monotonic() - start) * 1000
 

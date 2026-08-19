@@ -46,6 +46,8 @@ class IncomingMessage(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     message_type: str = Field(default="text", description="Tipo: text, image, etc.")
     caption: Optional[str] = Field(default=None, description="Legenda (para mídia)")
+    media_url: Optional[str] = Field(default=None, description="URL/chave da mídia")
+    media_type: Optional[str] = Field(default=None, description="Tipo de mídia: audio, image, video")
 
 
 # ── LLM ────────────────────────────────────────────────────────────
