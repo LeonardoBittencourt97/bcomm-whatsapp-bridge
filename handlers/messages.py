@@ -266,9 +266,8 @@ async def process_incoming_message(
         else:
             source = MessageSource.LLM
 
-    # Adicionar nota de transcrição se aplicável
-    if transcription_note:
-        response_content = f"(Áudio transcrito: {transcription_note})\n\n{response_content}"
+    # NÃO adicionar nota de transcrição na resposta ao cliente
+    # A transcrição já foi usada como contexto para o LLM
 
     elapsed_ms = (time.monotonic() - start) * 1000
 
