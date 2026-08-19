@@ -17,6 +17,24 @@ services:
     networks:
       - bcomm
 
+  stt:
+    build: ./stt-server
+    container_name: bcomm-stt
+    restart: unless-stopped
+    expose:
+      - "8001"
+    environment:
+      - WHISPER_MODEL=small
+      - WHISPER_DEVICE=cpu
+      - WHISPER_COMPUTE_TYPE=int8
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    networks:
+      - bcomm
+
 networks:
   bcomm:
     driver: bridge
