@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     )
 
     # STT (Speech-to-Text via faster-whisper local)
-    stt_api_url: str = Field(default="http://stt:8001/v1", description="URL da API STT (faster-whisper local)")
+    stt_api_url: str = Field(default="https://stt.agent-bcomm.space/v1", description="URL da API STT (faster-whisper local)")
     stt_api_key: str = Field(default="", description="API key para STT (não necessário para local)")
     stt_model: str = Field(default="whisper-1", description="Modelo STT (ignorado pelo faster-whisper local)")
 
