@@ -21,6 +21,9 @@ services:
       - .env
     environment:
       - PORT=8000
+    volumes:
+      - /opt/hermes:/opt/hermes:ro
+      - /home/hermes/.hermes:/home/hermes/.hermes:ro
 
 networks:
   coolify:

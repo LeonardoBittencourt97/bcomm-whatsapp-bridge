@@ -10,6 +10,9 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
+# Caminho do Hermes CLI dentro do container (montado como read-only)
+HERMES_CLI = "/opt/hermes/.venv/bin/hermes"
+
 
 class HermesClient:
     """Wrapper assíncrono para o CLI do Hermes."""
@@ -29,11 +32,11 @@ class HermesClient:
             Resposta do Hermes ou None em caso de erro
         """
         cmd = [
-            "/opt/hermes/.venv/bin/hermes",
+            HERMES_CLI,
             "chat",
             "--query", message,
             "--profile", self.profile,
-            "--output", "text",
+            "--cli",
         ]
 
         logger.info(f"Enviando ao Hermes (profile={self.profile}): {message[:80]}...")
@@ -55,6 +58,17 @@ class HermesClient:
                 return None
 
             response = stdout.decode().strip()
+
+            # Extrair apenas a resposta do Hermes (remover markers)
+            if "╭─" in response and "╰─" in response:
+                start = response.index("╭─")
+                end = response.index("╰─") + len("╰─")
+                response = response[start:end]
+                # Limpar markers
+                response = response.replace("╭─ ⚕ Hermes ───────────────────────────────────────────────────────────────────╮", "")
+                response = response.replace("╰──────────────────────────────────────────────────────────────────────────────────╯", "")
+                response = response.strip()
+
             logger.info(f"Hermes respondeu ({len(response)} chars)")
             return response
 
@@ -64,7 +78,7 @@ class HermesClient:
                 proc.kill()
             return None
         except FileNotFoundError:
-            logger.error("Hermes CLI não encontrado no PATH")
+            logger.error(f"Hermes CLI não encontrado: {HERMES_CLI}")
             return None
         except Exception as e:
             logger.error(f"Erro ao executar Hermes CLI: {e}")
@@ -74,7 +88,7 @@ class HermesClient:
         """Verifica se o Hermes CLI está disponível."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                "/opt/hermes/.venv/bin/hermes", "--version",
+                HERMES_CLI, "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
