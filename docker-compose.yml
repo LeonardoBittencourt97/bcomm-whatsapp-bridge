@@ -1,7 +1,6 @@
 services:
   bridge:
     build: .
-    container_name: bcomm-whatsapp-bridge
     restart: unless-stopped
     networks:
       - coolify
@@ -28,6 +27,12 @@ services:
       - /home/hermes/.hermes:/home/hermes/.hermes
       - bridge-data:/app/data
       - /data/clients:/data/clients:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   coolify:
