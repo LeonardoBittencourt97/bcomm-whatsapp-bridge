@@ -1,93 +1,57 @@
 # bcomm-whatsapp-bridge
 
-Bridge entre Evolution API (WhatsApp) e Hermes/LLM para atendimento inteligente.
+Bridge server entre Evolution API (WhatsApp) e Hermes/LLM para automação de atendimento.
 
-## Arquitetura
+## Estrutura
 
 ```
-WhatsApp → Evolution API → Bridge (FastAPI) → Hermes/LLM → Resposta
-                              ↓
-                    STT (faster-whisper) → Transcrição
+bcomm-whatsapp-bridge/
+├── main.py              # FastAPI app principal
+├── config.py            # Configurações (env vars)
+├── services/            # Clientes externos
+│   ├── evolution.py     # Evolution API
+│   ├── hermes.py        # Hermes CLI
+│   └── llm.py           # LLM (OpenAI-compatible)
+├── handlers/            # Lógica de negócio
+│   ├── webhook.py       # Extração de eventos
+│   └── messages.py      # Processamento + envio
+├── models/              # Schemas Pydantic
+├── prompts/             # Prompts por domínio
+├── tests/               # Testes
+├── Dockerfile
+└── docker-compose.yml
 ```
-
-## Funcionalidades
-
-- ✅ Atendimento via WhatsApp
-- ✅ Transcrição de áudio (faster-whisper)
-- ✅ Descriptografia de áudio WhatsApp (HKDF-SHA256)
-- ✅ Hermes Agent com memória de conversação
-- ✅ Google Calendar para agendamento
-- ✅ Multi-tenant (múltiplos clientes)
 
 ## Setup
 
-### 1. Clone o repositório
-```bash
-git clone https://github.com/LeonardoBittencourt97/bcomm-whatsapp-bridge.git
-cd bcomm-whatsapp-bridge
-```
-
-### 2. Configure as variáveis de ambiente
 ```bash
 cp .env.example .env
 # Edite .env com suas credenciais
+
+# Local
+pip install -r requirements.txt
+python main.py
+
+# Docker
+docker compose up --build
 ```
-
-### 3. Deploy no Coolify
-- Crie um novo serviço Docker Compose
-- Adicione as variáveis de ambiente
-- Configure os domínios
-
-## Multi-Tenant
-
-Para adicionar um novo cliente:
-
-1. **Edite `config/clients.yaml`:**
-```yaml
-clients:
-  NOVO_CLIENTE:
-    name: "Nome do Cliente"
-    hermes_profile: "perfil-hermes"
-    prompt_file: "prompts/novo_cliente/atendimento.md"
-    timezone: "America/Sao_Paulo"
-    business_hours:
-      start: "09:00"
-      end: "18:00"
-      days: [mon, tue, wed, thu, fri]
-    meeting_duration: 30
-    welcome_message: "Olá! Bem-vindo à empresa."
-```
-
-2. **Crie o diretório de prompts:**
-```bash
-mkdir -p prompts/novo_cliente
-# Crie atendimento.md com o prompt do cliente
-```
-
-3. **Crie a instância Evolution API** para o número WhatsApp do cliente
-
-4. **Deploy** — o bridge identifica o cliente pela instância
 
 ## Endpoints
 
-- `GET /health` — Health check
-- `GET /clients` — Lista clientes configurados
-- `POST /webhook/evolution` — Webhook da Evolution API
-- `POST /send` — Enviar mensagem manual
+| Método | Path              | Descrição                    |
+|--------|-------------------|------------------------------|
+| GET    | `/health`         | Health check                 |
+| POST   | `/webhook/evolution` | Recebe webhooks Evolution API |
+| POST   | `/send`           | Enviar mensagem manual       |
+| GET    | `/docs`           | Swagger UI                   |
 
-## Desenvolvimento
+## Fluxo
 
-```bash
-# Instalar dependências
-pip install -r requirements.txt
+1. Evolution API envia webhook → `/webhook/evolution`
+2. Handler extrai mensagem do payload
+3. Processa via Hermes CLI ou LLM direto
+4. Envia resposta via Evolution API
 
-# Rodar localmente
-python main.py
+## Variáveis de Ambiente
 
-# Testes
-pytest tests/
-```
-
-## Licença
-
-MIT
+Ver `.env.example` para referência completa.
