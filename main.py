@@ -170,6 +170,28 @@ async def send_message(req: SendMessageRequest):
     )
 
 
+@app.post("/admin/clear-sessions")
+async def clear_sessions(phone: Optional[str] = None):
+    """
+    Limpa sessões do Hermes.
+    Se phone for especificado, limpa apenas essa sessão.
+    Caso contrário, limpa todas.
+    """
+    from services.hermes import _load_sessions, _save_sessions
+    
+    sessions = _load_sessions()
+    
+    if phone:
+        if phone in sessions:
+            del sessions[phone]
+            _save_sessions(sessions)
+            return {"status": "cleared", "phone": phone}
+        return {"status": "not_found", "phone": phone}
+    else:
+        _save_sessions({})
+        return {"status": "cleared_all", "count": len(sessions)}
+
+
 @app.get("/")
 async def root():
     """Root endpoint."""

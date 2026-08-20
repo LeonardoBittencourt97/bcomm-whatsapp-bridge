@@ -182,21 +182,21 @@ async def _send_typing_indicator(
     """
     Envia indicador "digitando..." de forma CONTÍNUA.
     
-    Envia composição SEM delay (delay=0) a cada 3 segundos.
+    Envia composição com delay de 2 segundos.
     A API WhatsApp mantém o indicador visível por ~3-5 segundos.
+    Repete até atingir a duração desejada.
     """
-    interval = 3.0  # reenviar a cada 3 segundos
+    compose_duration = 2.0  # mantém composing por 2 segundos
     elapsed = 0.0
     
     logger.info(f"Indicador 'digitando...' ativo por {duration:.1f}s")
     
     while elapsed < duration:
         remaining = duration - elapsed
-        chunk = min(interval, remaining)
+        chunk = min(compose_duration, remaining)
         
-        # Enviar composição SEM delay para manter contínuo
-        await evolution.send_presence(phone, presence="composing", delay=0)
-        await asyncio.sleep(chunk)
+        # Enviar composição com delay para manter indicador visível
+        await evolution.send_presence(phone, presence="composing", delay=int(chunk))
         elapsed += chunk
     
     logger.info(f"Indicador 'digitando...' finalizado")
@@ -321,7 +321,7 @@ async def process_incoming_message(
     Interface pública: adiciona mensagem ao batch e agenda processamento.
     
     Lógica:
-    - Espera BATCH_WAIT_SECONDS (30s) por mensagens adicionais
+    - Espera BATCH_WAIT_SECONDS (10s) por mensagens adicionais
     - Se outra mensagem chegar, reseta o timer
     - Se tempo total exceder BATCH_MAX_WAIT (2,5min), processa imediatamente
     """
