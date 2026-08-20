@@ -43,7 +43,8 @@ def _calculate_typing_delay(response_length: int) -> float:
     - 40 WPM = 240 chars/min = 4 chars/seg
     - 50 WPM = 300 chars/min = 5 chars/seg
     
-    Retorna delay entre 4-15 segundos.
+    Tempo de reação: 0.5-2s
+    Range realista: sem limite máximo artificial.
     """
     if response_length <= 0:
         return 2.0
@@ -54,9 +55,9 @@ def _calculate_typing_delay(response_length: int) -> float:
     time_min = response_length / chars_per_sec_max
     time_max = response_length / chars_per_sec_min
     
-    reaction_time = random.uniform(0.5, 1.5)
+    reaction_time = random.uniform(0.5, 2.0)
     delay = reaction_time + random.uniform(time_min, time_max)
-    delay = max(4.0, min(delay, 15.0))
+    delay = max(4.0, delay)
     
     return round(delay, 1)
 
@@ -259,8 +260,22 @@ async def process_incoming_message(
     if settings.human_delay_enabled and response_content:
         typing_delay = _calculate_typing_delay(len(response_content))
         
-        # Enviar indicador "digitando..." periodicamente
-        await _send_typing_indicator(evolution, message.from_number, typing_delay)
+        # Subtrair o tempo já gasto no processamento
+        elapsed_so_far = time.monotonic() - start
+        remaining_delay = max(0.0, typing_delay - elapsed_so_far)
+        
+        if remaining_delay > 0:
+            logger.info(
+                f"Tempo total estimado: {typing_delay:.1f}s, "
+                f"processamento: {elapsed_so_far:.1f}s, "
+                f"aguardando mais: {remaining_delay:.1f}s"
+            )
+            await _send_typing_indicator(evolution, message.from_number, remaining_delay)
+        else:
+            logger.info(
+                f"Processamento ({elapsed_so_far:.1f}s) já excedeu "
+                f"tempo estimado ({typing_delay:.1f}s), enviando resposta"
+            )
 
     elapsed_ms = (time.monotonic() - start) * 1000
 
