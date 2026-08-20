@@ -25,7 +25,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/hermes/.hermes:/home/hermes/.hermes
+      - bridge-data:/app/data
 
 networks:
   coolify:
     external: true
+
+volumes:
+  bridge-data:
