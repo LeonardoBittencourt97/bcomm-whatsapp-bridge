@@ -141,7 +141,7 @@ async def webhook_evolution(request: Request):
         hermes=hermes_client,
         llm=llm_client,
         stt=stt_client,
-        use_hermes=True,  # Toggle: True para usar Hermes CLI
+        use_hermes=False,  # Toggle: True para usar Hermes CLI
     )
 
     return {
