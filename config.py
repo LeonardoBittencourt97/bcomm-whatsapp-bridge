@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     stt_api_key: str = Field(default="", description="API key para STT (não necessário para local)")
     stt_model: str = Field(default="whisper-1", description="Modelo STT (ignorado pelo faster-whisper local)")
 
+    # Multi-tenant
+    enable_multi_tenant: bool = Field(default=False, description="Enable multi-tenant mode")
+    default_client: str = Field(default="BCOMM", description="Default client for unknown instances")
+
     # Logging
     log_level: str = Field(default="INFO", description="Nível de log")
 

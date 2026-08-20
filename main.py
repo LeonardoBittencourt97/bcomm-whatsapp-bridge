@@ -2,6 +2,7 @@
 bcomm-whatsapp-bridge — FastAPI server
 
 Bridge entre Evolution API (WhatsApp) e Hermes/LLM.
+Suporta multi-tenant via config/clients.yaml.
 """
 import logging
 import time
@@ -12,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
+from config.client_loader import list_clients, get_client_config
 from handlers.messages import process_incoming_message
 from handlers.webhook import extract_message
 from models.schemas import (
@@ -25,8 +27,7 @@ from services.hermes import HermesClient
 from services.llm import LLMClient
 from services.stt import STTClient
 
-# ── Logging ─────────────────────────────────────────────────────────
-
+# Logging
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
@@ -34,8 +35,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("bridge")
 
-# ── Global state ────────────────────────────────────────────────────
-
+# Global state
 _start_time = time.time()
 evolution_client = EvolutionClient()
 hermes_client = HermesClient()
@@ -43,28 +43,21 @@ llm_client = LLMClient()
 stt_client = STTClient()
 
 
-# ── Lifespan ────────────────────────────────────────────────────────
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup / shutdown hooks."""
     logger.info("🚀 Bridge server iniciando...")
     logger.info(f"   Evolution API: {settings.evolution_api_url}")
     logger.info(f"   Instância:     {settings.evolution_instance}")
-    logger.info(f"   Hermes:        {settings.hermes_profile}")
     logger.info(f"   LLM model:     {settings.opencode_model}")
     logger.info(f"   STT model:     {settings.stt_model}")
+    logger.info(f"   Multi-tenant:  {settings.enable_multi_tenant}")
     logger.info(f"   Porta:         {settings.port}")
-
     yield
-
     logger.info("🛑 Encerrando bridge server...")
     await evolution_client.close()
     await llm_client.close()
     await stt_client.close()
 
-
-# ── App ─────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="bcomm-whatsapp-bridge",
@@ -82,18 +75,13 @@ app.add_middleware(
 )
 
 
-# ── Endpoints ───────────────────────────────────────────────────────
-
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check com status dos serviços dependentes."""
     evo_ok = await evolution_client.health_check()
     llm_ok = await llm_client.health_check()
     stt_ok = await stt_client.health_check()
     hermes_ok = await hermes_client.is_available()
-
     status = "ok" if evo_ok else "degraded"
-
     return HealthResponse(
         status=status,
         evolution_api="ok" if evo_ok else "unavailable",
@@ -101,19 +89,26 @@ async def health_check():
     )
 
 
+@app.get("/clients")
+async def list_configured_clients():
+    """Lista clientes configurados no multi-tenant."""
+    clients = list_clients()
+    return {
+        "clients": [
+            {"name": c, "config": get_client_config(c)}
+            for c in clients
+        ],
+        "count": len(clients),
+    }
+
+
 @app.post("/webhook/evolution")
 async def webhook_evolution(request: Request):
-    """
-    Endpoint principal de webhook da Evolution API.
-
-    Recebe eventos, extrai mensagens e despacha para processamento.
-    """
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # Parse do evento
     try:
         event = WebhookEvent(
             event=body.get("event", body.get("eventName", "unknown")),
@@ -128,20 +123,18 @@ async def webhook_evolution(request: Request):
 
     logger.info(f"Webhook recebido: event={event.event}, instance={event.instance}")
 
-    # Extrair mensagem
     message = extract_message(event)
     if message is None:
         return {"status": "ignored", "event": event.event}
 
-    # Processar (assíncrono, sem bloquear o webhook)
-    # Em produção, usar Celery/ARQ para filas
     response = await process_incoming_message(
         message=message,
         evolution=evolution_client,
         hermes=hermes_client,
         llm=llm_client,
         stt=stt_client,
-        use_hermes=True,  # Toggle: True para usar Hermes CLI
+        use_hermes=True,
+        instance_name=event.instance,
     )
 
     return {
@@ -154,15 +147,11 @@ async def webhook_evolution(request: Request):
 
 @app.post("/send", response_model=SendMessageResponse)
 async def send_message(req: SendMessageRequest):
-    """
-    Enviar mensagem manualmente via Evolution API.
-    """
     result = await evolution_client.send_text(
         to_number=req.to_number,
         message=req.message,
         instance=req.instance,
     )
-
     return SendMessageResponse(
         success=result["success"],
         message_id=result.get("message_id"),
@@ -172,7 +161,6 @@ async def send_message(req: SendMessageRequest):
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
     return {
         "service": "bcomm-whatsapp-bridge",
         "version": "1.0.0",
@@ -180,11 +168,8 @@ async def root():
     }
 
 
-# ── Run ─────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
