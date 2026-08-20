@@ -42,7 +42,7 @@ _message_batches: dict[str, list[IncomingMessage]] = {}
 _batch_timers: dict[str, asyncio.Task] = {}
 _batch_start: dict[str, float] = {}  # Timestamp do início do batch
 
-BATCH_WAIT_SECONDS = 30.0  # Espera 30s por mensagens adicionais
+BATCH_WAIT_SECONDS = 10.0  # Espera 10s por mensagens adicionais
 BATCH_MAX_WAIT = 150.0  # Máximo 2,5 minutos de espera total
 
 
