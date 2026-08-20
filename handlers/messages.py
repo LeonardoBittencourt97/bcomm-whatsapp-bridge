@@ -35,6 +35,42 @@ def _check_rate_limit(phone: str) -> bool:
     return True
 
 
+def _calculate_typing_delay(response_length: int) -> float:
+    """
+    Calcula delay de digitação baseado no tamanho da resposta.
+    
+    Humano digita entre 40-50 WPM (palavras por minuto).
+    Média de 5 caracteres por palavra + espaço = 6 chars/palavra.
+    
+    - 40 WPM = 240 chars/min = 4 chars/seg (digitação lenta)
+    - 50 WPM = 300 chars/min = 5 chars/seg (digitação rápida)
+    
+    Retorna delay entre 4-10 segundos para mensagens curtas.
+    """
+    if response_length <= 0:
+        return 2.0
+    
+    # Caracteres por segundo (4-5 chars/seg)
+    chars_per_sec_min = 4.0  # digitação lenta
+    chars_per_sec_max = 5.0  # digitação rápida
+    
+    # Calcular tempo baseado no tamanho
+    time_min = response_length / chars_per_sec_max  # tempo mais rápido
+    time_max = response_length / chars_per_sec_min  # tempo mais lento
+    
+    # Adicionar tempo de reação (0.5-1.5s)
+    reaction_time = random.uniform(0.5, 1.5)
+    
+    # Delay final com variação aleatória
+    delay = reaction_time + random.uniform(time_min, time_max)
+    
+    # Limitar entre 4-10 segundos para mensagens curtas
+    # Para mensagens longas, pode ser mais
+    delay = max(4.0, min(delay, 15.0))
+    
+    return round(delay, 1)
+
+
 # ── Prompts ─────────────────────────────────────────────────────────
 
 def _load_prompt(name: str) -> str:
@@ -157,9 +193,6 @@ async def process_incoming_message(
 
     logger.info(f"Processando mensagem de {message.from_number}: {message.content[:100]}...")
 
-    # ── Enviar indicador "digitando..." ────────────────────────────
-    await evolution.send_presence(message.from_number, presence="composing")
-
     # ── Transcrever áudio se necessário ──────────────────────────────
     content = message.content
     transcription_note = None
@@ -203,11 +236,20 @@ async def process_incoming_message(
         else:
             source = MessageSource.LLM
 
-    # ── Delay humanizado antes de enviar ──────────────────────────
-    if settings.human_delay_enabled:
-        delay = random.uniform(settings.human_delay_min, settings.human_delay_max)
-        logger.info(f"Delay humanizado: {delay:.1f}s")
-        await asyncio.sleep(delay)
+    # ── Calcular delay de digitação baseado no tamanho da resposta ──
+    if settings.human_delay_enabled and response_content:
+        typing_delay = _calculate_typing_delay(len(response_content))
+        
+        # Enviar indicador "digitando..." com duração calculada
+        logger.info(f"Enviando indicador 'digitando...' por {typing_delay}s (resposta: {len(response_content)} chars)")
+        await evolution.send_presence(
+            message.from_number, 
+            presence="composing", 
+            delay=int(typing_delay)
+        )
+        
+        # Aguardar o tempo de digitação
+        await asyncio.sleep(typing_delay)
 
     elapsed_ms = (time.monotonic() - start) * 1000
 

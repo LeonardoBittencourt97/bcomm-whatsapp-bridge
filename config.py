@@ -41,8 +41,6 @@ class Settings(BaseSettings):
 
     # Humanized response
     human_delay_enabled: bool = Field(default=True, description="Adicionar delay humanizado antes de enviar resposta")
-    human_delay_min: float = Field(default=2.0, description="Delay mínimo em segundos")
-    human_delay_max: float = Field(default=5.0, description="Delay máximo em segundos")
 
     # Logging
     log_level: str = Field(default="INFO", description="Nível de log")

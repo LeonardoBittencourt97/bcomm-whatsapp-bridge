@@ -73,6 +73,7 @@ class EvolutionClient:
         self,
         to_number: str,
         presence: str = "composing",
+        delay: int = 5,
         instance: Optional[str] = None,
     ) -> bool:
         """
@@ -81,6 +82,7 @@ class EvolutionClient:
         Args:
             to_number: Número do destinatário
             presence: "composing" (digitando), "recording" (gravando), "paused" (parou)
+            delay: Duração em segundos
             instance: Nome da instância
             
         Returns:
@@ -92,14 +94,15 @@ class EvolutionClient:
         payload = {
             "number": to_number,
             "presence": presence,
+            "delay": delay,
         }
 
-        url = f"/chat/presence/{inst}"
+        url = f"/chat/sendPresence/{inst}"
 
         try:
             resp = await client.post(url, json=payload)
             resp.raise_for_status()
-            logger.debug(f"Presença enviada: {presence} para {to_number}")
+            logger.debug(f"Presença enviada: {presence} por {delay}s para {to_number}")
             return True
         except Exception as e:
             logger.debug(f"Erro ao enviar presença (ignorado): {e}")
