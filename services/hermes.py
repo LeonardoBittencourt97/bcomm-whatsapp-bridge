@@ -29,9 +29,9 @@ class HermesClient:
             Resposta do Hermes ou None em caso de erro
         """
         cmd = [
-            "hermes",
+            "/opt/hermes/.venv/bin/hermes",
             "chat",
-            "--message", message,
+            "--query", message,
             "--profile", self.profile,
             "--output", "text",
         ]
@@ -74,7 +74,7 @@ class HermesClient:
         """Verifica se o Hermes CLI está disponível."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                "hermes", "--version",
+                "/opt/hermes/.venv/bin/hermes", "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
