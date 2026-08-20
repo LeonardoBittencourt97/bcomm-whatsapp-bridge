@@ -4,7 +4,7 @@ WORKDIR /app
 
 # System deps (curl + docker CLI)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl docker.io && \
+    apt-get install -y --no-install-recommends curl docker-cli && \
     rm -rf /var/lib/apt/lists/*
 
 # Python deps
