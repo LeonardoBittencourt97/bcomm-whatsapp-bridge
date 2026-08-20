@@ -14,12 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App code
 COPY . .
 
-# Non-root user (create docker group first)
-RUN groupadd -f docker && \
-    useradd --create-home appuser && \
-    usermod -aG docker appuser
-USER appuser
-
+# Run as root for Docker socket access
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

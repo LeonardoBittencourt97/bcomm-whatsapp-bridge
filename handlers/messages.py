@@ -244,7 +244,7 @@ async def process_incoming_message(
     # Tentar Hermes CLI primeiro (se habilitado)
     if use_hermes:
         hermes_response = await hermes.chat(
-            f"Usuário WhatsApp {message.from_number} diz: {content}"
+            f"Usuário WhatsApp {message.from_number} diz: {content}", phone=message.from_number
         )
         if hermes_response:
             response_content = hermes_response
