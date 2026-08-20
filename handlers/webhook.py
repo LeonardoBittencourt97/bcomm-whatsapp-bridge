@@ -4,11 +4,35 @@ Extrai mensagens do payload e despacha para processamento.
 """
 import base64
 import logging
+import time
 from typing import Optional
 
 from models.schemas import WebhookEvent, IncomingMessage
 
 logger = logging.getLogger(__name__)
+
+# ── Deduplicação ──────────────────────────────────────────────────
+# Armazena IDs de mensagens já processadas (TTL: 5 minutos)
+_processed_messages: dict[str, float] = {}
+_DEDUP_TTL = 300.0  # 5 minutos
+
+
+def _is_duplicate(message_id: str) -> bool:
+    """Verifica se mensagem já foi processada (deduplicação)."""
+    now = time.time()
+    
+    # Limpar entradas expiradas
+    expired = [k for k, v in _processed_messages.items() if now - v > _DEDUP_TTL]
+    for k in expired:
+        del _processed_messages[k]
+    
+    # Verificar se já existe
+    if message_id in _processed_messages:
+        return True
+    
+    # Marcar como processada
+    _processed_messages[message_id] = now
+    return False
 
 
 def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
@@ -112,6 +136,11 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
         media_type=media_type,
         media_cdn_url=cdn_url,
     )
+
+    # ── Deduplicação ──────────────────────────────────────────────
+    if _is_duplicate(msg.message_id):
+        logger.debug(f"Mensagem duplicada ignorada: id={msg.message_id}")
+        return None
 
     logger.info(
         f"Mensagem extraída: id={msg.message_id}, "
