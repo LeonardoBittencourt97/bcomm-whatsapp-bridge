@@ -30,7 +30,7 @@ class EvolutionClient:
                     "apikey": self.api_key,
                     "Content-Type": "application/json",
                 },
-                timeout=30.0,
+                timeout=180.0,  # 3 minutos para suportar delays longos
             )
         return self._client
 
