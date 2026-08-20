@@ -3,6 +3,7 @@ bcomm-whatsapp-bridge — FastAPI server
 
 Bridge entre Evolution API (WhatsApp) e Hermes/LLM.
 """
+import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -105,8 +106,9 @@ async def health_check():
 async def webhook_evolution(request: Request):
     """
     Endpoint principal de webhook da Evolution API.
-
+    
     Recebe eventos, extrai mensagens e despacha para processamento.
+    Retorna imediatamente — processamento acontece em background via batch.
     """
     try:
         body = await request.json()
@@ -133,22 +135,20 @@ async def webhook_evolution(request: Request):
     if message is None:
         return {"status": "ignored", "event": event.event}
 
-    # Processar (assíncrono, sem bloquear o webhook)
-    # Em produção, usar Celery/ARQ para filas
-    response = await process_incoming_message(
+    # Processar em background (batch aguarda mensagens adicionais)
+    # Não usa await — retorna imediatamente
+    asyncio.create_task(process_incoming_message(
         message=message,
         evolution=evolution_client,
         hermes=hermes_client,
         llm=llm_client,
         stt=stt_client,
         use_hermes=True,  # Toggle: True para usar Hermes CLI
-    )
+    ))
 
     return {
-        "status": "processed",
+        "status": "queued",
         "message_id": message.message_id,
-        "source": response.source.value,
-        "processing_time_ms": response.processing_time_ms,
     }
 
 

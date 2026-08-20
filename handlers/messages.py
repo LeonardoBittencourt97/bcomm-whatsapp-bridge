@@ -35,6 +35,15 @@ def _check_rate_limit(phone: str) -> bool:
     return True
 
 
+# ── Message Batching ───────────────────────────────────────────────
+# Agrupa mensagens do mesmo usuário antes de processar
+
+_message_batches: dict[str, list[IncomingMessage]] = {}
+_batch_timers: dict[str, asyncio.Task] = {}
+
+BATCH_WAIT_SECONDS = 3.0  # Espera 3s por mensagens adicionais
+
+
 def _calculate_typing_delay(response_length: int) -> float:
     """
     Calcula delay de digitação baseado no tamanho da resposta.
@@ -191,39 +200,48 @@ async def _send_typing_indicator(
     logger.info(f"Indicador 'digitando...' finalizado")
 
 
-# ── Processamento ───────────────────────────────────────────────────
-async def process_incoming_message(
-    message: IncomingMessage,
+# ── Processamento de batch ─────────────────────────────────────────
+
+async def _process_batch(
+    phone: str,
+    messages: list[IncomingMessage],
     evolution: EvolutionClient,
     hermes: HermesClient,
     llm: LLMClient,
-    stt: Optional[STTClient] = None,
-    use_hermes: bool = False,
-) -> LLMResponse:
+    stt: Optional[STTClient],
+    use_hermes: bool,
+):
+    """Processa um batch de mensagens do mesmo usuário."""
     start = time.monotonic()
-
-    if not _check_rate_limit(message.from_number):
-        return LLMResponse(
-            content="Desculpe, você está enviando muitas mensagens. Por favor, aguarde um momento.",
-            source=MessageSource.MANUAL,
+    
+    # Concatenar todas as mensagens do batch
+    combined_content = "\n".join([f"[Mensagem {i+1}] {m.content}" for i, m in enumerate(messages)])
+    first_msg = messages[0]
+    
+    logger.info(f"Processando batch de {len(messages)} mensagens de {phone}: {combined_content[:100]}...")
+    
+    if not _check_rate_limit(phone):
+        await evolution.send_text(
+            to_number=phone,
+            message="Desculpe, você está enviando muitas mensagens. Por favor, aguarde um momento.",
         )
-
-    logger.info(f"Processando mensagem de {message.from_number}: {message.content[:100]}...")
+        return
 
     # ── Transcrever áudio se necessário ──────────────────────────────
-    content = message.content
+    content = combined_content
     transcription_note = None
 
-    if message.message_type == "audio" and message.media_url and stt:
-        logger.info(f"Áudio detectado, transcrevendo... media_url={message.media_url}")
-        transcribed = await _transcribe_audio(message, evolution, stt)
-        if transcribed:
-            content = transcribed
-            transcription_note = transcribed
-            logger.info(f"Áudio transcrito: {transcribed[:100]}...")
-        else:
-            content = "[Não foi possível transcrever o áudio]"
-            logger.warning("Falha na transcrição do áudio")
+    for msg in messages:
+        if msg.message_type == "audio" and msg.media_url and stt:
+            logger.info(f"Áudio detectado, transcrevendo... media_url={msg.media_url}")
+            transcribed = await _transcribe_audio(msg, evolution, stt)
+            if transcribed:
+                content = transcribed
+                transcription_note = transcribed
+                logger.info(f"Áudio transcrito: {transcribed[:100]}...")
+            else:
+                content = "[Não foi possível transcrever o áudio]"
+                logger.warning("Falha na transcrição do áudio")
 
     # Carregar prompt de sistema
     system_prompt = _load_prompt("atendimento")
@@ -235,7 +253,7 @@ async def process_incoming_message(
     # Tentar Hermes CLI primeiro (se habilitado)
     if use_hermes:
         hermes_response = await hermes.chat(
-            f"Usuário WhatsApp {message.from_number} diz: {content}", phone=message.from_number
+            f"Usuário WhatsApp {phone} diz: {content}", phone=phone
         )
         if hermes_response:
             response_content = hermes_response
@@ -267,7 +285,7 @@ async def process_incoming_message(
                 f"processamento: {elapsed_so_far:.1f}s, "
                 f"aguardando mais: {remaining_delay:.1f}s"
             )
-            await _send_typing_indicator(evolution, message.from_number, remaining_delay)
+            await _send_typing_indicator(evolution, phone, remaining_delay)
         else:
             logger.info(
                 f"Processamento ({elapsed_so_far:.1f}s) já excedeu "
@@ -278,7 +296,7 @@ async def process_incoming_message(
 
     # Enviar resposta via Evolution API
     send_result = await evolution.send_text(
-        to_number=message.from_number, message=response_content,
+        to_number=phone, message=response_content,
     )
 
     if not send_result["success"]:
@@ -286,6 +304,57 @@ async def process_incoming_message(
 
     logger.info(f"Mensagem processada em {elapsed_ms:.0f}ms (source={source.value}, sent={send_result['success']})")
 
+
+# ── Interface pública ──────────────────────────────────────────────
+
+async def process_incoming_message(
+    message: IncomingMessage,
+    evolution: EvolutionClient,
+    hermes: HermesClient,
+    llm: LLMClient,
+    stt: Optional[STTClient] = None,
+    use_hermes: bool = False,
+) -> LLMResponse:
+    """
+    Interface pública: adiciona mensagem ao batch e agenda processamento.
+    Espera BATCH_WAIT_SECONDS por mensagens adicionais antes de processar.
+    """
+    phone = message.from_number
+    
+    # Adicionar ao batch
+    if phone not in _message_batches:
+        _message_batches[phone] = []
+    _message_batches[phone].append(message)
+    
+    # Cancelar timer anterior se existir
+    if phone in _batch_timers and not _batch_timers[phone].done():
+        _batch_timers[phone].cancel()
+    
+    # Criar novo timer
+    async def _process_after_delay():
+        await asyncio.sleep(BATCH_WAIT_SECONDS)
+        
+        # Pegar todas as mensagens acumuladas
+        batch = _message_batches.pop(phone, [])
+        _batch_timers.pop(phone, None)
+        
+        if batch:
+            logger.info(f"Processando batch de {len(batch)} mensagens de {phone}")
+            await _process_batch(
+                phone=phone,
+                messages=batch,
+                evolution=evolution,
+                hermes=hermes,
+                llm=llm,
+                stt=stt,
+                use_hermes=use_hermes,
+            )
+    
+    _batch_timers[phone] = asyncio.create_task(_process_after_delay())
+    
+    # Retornar resposta imediata (o processamento real acontece depois)
     return LLMResponse(
-        content=response_content, source=source, model=model_used, processing_time_ms=elapsed_ms,
+        content="",
+        source=MessageSource.MANUAL,
+        processing_time_ms=0,
     )
