@@ -91,10 +91,13 @@ class EvolutionClient:
         inst = instance or self.default_instance
         client = await self._get_client()
 
+        # Evolution API espera delay em MILISSEGUNDOS
+        delay_ms = int(delay * 1000)
+
         payload = {
             "number": to_number,
             "presence": presence,
-            "delay": delay,
+            "delay": delay_ms,
         }
 
         url = f"/chat/sendPresence/{inst}"
