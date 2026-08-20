@@ -40,17 +40,7 @@ class EvolutionClient:
         message: str,
         instance: Optional[str] = None,
     ) -> dict:
-        """
-        Envia mensagem de texto via Evolution API.
-
-        Args:
-            to_number: Número do destinatário (formato: 5511999999999)
-            message: Texto da mensagem
-            instance: Nome da instância (usa default se omitido)
-
-        Returns:
-            dict com resultado do envio
-        """
+        """Envia mensagem de texto via Evolution API."""
         inst = instance or self.default_instance
         client = await self._get_client()
 
@@ -79,21 +69,48 @@ class EvolutionClient:
             logger.error(f"Erro ao enviar mensagem: {e}")
             return {"success": False, "error": str(e)}
 
+    async def send_presence(
+        self,
+        to_number: str,
+        presence: str = "composing",
+        instance: Optional[str] = None,
+    ) -> bool:
+        """
+        Envia presença (digitando, online, etc.) via Evolution API.
+        
+        Args:
+            to_number: Número do destinatário
+            presence: "composing" (digitando), "recording" (gravando), "paused" (parou)
+            instance: Nome da instância
+            
+        Returns:
+            True se sucesso
+        """
+        inst = instance or self.default_instance
+        client = await self._get_client()
+
+        payload = {
+            "number": to_number,
+            "presence": presence,
+        }
+
+        url = f"/chat/presence/{inst}"
+
+        try:
+            resp = await client.post(url, json=payload)
+            resp.raise_for_status()
+            logger.debug(f"Presença enviada: {presence} para {to_number}")
+            return True
+        except Exception as e:
+            logger.debug(f"Erro ao enviar presença (ignorado): {e}")
+            return False
+
     async def download_media(
         self,
         media_key: str,
         instance: Optional[str] = None,
     ) -> Optional[bytes]:
-        """
-        Baixa mídia (áudio/imagem) via Evolution API.
-
-        Args:
-            media_key: Chave da mídia (mediaKey da mensagem)
-            instance: Nome da instância (usa default se omitido)
-
-        Returns:
-            Bytes do arquivo ou None em caso de erro
-        """
+        """Baixa mídia via Evolution API."""
         inst = instance or self.default_instance
         client = await self._get_client()
         url = f"/chat/downloadMedia/{inst}/{quote(media_key, safe='')}"
