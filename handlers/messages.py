@@ -40,8 +40,10 @@ def _check_rate_limit(phone: str) -> bool:
 
 _message_batches: dict[str, list[IncomingMessage]] = {}
 _batch_timers: dict[str, asyncio.Task] = {}
+_batch_start: dict[str, float] = {}  # Timestamp do início do batch
 
-BATCH_WAIT_SECONDS = 3.0  # Espera 3s por mensagens adicionais
+BATCH_WAIT_SECONDS = 30.0  # Espera 30s por mensagens adicionais
+BATCH_MAX_WAIT = 150.0  # Máximo 2,5 minutos de espera total
 
 
 def _calculate_typing_delay(response_length: int) -> float:
@@ -317,25 +319,56 @@ async def process_incoming_message(
 ) -> LLMResponse:
     """
     Interface pública: adiciona mensagem ao batch e agenda processamento.
-    Espera BATCH_WAIT_SECONDS por mensagens adicionais antes de processar.
+    
+    Lógica:
+    - Espera BATCH_WAIT_SECONDS (30s) por mensagens adicionais
+    - Se outra mensagem chegar, reseta o timer
+    - Se tempo total exceder BATCH_MAX_WAIT (2,5min), processa imediatamente
     """
     phone = message.from_number
+    now = time.monotonic()
     
     # Adicionar ao batch
     if phone not in _message_batches:
         _message_batches[phone] = []
+        _batch_start[phone] = now
     _message_batches[phone].append(message)
     
     # Cancelar timer anterior se existir
     if phone in _batch_timers and not _batch_timers[phone].done():
         _batch_timers[phone].cancel()
     
+    # Calcular tempo restante antes do limite máximo
+    elapsed_total = now - _batch_start[phone]
+    remaining_max = BATCH_MAX_WAIT - elapsed_total
+    
+    if remaining_max <= 0:
+        # Já excedeu o tempo máximo — processar imediatamente
+        logger.info(f"Tempo máximo atingido ({BATCH_MAX_WAIT}s), processando batch")
+        batch = _message_batches.pop(phone, [])
+        _batch_start.pop(phone, None)
+        if batch:
+            asyncio.create_task(_process_batch(
+                phone=phone,
+                messages=batch,
+                evolution=evolution,
+                hermes=hermes,
+                llm=llm,
+                stt=stt,
+                use_hermes=use_hermes,
+            ))
+        return LLMResponse(content="", source=MessageSource.MANUAL, processing_time_ms=0)
+    
+    # Calcular tempo de espera (mínimo entre batch_wait e tempo restante)
+    wait_time = min(BATCH_WAIT_SECONDS, remaining_max)
+    
     # Criar novo timer
     async def _process_after_delay():
-        await asyncio.sleep(BATCH_WAIT_SECONDS)
+        await asyncio.sleep(wait_time)
         
         # Pegar todas as mensagens acumuladas
         batch = _message_batches.pop(phone, [])
+        _batch_start.pop(phone, None)
         _batch_timers.pop(phone, None)
         
         if batch:
@@ -351,6 +384,13 @@ async def process_incoming_message(
             )
     
     _batch_timers[phone] = asyncio.create_task(_process_after_delay())
+    
+    logger.debug(
+        f"Mensagem adicionada ao batch de {phone} "
+        f"({len(_message_batches[phone])} msgs, "
+        f"esperando {wait_time:.0f}s, "
+        f"restam {remaining_max:.0f}s até máximo)"
+    )
     
     # Retornar resposta imediata (o processamento real acontece depois)
     return LLMResponse(
