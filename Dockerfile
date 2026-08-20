@@ -14,8 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App code
 COPY . .
 
-# Non-root user (add to docker group for socket access)
-RUN useradd --create-home appuser && \
+# Non-root user (create docker group first)
+RUN groupadd -f docker && \
+    useradd --create-home appuser && \
     usermod -aG docker appuser
 USER appuser
 
