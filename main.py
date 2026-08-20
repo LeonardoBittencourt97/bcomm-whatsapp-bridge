@@ -177,3 +177,11 @@ if __name__ == "__main__":
         reload=settings.debug,
         log_level=settings.log_level.lower(),
     )
+
+
+@app.post("/admin/reload")
+async def reload_config():
+    """Reload client configurations from disk."""
+    from config.client_loader import reload_config, list_clients
+    reload_config()
+    return {"status": "reloaded", "clients": list_clients()}

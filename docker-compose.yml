@@ -22,10 +22,12 @@ services:
     environment:
       - PORT=8000
       - HERMES_CONTAINER=hermes-vtj5nm6l778wrezwf46uevmj
+      - CLIENTS_DIR=/data/clients
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/hermes/.hermes:/home/hermes/.hermes
       - bridge-data:/app/data
+      - /data/clients:/data/clients:ro
 
 networks:
   coolify:

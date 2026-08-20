@@ -1,7 +1,9 @@
 """
 Client configuration loader for multi-tenant support.
-Loads client configs from config/clients.yaml.
+Loads client configs from /data/clients/{name}/config.yaml
+Prompts stay in Hermes profiles (SOUL.md).
 """
+import os
 import yaml
 import logging
 from typing import Optional, Dict, Any
@@ -9,68 +11,47 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = Path(__file__).parent / "clients.yaml"
-_clients_config: Optional[Dict[str, Any]] = None
+CLIENTS_DIR = Path(os.getenv("CLIENTS_DIR", "/data/clients"))
+_clients_cache: Optional[Dict[str, Any]] = None
 
 
-def _load_config() -> Dict[str, Any]:
-    global _clients_config
-    if _clients_config is not None:
-        return _clients_config
-    try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            _clients_config = yaml.safe_load(f)
-            logger.info(f"Loaded client config: {len(_clients_config.get('clients', {}))} clients")
-            return _clients_config
-    except FileNotFoundError:
-        logger.error(f"Client config not found: {CONFIG_PATH}")
-        return {"clients": {}, "default_client": "BCOMM"}
-    except yaml.YAMLError as e:
-        logger.error(f"Error parsing client config: {e}")
-        return {"clients": {}, "default_client": "BCOMM"}
+def _load_client_config(client_dir: Path) -> Dict[str, Any]:
+    config_file = client_dir / "config.yaml"
+    if config_file.exists():
+        with open(config_file, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    return {}
 
 
 def get_client_config(instance_name: str) -> Dict[str, Any]:
-    config = _load_config()
-    clients = config.get("clients", {})
-    default = config.get("default_client", "BCOMM")
+    client_dir = CLIENTS_DIR / instance_name
+    if client_dir.exists():
+        return _load_client_config(client_dir)
     
-    if instance_name in clients:
-        return clients[instance_name]
+    # Fallback to default
+    default = os.getenv("DEFAULT_CLIENT", "BCOMM")
+    default_dir = CLIENTS_DIR / default
+    if default_dir.exists():
+        return _load_client_config(default_dir)
     
-    for name, client_config in clients.items():
-        if name.upper() == instance_name.upper():
-            return client_config
-    
-    if default in clients:
-        logger.warning(f"Client '{instance_name}' not found, using default: {default}")
-        return clients[default]
-    
-    return {
-        "name": instance_name,
-        "hermes_profile": "default",
-        "prompt_file": "prompts/atendimento.md",
-        "timezone": "America/Sao_Paulo",
-        "business_hours": {"start": "09:00", "end": "18:00", "days": ["mon", "tue", "wed", "thu", "fri"]},
-        "meeting_duration": 30,
-        "welcome_message": "Olá! Como posso te ajudar?",
-    }
+    return {"name": instance_name, "timezone": "America/Sao_Paulo"}
 
 
 def get_hermes_profile(instance_name: str) -> str:
-    return get_client_config(instance_name).get("hermes_profile", "default")
+    config = get_client_config(instance_name)
+    return config.get("hermes_profile", f"{instance_name.lower()}-atendente")
 
 
-def get_prompt_file(instance_name: str) -> str:
-    return get_client_config(instance_name).get("prompt_file", "prompts/atendimento.md")
+def get_credentials_path(instance_name: str, filename: str) -> Optional[Path]:
+    path = CLIENTS_DIR / instance_name / "credentials" / filename
+    return path if path.exists() else None
 
 
 def list_clients() -> list[str]:
-    config = _load_config()
-    return list(config.get("clients", {}).keys())
+    if CLIENTS_DIR.exists():
+        return [d.name for d in CLIENTS_DIR.iterdir() if d.is_dir() and (d / "config.yaml").exists()]
+    return []
 
 
 def reload_config():
-    global _clients_config
-    _clients_config = None
-    _load_config()
+    pass  # No cache to clear, always reads from disk
