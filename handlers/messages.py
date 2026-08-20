@@ -63,7 +63,6 @@ def _calculate_typing_delay(response_length: int) -> float:
 
 
 # ── Prompts ─────────────────────────────────────────────────────────
-
 def _load_prompt(name: str) -> str:
     prompt_path = f"prompts/{name}.md"
     try:
@@ -75,7 +74,6 @@ def _load_prompt(name: str) -> str:
 
 
 # ── Fallback chain ──────────────────────────────────────────────────
-
 async def _try_llm_with_fallback(
     llm: LLMClient,
     prompt: str,
@@ -105,7 +103,6 @@ async def _try_llm_with_fallback(
 
 
 # ── Audio transcription ─────────────────────────────────────────────
-
 async def _transcribe_audio(
     message: IncomingMessage,
     evolution: EvolutionClient,
@@ -172,21 +169,22 @@ async def _send_typing_indicator(
     duration: float,
 ):
     """
-    Envia indicador "digitando..." periodicamente para manter visível.
+    Envia indicador "digitando..." de forma CONTÍNUA.
     
-    O WhatsApp mostra o indicador por ~3-5 segundos depois da última presença.
-    Precisa reenviar a cada 3 segundos para manter visível.
+    Envia composição SEM delay (delay=0) a cada 3 segundos.
+    A API WhatsApp mantém o indicador visível por ~3-5 segundos.
     """
     interval = 3.0  # reenviar a cada 3 segundos
     elapsed = 0.0
     
-    logger.info(f"Indicador 'digitando...' ativo por {duration}s")
+    logger.info(f"Indicador 'digitando...' ativo por {duration:.1f}s")
     
     while elapsed < duration:
         remaining = duration - elapsed
         chunk = min(interval, remaining)
         
-        await evolution.send_presence(phone, presence="composing", delay=int(chunk))
+        # Enviar composição SEM delay para manter contínuo
+        await evolution.send_presence(phone, presence="composing", delay=0)
         await asyncio.sleep(chunk)
         elapsed += chunk
     
@@ -194,7 +192,6 @@ async def _send_typing_indicator(
 
 
 # ── Processamento ───────────────────────────────────────────────────
-
 async def process_incoming_message(
     message: IncomingMessage,
     evolution: EvolutionClient,
