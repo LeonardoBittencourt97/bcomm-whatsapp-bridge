@@ -100,6 +100,8 @@ class HermesClient:
                 ]:
                     response = response.replace(marker, "")
                 response = response.strip()
+            # Limpar markers residuais
+            response = response.replace("╰─", "").strip()
 
             logger.info(f"Hermes respondeu ({len(response)} chars)")
             return response
