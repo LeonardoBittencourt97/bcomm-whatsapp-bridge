@@ -39,33 +39,23 @@ def _calculate_typing_delay(response_length: int) -> float:
     """
     Calcula delay de digitação baseado no tamanho da resposta.
     
-    Humano digita entre 40-50 WPM (palavras por minuto).
-    Média de 5 caracteres por palavra + espaço = 6 chars/palavra.
+    Humano digita entre 40-50 WPM.
+    - 40 WPM = 240 chars/min = 4 chars/seg
+    - 50 WPM = 300 chars/min = 5 chars/seg
     
-    - 40 WPM = 240 chars/min = 4 chars/seg (digitação lenta)
-    - 50 WPM = 300 chars/min = 5 chars/seg (digitação rápida)
-    
-    Retorna delay entre 4-10 segundos para mensagens curtas.
+    Retorna delay entre 4-15 segundos.
     """
     if response_length <= 0:
         return 2.0
     
-    # Caracteres por segundo (4-5 chars/seg)
-    chars_per_sec_min = 4.0  # digitação lenta
-    chars_per_sec_max = 5.0  # digitação rápida
+    chars_per_sec_min = 4.0
+    chars_per_sec_max = 5.0
     
-    # Calcular tempo baseado no tamanho
-    time_min = response_length / chars_per_sec_max  # tempo mais rápido
-    time_max = response_length / chars_per_sec_min  # tempo mais lento
+    time_min = response_length / chars_per_sec_max
+    time_max = response_length / chars_per_sec_min
     
-    # Adicionar tempo de reação (0.5-1.5s)
     reaction_time = random.uniform(0.5, 1.5)
-    
-    # Delay final com variação aleatória
     delay = reaction_time + random.uniform(time_min, time_max)
-    
-    # Limitar entre 4-10 segundos para mensagens curtas
-    # Para mensagens longas, pode ser mais
     delay = max(4.0, min(delay, 15.0))
     
     return round(delay, 1)
@@ -173,6 +163,35 @@ async def _transcribe_audio(
     return None
 
 
+# ── Typing indicator ───────────────────────────────────────────────
+
+async def _send_typing_indicator(
+    evolution: EvolutionClient,
+    phone: str,
+    duration: float,
+):
+    """
+    Envia indicador "digitando..." periodicamente para manter visível.
+    
+    O WhatsApp mostra o indicador por ~3-5 segundos depois da última presença.
+    Precisa reenviar a cada 3 segundos para manter visível.
+    """
+    interval = 3.0  # reenviar a cada 3 segundos
+    elapsed = 0.0
+    
+    logger.info(f"Indicador 'digitando...' ativo por {duration}s")
+    
+    while elapsed < duration:
+        remaining = duration - elapsed
+        chunk = min(interval, remaining)
+        
+        await evolution.send_presence(phone, presence="composing", delay=int(chunk))
+        await asyncio.sleep(chunk)
+        elapsed += chunk
+    
+    logger.info(f"Indicador 'digitando...' finalizado")
+
+
 # ── Processamento ───────────────────────────────────────────────────
 
 async def process_incoming_message(
@@ -236,20 +255,12 @@ async def process_incoming_message(
         else:
             source = MessageSource.LLM
 
-    # ── Calcular delay de digitação baseado no tamanho da resposta ──
+    # ── Delay humanizado com indicador "digitando..." ──────────────
     if settings.human_delay_enabled and response_content:
         typing_delay = _calculate_typing_delay(len(response_content))
         
-        # Enviar indicador "digitando..." com duração calculada
-        logger.info(f"Enviando indicador 'digitando...' por {typing_delay}s (resposta: {len(response_content)} chars)")
-        await evolution.send_presence(
-            message.from_number, 
-            presence="composing", 
-            delay=int(typing_delay)
-        )
-        
-        # Aguardar o tempo de digitação
-        await asyncio.sleep(typing_delay)
+        # Enviar indicador "digitando..." periodicamente
+        await _send_typing_indicator(evolution, message.from_number, typing_delay)
 
     elapsed_ms = (time.monotonic() - start) * 1000
 
