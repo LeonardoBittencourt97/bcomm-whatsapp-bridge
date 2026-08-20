@@ -1,28 +1,29 @@
 """
-Cliente para o Hermes CLI.
+Cliente para o Hermes CLI via Docker exec.
 Permite delegar processamento de mensagens ao Hermes Agent.
 """
 import asyncio
 import logging
+import os
 from typing import Optional
 
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-# Caminho do Hermes CLI dentro do container (montado como read-only)
-HERMES_CLI = "/opt/hermes/.venv/bin/hermes"
+# Container do Hermes (configurado via env var)
+HERMES_CONTAINER = os.getenv("HERMES_CONTAINER", "hermes-vtj5nm6l778wrezwf46uevmj")
 
 
 class HermesClient:
-    """Wrapper assíncrono para o CLI do Hermes."""
+    """Wrapper assíncrono para o CLI do Hermes via Docker exec."""
 
     def __init__(self):
         self.profile = settings.hermes_profile
 
     async def chat(self, message: str, timeout: int = 120) -> Optional[str]:
         """
-        Envia mensagem ao Hermes via CLI.
+        Envia mensagem ao Hermes via docker exec.
 
         Args:
             message: Texto da mensagem
@@ -32,14 +33,15 @@ class HermesClient:
             Resposta do Hermes ou None em caso de erro
         """
         cmd = [
-            HERMES_CLI,
+            "docker", "exec", HERMES_CONTAINER,
+            "/opt/hermes/.venv/bin/hermes",
             "chat",
             "--query", message,
             "--profile", self.profile,
             "--cli",
         ]
 
-        logger.info(f"Enviando ao Hermes (profile={self.profile}): {message[:80]}...")
+        logger.info(f"Enviando ao Hermes (container={HERMES_CONTAINER}, profile={self.profile}): {message[:80]}...")
 
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -78,17 +80,18 @@ class HermesClient:
                 proc.kill()
             return None
         except FileNotFoundError:
-            logger.error(f"Hermes CLI não encontrado: {HERMES_CLI}")
+            logger.error("Docker CLI não encontrado")
             return None
         except Exception as e:
             logger.error(f"Erro ao executar Hermes CLI: {e}")
             return None
 
     async def is_available(self) -> bool:
-        """Verifica se o Hermes CLI está disponível."""
+        """Verifica se o Hermes container está acessível."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                HERMES_CLI, "--version",
+                "docker", "exec", HERMES_CONTAINER,
+                "/opt/hermes/.venv/bin/hermes", "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )

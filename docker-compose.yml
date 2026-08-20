@@ -21,9 +21,10 @@ services:
       - .env
     environment:
       - PORT=8000
+      - HERMES_CONTAINER=hermes-vtj5nm6l778wrezwf46uevmj
     volumes:
-      - /opt/hermes:/opt/hermes:ro
-      - /home/hermes/.hermes:/home/hermes/.hermes:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/hermes/.hermes:/home/hermes/.hermes
 
 networks:
   coolify:
