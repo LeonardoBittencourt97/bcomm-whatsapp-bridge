@@ -2,9 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# System deps
+# System deps (curl + docker CLI)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends curl docker.io && \
     rm -rf /var/lib/apt/lists/*
 
 # Python deps
@@ -14,8 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App code
 COPY . .
 
-# Non-root user
-RUN useradd --create-home appuser
+# Non-root user (add to docker group for socket access)
+RUN useradd --create-home appuser && \
+    usermod -aG docker appuser
 USER appuser
 
 EXPOSE 8000
