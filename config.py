@@ -39,9 +39,6 @@ class Settings(BaseSettings):
     stt_api_key: str = Field(default="", description="API key para STT (não necessário para local)")
     stt_model: str = Field(default="whisper-1", description="Modelo STT (ignorado pelo faster-whisper local)")
 
-    # Humanized response
-    human_delay_enabled: bool = Field(default=True, description="Adicionar delay humanizado antes de enviar resposta")
-
     # Logging
     log_level: str = Field(default="INFO", description="Nível de log")
 
@@ -49,3 +46,15 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+    # Multi-tenant
+    clients_dir: str = Field(default="/opt/data/clients", description="Diretório de clientes multi-tenant")
+
+    # Human delay
+    human_delay_enabled: bool = Field(default=True, description="Ativar delay humanizado")
+    human_delay_min: float = Field(default=4.0, description="Delay mínimo em segundos")
+    human_delay_max: float = Field(default=15.0, description="Delay máximo em segundos")
+
+    # Batch processing
+    batch_wait_seconds: float = Field(default=10.0, description="Espera por mensagens adicionais (segundos)")
+    batch_max_wait: float = Field(default=150.0, description="Máximo de espera (segundos)")
