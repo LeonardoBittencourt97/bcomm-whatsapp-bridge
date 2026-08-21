@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Bridge
     port: int = 8000
     debug: bool = False
+    log_level: str = "INFO"
     
     # Multi-tenant
     clients_dir: str = "/opt/data/clients"
