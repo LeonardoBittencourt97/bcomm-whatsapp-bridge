@@ -7,6 +7,7 @@ import logging
 import time
 from typing import Optional
 
+from config import settings
 from models.schemas import WebhookEvent, IncomingMessage
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,28 @@ def _is_duplicate(message_id: str) -> bool:
     
     # Marcar como processada
     _processed_messages[message_id] = now
+    return False
+
+
+
+def is_test_mode_allowed(phone: str) -> bool:
+    """Verifica se o número é permitido no modo teste."""
+    if not settings.test_mode:
+        return True  # Modo teste desabilitado, todos são permitidos
+    
+    if not settings.test_numbers:
+        return False  # Modo teste habilitado mas sem números permitidos
+    
+    allowed_numbers = [n.strip() for n in settings.test_numbers.split(",")]
+    
+    # Normalizar número (remover + e @s.whatsapp.net)
+    clean_phone = phone.replace("+", "").replace("@s.whatsapp.net", "")
+    
+    for allowed in allowed_numbers:
+        clean_allowed = allowed.replace("+", "").replace("@s.whatsapp.net", "")
+        if clean_phone == clean_allowed or clean_phone.endswith(clean_allowed) or clean_allowed.endswith(clean_phone):
+            return True
+    
     return False
 
 

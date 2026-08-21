@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from client_loader import ClientLoader
 from handlers.messages import process_incoming_message
-from handlers.webhook import extract_message
+from handlers.webhook import extract_message, is_test_mode_allowed
 from models.schemas import (
     HealthResponse,
     SendMessageRequest,
@@ -223,6 +223,28 @@ async def reload_clients():
     """Recarrega configurações de clientes."""
     client_loader.reload()
     return {"status": "reloaded", "count": client_loader.client_count}
+
+
+# ── Test Mode ──────────────────────────────────────────────────────
+
+@app.post("/admin/test-mode")
+async def set_test_mode(enabled: bool, numbers: str = ""):
+    """Habilita/desabilita modo teste."""
+    settings.test_mode = enabled
+    settings.test_numbers = numbers
+    return {
+        "test_mode": settings.test_mode,
+        "test_numbers": settings.test_numbers.split(",") if settings.test_numbers else [],
+    }
+
+@app.get("/admin/test-mode")
+async def get_test_mode():
+    """Verifica status do modo teste."""
+    return {
+        "test_mode": settings.test_mode,
+        "test_numbers": settings.test_numbers.split(",") if settings.test_numbers else [],
+    }
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     batch_wait_seconds: float = Field(default=10.0, description="Espera por mensagens adicionais")
     batch_max_wait: float = Field(default=150.0, description="Máximo de espera")
 
+    # Test mode
+    test_mode: bool = Field(default=False, description="Modo teste (só responde números permitidos)")
+    test_numbers: str = Field(default="", description="Números permitidos no modo teste (separados por vírgula)")
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
