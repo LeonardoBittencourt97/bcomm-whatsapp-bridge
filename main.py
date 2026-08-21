@@ -139,6 +139,11 @@ async def webhook_evolution(request: Request):
     if message is None:
         return {"status": "ignored", "event": event.event}
 
+    # Verificar modo teste
+    if not is_test_mode_allowed(message.from_number):
+        logger.info(f"Mensagem ignorada (modo teste): {message.from_number}")
+        return {"status": "ignored_test_mode", "phone": message.from_number}
+
     # Processar em background (batch aguarda mensagens adicionais)
     # Não usa await — retorna imediatamente
     asyncio.create_task(process_incoming_message(
@@ -147,7 +152,7 @@ async def webhook_evolution(request: Request):
         hermes=hermes_client,
         llm=llm_client,
         stt=stt_client,
-        use_hermes=True,  # Toggle: True para usar Hermes CLI
+        use_hermes=True,
     ))
 
     return {
