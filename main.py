@@ -146,6 +146,12 @@ async def webhook_evolution(request: Request):
         logger.info(f"Mensagem ignorada (modo teste): {message.from_number}")
         return {"status": "ignored_test_mode", "phone": message.from_number}
 
+    # Verificar se o cliente está pausado
+    client_name = message.instance_name or settings.evolution_instance
+    if is_client_paused(client_name):
+        logger.info(f"Mensagem ignorada (cliente pausado): {client_name}")
+        return {"status": "ignored_paused", "client": client_name}
+
     # Processar em background (batch aguarda mensagens adicionais)
     # Não usa await — retorna imediatamente
     asyncio.create_task(process_incoming_message(
@@ -278,6 +284,66 @@ async def get_test_mode():
         "test_mode": settings.test_mode,
         "test_numbers": settings.test_numbers.split(",") if settings.test_numbers else [],
     }
+
+
+
+# ── Pause/Resume ──────────────────────────────────────────────────
+
+PAUSE_FILE = "/app/data/paused_clients.json"
+
+def load_paused_clients():
+    """Carrega clientes pausados de arquivo."""
+    if os.path.exists(PAUSE_FILE):
+        try:
+            with open(PAUSE_FILE, "r") as f:
+                data = json.load(f)
+                settings.paused_clients = ",".join(data.get("paused", []))
+                logger.info(f"Clientes pausados carregados: {settings.paused_clients}")
+        except Exception as e:
+            logger.error(f"Erro ao carregar clientes pausados: {e}")
+
+def save_paused_clients():
+    """Salva clientes pausados em arquivo."""
+    try:
+        paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
+        with open(PAUSE_FILE, "w") as f:
+            json.dump({"paused": paused}, f)
+        logger.info(f"Clientes pausados salvos: {paused}")
+    except Exception as e:
+        logger.error(f"Erro ao salvar clientes pausados: {e}")
+
+def is_client_paused(client_name: str) -> bool:
+    """Verifica se um cliente está pausado."""
+    if not settings.paused_clients:
+        return False
+    paused = [c.strip().lower() for c in settings.paused_clients.split(",")]
+    return client_name.lower() in paused
+
+@app.post("/admin/pause")
+async def pause_client(client: str):
+    """Pausa um cliente."""
+    paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
+    if client not in paused:
+        paused.append(client)
+    settings.paused_clients = ",".join(paused)
+    save_paused_clients()
+    return {"paused": paused, "message": f"Cliente {client} pausado"}
+
+@app.post("/admin/resume")
+async def resume_client(client: str):
+    """Retoma um cliente."""
+    paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
+    if client in paused:
+        paused.remove(client)
+    settings.paused_clients = ",".join(paused)
+    save_paused_clients()
+    return {"paused": paused, "message": f"Cliente {client} retomado"}
+
+@app.get("/admin/pause")
+async def get_paused_clients():
+    """Lista clientes pausados."""
+    paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
+    return {"paused": paused}
 
 
 if __name__ == "__main__":

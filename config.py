@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     test_mode: bool = Field(default=False, description="Modo teste (só responde números permitidos)")
     test_numbers: str = Field(default="", description="Números permitidos no modo teste (separados por vírgula)")
 
+    # Pause/Resume
+    paused_clients: str = Field(default="", description="Clientes pausados (separados por vírgula)")
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
