@@ -9,6 +9,7 @@ import time
 from typing import Optional
 
 from config import settings
+from client_loader import ClientLoader
 from models.schemas import IncomingMessage, LLMResponse, MessageSource
 from services.evolution import EvolutionClient
 from services.hermes import HermesClient

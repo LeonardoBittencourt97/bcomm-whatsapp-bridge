@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
+from client_loader import ClientLoader
 from handlers.messages import process_incoming_message
 from handlers.webhook import extract_message
 from models.schemas import (
@@ -34,6 +35,9 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("bridge")
+
+# ── Multi-tenant client loader
+client_loader = ClientLoader(settings.clients_dir)
 
 # ── Global state ────────────────────────────────────────────────────
 
@@ -203,6 +207,22 @@ async def root():
 
 
 # ── Run ─────────────────────────────────────────────────────────────
+
+
+@app.get("/clients")
+async def list_clients():
+    """Lista todos os clientes multi-tenant."""
+    return {
+        "count": client_loader.client_count,
+        "clients": client_loader.list_all(),
+    }
+
+
+@app.post("/admin/reload")
+async def reload_clients():
+    """Recarrega configurações de clientes."""
+    client_loader.reload()
+    return {"status": "reloaded", "count": client_loader.client_count}
 
 if __name__ == "__main__":
     import uvicorn
