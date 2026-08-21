@@ -70,6 +70,7 @@ def _calculate_typing_delay(response_length: int) -> float:
     reaction_time = random.uniform(0.5, 2.0)
     delay = reaction_time + random.uniform(time_min, time_max)
     delay = max(4.0, delay)
+    delay = min(60.0, delay)  # Max 60 seconds
     
     return round(delay, 1)
 
