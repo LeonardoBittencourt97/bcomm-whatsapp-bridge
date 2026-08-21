@@ -12,7 +12,8 @@ class BusinessHours(BaseModel):
     days: list[str] = Field(default_factory=lambda: ["mon", "tue", "wed", "thu", "fri"])
 
 
-class GoogleCalendarConfig(Configuration for Google Calendar integration."""
+class GoogleCalendarConfig(BaseModel):
+    """Configuration for Google Calendar integration."""
     enabled: bool = False
     credentials_path: Optional[str] = None
 
