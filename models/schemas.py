@@ -91,3 +91,17 @@ class HealthResponse(BaseModel):
     evolution_api: str = Field(default="unknown", description="Status da Evolution API")
     version: str = Field(default="1.0.0")
     uptime_seconds: Optional[float] = Field(default=None)
+
+
+# ── Multi-tenant ──────────────────────────────────────────────────
+
+class ClientConfig(BaseModel):
+    """Configuração de um cliente multi-tenant."""
+    name: str
+    instance: str  # Nome da instância Evolution API
+    hermes_profile: str = "default"
+    timezone: str = "America/Sao_Paulo"
+    business_hours_start: str = "09:00"
+    business_hours_end: str = "18:00"
+    meeting_duration: int = 30
+    welcome_message: str = "Olá! Como posso ajudar?"
