@@ -4,6 +4,8 @@ bcomm-whatsapp-bridge — FastAPI server
 Bridge entre Evolution API (WhatsApp) e Hermes/LLM.
 """
 import asyncio
+import json
+import os
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -237,6 +239,7 @@ async def set_test_mode(enabled: bool, numbers: str = ""):
     """Habilita/desabilita modo teste."""
     settings.test_mode = enabled
     settings.test_numbers = numbers
+    save_test_mode()
     return {
         "test_mode": settings.test_mode,
         "test_numbers": settings.test_numbers.split(",") if settings.test_numbers else [],
