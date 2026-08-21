@@ -439,6 +439,85 @@ async def transfer_to_human(client: str, phone: str, reason: str = ""):
 
 
 
+
+@app.post("/admin/send")
+async def admin_send_message(client: str, phone: str, message: str):
+    """Envia mensagem manualmente para um contato."""
+    try:
+        result = await evolution_client.send_text(
+            to_number=phone,
+            message=message,
+            instance=client,
+        )
+        return {"status": "sent", "message_id": result.get("key", {}).get("id", "")}
+    except Exception as e:
+        logger.error(f"Erro ao enviar mensagem: {e}")
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/admin/metrics")
+async def get_metrics():
+    """Retorna métricas do sistema."""
+    import time
+    uptime = time.time() - _start_time
+    return {
+        "uptime_seconds": uptime,
+        "uptime_human": f"{int(uptime // 3600)}h {int((uptime % 3600) // 60)}m",
+        "test_mode": settings.test_mode,
+        "paused_clients": len([c for c in settings.paused_clients.split(",") if c.strip()]) if settings.paused_clients else 0,
+        "paused_contacts": len([c for c in settings.paused_contacts.split(",") if c.strip()]) if settings.paused_contacts else 0,
+    }
+
+
+@app.get("/admin/config")
+async def get_config():
+    """Retorna configurações atuais."""
+    return {
+        "rate_limit_per_minute": settings.rate_limit_per_minute,
+        "human_delay_enabled": settings.human_delay_enabled,
+        "human_delay_min": settings.human_delay_min,
+        "human_delay_max": settings.human_delay_max,
+        "batch_wait_seconds": settings.batch_wait_seconds,
+        "batch_max_wait": settings.batch_max_wait,
+        "log_level": settings.log_level,
+    }
+
+@app.post("/admin/config")
+async def update_config(
+    rate_limit_per_minute: int = None,
+    human_delay_enabled: bool = None,
+    human_delay_min: float = None,
+    human_delay_max: float = None,
+    batch_wait_seconds: float = None,
+    batch_max_wait: float = None,
+    log_level: str = None,
+):
+    """Atualiza configurações."""
+    if rate_limit_per_minute is not None:
+        settings.rate_limit_per_minute = rate_limit_per_minute
+    if human_delay_enabled is not None:
+        settings.human_delay_enabled = human_delay_enabled
+    if human_delay_min is not None:
+        settings.human_delay_min = human_delay_min
+    if human_delay_max is not None:
+        settings.human_delay_max = human_delay_max
+    if batch_wait_seconds is not None:
+        settings.batch_wait_seconds = batch_wait_seconds
+    if batch_max_wait is not None:
+        settings.batch_max_wait = batch_max_wait
+    if log_level is not None:
+        settings.log_level = log_level
+    
+    return {"status": "updated", "config": await get_config()}
+
+
+@app.get("/admin/sessions")
+async def get_sessions():
+    """Retorna sessões ativas."""
+    from services.hermes import hermes_client
+    sessions = hermes_client.get_active_sessions() if hasattr(hermes_client, 'get_active_sessions') else []
+    return {"sessions": sessions}
+
 @app.get("/dashboard")
 async def dashboard():
     """Dashboard web para gerenciamento."""
