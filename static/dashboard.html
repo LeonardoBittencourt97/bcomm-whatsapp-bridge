@@ -808,13 +808,54 @@
             }
         }
         
+        
+        async function clearSessions() {
+            if (!confirm('Tem certeza? Isso limpará todas as sessões de conversa.')) return;
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessões limpas');
+            refreshSessions();
+        }
+
         async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         }
         
@@ -824,7 +865,6 @@ updateStatus();
             await fetchJSON(`/admin/resume?client=${client}`, { method: 'POST' });
             showToast(`Cliente ${client} retomado`);
             
-        async function refreshSessions() {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -847,13 +887,45 @@ updateStatus();
             }
         }
         
-        async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         }
         
@@ -861,7 +933,6 @@ updateStatus();
             await fetchJSON(`/admin/resume?client=${client}`, { method: 'POST' });
             showToast(`Cliente ${client} retomado`);
             
-        async function refreshSessions() {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -884,13 +955,45 @@ updateStatus();
             }
         }
         
-        async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         }
         
@@ -901,7 +1004,6 @@ updateStatus();
             await fetchJSON(`/admin/pause-contact?client=${client}&phone=${phone}`, { method: 'POST' });
             showToast(`Contato ${phone} pausado`);
             
-        async function refreshSessions() {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -924,13 +1026,45 @@ updateStatus();
             }
         }
         
-        async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         }
         
@@ -941,7 +1075,6 @@ updateStatus();
             await fetchJSON(`/admin/resume-contact?client=${client}&phone=${phone}`, { method: 'POST' });
             showToast(`Contato ${phone} retomado`);
             
-        async function refreshSessions() {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -964,13 +1097,45 @@ updateStatus();
             }
         }
         
-        async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         }
         
@@ -978,7 +1143,6 @@ updateStatus();
             await fetchJSON(`/admin/resume-contact?client=${client}&phone=${phone}`, { method: 'POST' });
             showToast(`Contato ${phone} retomado`);
             
-        async function refreshSessions() {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -1001,13 +1165,45 @@ updateStatus();
             }
         }
         
-        async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         }
         
@@ -1019,7 +1215,6 @@ updateStatus();
             await fetchJSON(`/admin/transfer-to-human?client=${client}&phone=${phone}&reason=${encodeURIComponent(reason)}`, { method: 'POST' });
             showToast(`Contato ${phone} transferido para humano`);
             
-        async function refreshSessions() {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -1042,13 +1237,45 @@ updateStatus();
             }
         }
         
-        async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         }
         
@@ -1062,7 +1289,6 @@ updateStatus();
             document.getElementById('send-message').value = '';
         }
         
-        async function clearSessions() {
             if (!confirm('Tem certeza? Isso limpará todas as sessões de conversa.')) return;
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessões limpas');
@@ -1137,7 +1363,6 @@ updateStatus()
         }
         
         
-        async function refreshSessions() {
             const container = document.getElementById('sessions-list');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -1160,13 +1385,45 @@ updateStatus()
             }
         }
         
-        async function clearSession(sessionId) {
             await fetchJSON('/admin/clear-sessions', { method: 'POST' });
             showToast('Sessão limpa');
             refreshSessions();
         }
         
-updateStatus();
+
+        async function refreshLogs() {
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const logs = [];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            if (testMode) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Modo teste: ${testMode.test_mode ? 'Ativado' : 'Desativado'}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+
+        updateStatus();
         refreshSessions();
         loadConfig();
         setInterval(updateStatus, 30000);
