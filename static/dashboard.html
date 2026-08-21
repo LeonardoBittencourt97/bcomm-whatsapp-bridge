@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+        .header { background: #16213e; padding: 20px; text-align: center; border-bottom: 2px solid #0f3460; }
+        .header h1 { color: #e94560; font-size: 24px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .card { background: #16213e; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #0f3460; }
+        .card h2 { color: #e94560; margin-bottom: 15px; font-size: 18px; }
+        .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .status.active { background: #2ecc71; color: #fff; }
+        .status.paused { background: #e74c3c; color: #fff; }
+        .btn { padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin: 5px; }
+        .btn-pause { background: #e74c3c; color: #fff; }
+        .btn-resume { background: #2ecc71; color: #fff; }
+        .btn-transfer { background: #f39c12; color: #fff; }
+        .btn:hover { opacity: 0.8; }
+        .contacts { margin-top: 15px; }
+        .contact-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #0f3460; border-radius: 5px; margin-bottom: 5px; }
+        .input-group { margin-bottom: 10px; }
+        .input-group label { display: block; margin-bottom: 5px; color: #aaa; }
+        .input-group input { width: 100%; padding: 10px; border: 1px solid #0f3460; border-radius: 5px; background: #1a1a2e; color: #fff; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 5px; color: #fff; z-index: 1000; display: none; }
+        .toast.success { background: #2ecc71; }
+        .toast.error { background: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 BCOMM Dashboard</h1>
+        <p style="color: #aaa; margin-top: 5px;">Gerenciamento de Clientes e Contatos</p>
+    </div>
+    
+    <div class="container">
+        <!-- Status Geral -->
+        <div class="card">
+            <h2>📊 Status do Sistema</h2>
+            <p>Bridge: <span id="bridge-status" class="status active">Verificando...</span></p>
+            <p style="margin-top: 10px;">Test Mode: <span id="test-mode-status" class="status">-</span></p>
+        </div>
+        
+        <!-- Clientes Pausados -->
+        <div class="card">
+            <h2>⏸️ Clientes Pausados</h2>
+            <div id="paused-clients">Nenhum cliente pausado</div>
+        </div>
+        
+        <!-- Contatos Pausados -->
+        <div class="card">
+            <h2>📱 Contatos Pausados</h2>
+            <div id="paused-contacts">Nenhum contato pausado</div>
+        </div>
+        
+        <!-- Ações Rápidas -->
+        <div class="card">
+            <h2>⚡ Ações Rápidas</h2>
+            <div class="input-group">
+                <label>Cliente:</label>
+                <input type="text" id="client-name" placeholder="Ex: BCOMM" value="BCOMM">
+            </div>
+            <div class="input-group">
+                <label>Número do Contato:</label>
+                <input type="text" id="contact-phone" placeholder="Ex: 554197054071">
+            </div>
+            <div>
+                <button class="btn btn-pause" onclick="pauseClient()">Pausar Cliente</button>
+                <button class="btn btn-resume" onclick="resumeClient()">Retomar Cliente</button>
+            </div>
+            <div style="margin-top: 10px;">
+                <button class="btn btn-pause" onclick="pauseContact()">Pausar Contato</button>
+                <button class="btn btn-resume" onclick="resumeContact()">Retomar Contato</button>
+                <button class="btn btn-transfer" onclick="transferToHuman()">Transferir p/ Humano</button>
+            </div>
+        </div>
+        
+        <!-- Test Mode -->
+        <div class="card">
+            <h2>🧪 Modo Teste</h2>
+            <div class="input-group">
+                <label>Números Permitidos (separados por vírgula):</label>
+                <input type="text" id="test-numbers" placeholder="Ex: 554197054071,5541999999999">
+            </div>
+            <div>
+                <button class="btn btn-resume" onclick="enableTestMode()">Ativar Modo Teste</button>
+                <button class="btn btn-pause" onclick="disableTestMode()">Desativar Modo Teste</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script>
+        const API = '';
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+        
+        async function fetchJSON(url, options = {}) {
+            try {
+                const res = await fetch(API + url, options);
+                return await res.json();
+            } catch (e) {
+                showToast('Erro de conexão', 'error');
+                return null;
+            }
+        }
+        
+        async function updateStatus() {
+            const health = await fetchJSON('/health');
+            document.getElementById('bridge-status').textContent = health ? 'Online' : 'Offline';
+            document.getElementById('bridge-status').className = `status ${health ? 'active' : 'paused'}`;
+            
+            const testMode = await fetchJSON('/admin/test-mode');
+            const tmStatus = document.getElementById('test-mode-status');
+            tmStatus.textContent = testMode.test_mode ? 'Ativado' : 'Desativado';
+            tmStatus.className = `status ${testMode.test_mode ? 'paused' : 'active'}`;
+            
+            const pausedClients = await fetchJSON('/admin/pause');
+            const pcDiv = document.getElementById('paused-clients');
+            if (pausedClients.paused.length === 0) {
+                pcDiv.innerHTML = '<p style="color: #aaa;">Nenhum cliente pausado</p>';
+            } else {
+                pcDiv.innerHTML = pausedClients.paused.map(c => `
+                    <div class="contact-item">
+                        <span>${c}</span>
+                        <button class="btn btn-resume" onclick="resumeClientByName('${c}')">Retomar</button>
+                    </div>
+                `).join('');
+            }
+            
+            const pausedContacts = await fetchJSON('/admin/pause-contact');
+            const pconDiv = document.getElementById('paused-contacts');
+            if (pausedContacts.paused.length === 0) {
+                pconDiv.innerHTML = '<p style="color: #aaa;">Nenhum contato pausado</p>';
+            } else {
+                pconDiv.innerHTML = pausedContacts.paused.map(c => {
+                    const [client, phone] = c.split(':');
+                    return `
+                        <div class="contact-item">
+                            <span>${phone} (${client})</span>
+                            <button class="btn btn-resume" onclick="resumeContactByName('${client}', '${phone}')">Retomar</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+        
+        async function pauseClient() {
+            const client = document.getElementById('client-name').value;
+            if (!client) return showToast('Informe o cliente', 'error');
+            await fetchJSON(`/admin/pause?client=${client}`, { method: 'POST' });
+            showToast(`Cliente ${client} pausado`);
+            updateStatus();
+        }
+        
+        async function resumeClient() {
+            const client = document.getElementById('client-name').value;
+            if (!client) return showToast('Informe o cliente', 'error');
+            await fetchJSON(`/admin/resume?client=${client}`, { method: 'POST' });
+            showToast(`Cliente ${client} retomado`);
+            updateStatus();
+        }
+        
+        async function resumeClientByName(client) {
+            await fetchJSON(`/admin/resume?client=${client}`, { method: 'POST' });
+            showToast(`Cliente ${client} retomado`);
+            updateStatus();
+        }
+        
+        async function pauseContact() {
+            const client = document.getElementById('client-name').value;
+            const phone = document.getElementById('contact-phone').value;
+            if (!client || !phone) return showToast('Informe cliente e número', 'error');
+            await fetchJSON(`/admin/pause-contact?client=${client}&phone=${phone}`, { method: 'POST' });
+            showToast(`Contato ${phone} pausado`);
+            updateStatus();
+        }
+        
+        async function resumeContact() {
+            const client = document.getElementById('client-name').value;
+            const phone = document.getElementById('contact-phone').value;
+            if (!client || !phone) return showToast('Informe cliente e número', 'error');
+            await fetchJSON(`/admin/resume-contact?client=${client}&phone=${phone}`, { method: 'POST' });
+            showToast(`Contato ${phone} retomado`);
+            updateStatus();
+        }
+        
+        async function resumeContactByName(client, phone) {
+            await fetchJSON(`/admin/resume-contact?client=${client}&phone=${phone}`, { method: 'POST' });
+            showToast(`Contato ${phone} retomado`);
+            updateStatus();
+        }
+        
+        async function transferToHuman() {
+            const client = document.getElementById('client-name').value;
+            const phone = document.getElementById('contact-phone').value;
+            if (!client || !phone) return showToast('Informe cliente e número', 'error');
+            await fetchJSON(`/admin/transfer-to-human?client=${client}&phone=${phone}&reason=Solicitado pelo dashboard`, { method: 'POST' });
+            showToast(`Contato ${phone} transferido para humano`);
+            updateStatus();
+        }
+        
+        async function enableTestMode() {
+            const numbers = document.getElementById('test-numbers').value;
+            await fetchJSON(`/admin/test-mode?enabled=true&numbers=${numbers}`, { method: 'POST' });
+            showToast('Modo teste ativado');
+            updateStatus();
+        }
+        
+        async function disableTestMode() {
+            await fetchJSON(`/admin/test-mode?enabled=false`, { method: 'POST' });
+            showToast('Modo teste desativado');
+            updateStatus();
+        }
+        
+        // Atualizar a cada 30 segundos
+        updateStatus();
+        setInterval(updateStatus, 30000);
+    </script>
+</body>
+</html>

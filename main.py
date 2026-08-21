@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
@@ -436,6 +437,17 @@ async def transfer_to_human(client: str, phone: str, reason: str = ""):
     
     return {"paused": paused, "message": f"Contato {phone} transferido para humano"}
 
+
+
+@app.get("/dashboard")
+async def dashboard():
+    """Dashboard web para gerenciamento."""
+    from fastapi.responses import HTMLResponse
+    dashboard_path = os.path.join(os.path.dirname(__file__), "static", "dashboard.html")
+    if os.path.exists(dashboard_path):
+        with open(dashboard_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Dashboard não encontrado</h1>", status_code=404)
 
 if __name__ == "__main__":
     import uvicorn
