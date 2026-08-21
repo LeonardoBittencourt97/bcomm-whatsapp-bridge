@@ -151,6 +151,11 @@ async def webhook_evolution(request: Request):
     if is_client_paused(client_name):
         logger.info(f"Mensagem ignorada (cliente pausado): {client_name}")
         return {"status": "ignored_paused", "client": client_name}
+    
+    # Verificar se o contato específico está pausado
+    if is_contact_paused(client_name, message.from_number):
+        logger.info(f"Mensagem ignorada (contato pausado): {message.from_number}")
+        return {"status": "ignored_contact_paused", "phone": message.from_number}
 
     # Processar em background (batch aguarda mensagens adicionais)
     # Não usa await — retorna imediatamente
@@ -344,6 +349,92 @@ async def get_paused_clients():
     """Lista clientes pausados."""
     paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
     return {"paused": paused}
+
+
+
+# ── Contact Pause/Resume ──────────────────────────────────────────
+
+CONTACT_PAUSE_FILE = "/app/data/paused_contacts.json"
+
+def load_paused_contacts():
+    """Carrega contatos pausados de arquivo."""
+    if os.path.exists(CONTACT_PAUSE_FILE):
+        try:
+            with open(CONTACT_PAUSE_FILE, "r") as f:
+                data = json.load(f)
+                settings.paused_contacts = ",".join(data.get("paused", []))
+                logger.info(f"Contatos pausados carregados: {settings.paused_contacts}")
+        except Exception as e:
+            logger.error(f"Erro ao carregar contatos pausados: {e}")
+
+def save_paused_contacts():
+    """Salva contatos pausados em arquivo."""
+    try:
+        paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+        with open(CONTACT_PAUSE_FILE, "w") as f:
+            json.dump({"paused": paused}, f)
+        logger.info(f"Contatos pausados salvos: {paused}")
+    except Exception as e:
+        logger.error(f"Erro ao salvar contatos pausados: {e}")
+
+def is_contact_paused(client: str, phone: str) -> bool:
+    """Verifica se um contato específico está pausado."""
+    if not settings.paused_contacts:
+        return False
+    paused = [c.strip().lower() for c in settings.paused_contacts.split(",")]
+    # Formato: "client:phone" ou apenas "phone"
+    contact_key = f"{client}:{phone}".lower()
+    return contact_key in paused or phone.lower() in paused
+
+@app.post("/admin/pause-contact")
+async def pause_contact(client: str, phone: str):
+    """Pausa um contato específico."""
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    contact_key = f"{client}:{phone}"
+    if contact_key not in paused:
+        paused.append(contact_key)
+    settings.paused_contacts = ",".join(paused)
+    save_paused_contacts()
+    return {"paused": paused, "message": f"Contato {phone} pausado para {client}"}
+
+@app.post("/admin/resume-contact")
+async def resume_contact(client: str, phone: str):
+    """Retoma um contato específico."""
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    contact_key = f"{client}:{phone}"
+    if contact_key in paused:
+        paused.remove(contact_key)
+    settings.paused_contacts = ",".join(paused)
+    save_paused_contacts()
+    return {"paused": paused, "message": f"Contato {phone} retomado para {client}"}
+
+@app.get("/admin/pause-contact")
+async def get_paused_contacts():
+    """Lista contatos pausados."""
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    return {"paused": paused}
+
+@app.post("/admin/transfer-to-human")
+async def transfer_to_human(client: str, phone: str, reason: str = ""):
+    """Transfere contato para atendente humano (pausa automaticamente)."""
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    contact_key = f"{client}:{phone}"
+    if contact_key not in paused:
+        paused.append(contact_key)
+    settings.paused_contacts = ",".join(paused)
+    save_paused_contacts()
+    
+    # Enviar mensagem de transferência
+    try:
+        await evolution_client.send_text(
+            to_number=phone,
+            message=f"Transferindo para um atendente humano. {reason}" if reason else "Transferindo para um atendente humano. Aguarde um momento.",
+            instance=client,
+        )
+    except Exception as e:
+        logger.error(f"Erro ao enviar mensagem de transferência: {e}")
+    
+    return {"paused": paused, "message": f"Contato {phone} transferido para humano"}
 
 
 if __name__ == "__main__":

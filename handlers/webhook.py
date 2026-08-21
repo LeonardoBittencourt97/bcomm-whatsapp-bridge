@@ -171,3 +171,13 @@ def extract_message(event: WebhookEvent) -> Optional[IncomingMessage]:
     )
 
     return msg
+
+
+def is_contact_paused(client: str, phone: str) -> bool:
+    """Verifica se um contato específico está pausado."""
+    from config import settings
+    if not settings.paused_contacts:
+        return False
+    paused = [c.strip().lower() for c in settings.paused_contacts.split(",")]
+    contact_key = f"{client}:{phone}".lower()
+    return contact_key in paused or phone.lower() in paused
