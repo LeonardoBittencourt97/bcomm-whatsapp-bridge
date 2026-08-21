@@ -42,11 +42,6 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO", description="Nível de log")
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
-
-
-settings = Settings()
-
     # Multi-tenant
     clients_dir: str = Field(default="/opt/data/clients", description="Diretório de clientes multi-tenant")
 
@@ -58,3 +53,8 @@ settings = Settings()
     # Batch processing
     batch_wait_seconds: float = Field(default=10.0, description="Espera por mensagens adicionais (segundos)")
     batch_max_wait: float = Field(default=150.0, description="Máximo de espera (segundos)")
+
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+
+settings = Settings()
