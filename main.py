@@ -147,7 +147,7 @@ async def webhook_evolution(request: Request):
         return {"status": "ignored_test_mode", "phone": message.from_number}
 
     # Verificar se o cliente está pausado
-    client_name = message.instance_name or settings.evolution_instance
+    client_name = message.instance or settings.evolution_instance
     if is_client_paused(client_name):
         logger.info(f"Mensagem ignorada (cliente pausado): {client_name}")
         return {"status": "ignored_paused", "client": client_name}
