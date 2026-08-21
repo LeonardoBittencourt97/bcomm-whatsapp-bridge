@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # Multi-tenant
-    clients_dir: str = "/data/clients"
+    clients_dir: str = "/opt/data/clients"
     
     # Human delay
     human_delay_enabled: bool = True
