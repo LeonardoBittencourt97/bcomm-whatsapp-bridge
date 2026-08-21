@@ -389,8 +389,9 @@
                 <span>BCOMM Dashboard</span>
             </div>
             <div class="nav-tabs">
-                <button class="nav-tab active" onclick="switchTab('overview')">Visão Geral</button>
+                <button class="nav-tab" onclick="switchTab('overview')">Visão Geral</button>
                 <button class="nav-tab" onclick="switchTab('clients')">Clientes</button>
+                <button class="nav-tab" onclick="switchTab('sessions')">Sessões</button>
                 <button class="nav-tab" onclick="switchTab('config')">Configurações</button>
                 <button class="nav-tab" onclick="switchTab('logs')">Logs</button>
             </div>
@@ -545,7 +546,24 @@
             </div>
         </div>
 
-        <!-- Tab: Configurações -->
+        
+        <!-- Tab: Sessões -->
+        <div id="tab-sessions" class="tab-content">
+            <h1 class="page-title">Sessões Ativas</h1>
+            <p class="page-subtitle">Conversas em andamento</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">💬 Sessões Ativas</span>
+                    <button class="btn btn-secondary btn-sm" onclick="refreshSessions()">Atualizar</button>
+                </div>
+                <div id="sessions-list" class="paused-list">
+                    <div class="empty-state">Carregando sessões...</div>
+                </div>
+            </div>
+        </div>
+
+<!-- Tab: Configurações -->
         <div id="tab-config" class="tab-content">
             <h1 class="page-title">Configurações</h1>
             <p class="page-subtitle">Ajuste o comportamento do agente</p>
@@ -766,7 +784,38 @@
             if (!client) return showToast('Informe o cliente', 'error');
             await fetchJSON(`/admin/pause?client=${client}`, { method: 'POST' });
             showToast(`Cliente ${client} pausado`);
-            updateStatus();
+            
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         }
         
         async function resumeClient() {
@@ -774,13 +823,75 @@
             if (!client) return showToast('Informe o cliente', 'error');
             await fetchJSON(`/admin/resume?client=${client}`, { method: 'POST' });
             showToast(`Cliente ${client} retomado`);
-            updateStatus();
+            
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         }
         
         async function resumeClientByName(client) {
             await fetchJSON(`/admin/resume?client=${client}`, { method: 'POST' });
             showToast(`Cliente ${client} retomado`);
-            updateStatus();
+            
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         }
         
         async function pauseContact() {
@@ -789,7 +900,38 @@
             if (!client || !phone) return showToast('Informe cliente e número', 'error');
             await fetchJSON(`/admin/pause-contact?client=${client}&phone=${phone}`, { method: 'POST' });
             showToast(`Contato ${phone} pausado`);
-            updateStatus();
+            
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         }
         
         async function resumeContact() {
@@ -798,13 +940,75 @@
             if (!client || !phone) return showToast('Informe cliente e número', 'error');
             await fetchJSON(`/admin/resume-contact?client=${client}&phone=${phone}`, { method: 'POST' });
             showToast(`Contato ${phone} retomado`);
-            updateStatus();
+            
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         }
         
         async function resumeContactByName(client, phone) {
             await fetchJSON(`/admin/resume-contact?client=${client}&phone=${phone}`, { method: 'POST' });
             showToast(`Contato ${phone} retomado`);
-            updateStatus();
+            
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         }
         
         async function transferToHuman() {
@@ -814,7 +1018,38 @@
             if (!client || !phone) return showToast('Informe cliente e número', 'error');
             await fetchJSON(`/admin/transfer-to-human?client=${client}&phone=${phone}&reason=${encodeURIComponent(reason)}`, { method: 'POST' });
             showToast(`Contato ${phone} transferido para humano`);
-            updateStatus();
+            
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         }
         
         async function sendMessage() {
@@ -850,7 +1085,36 @@
             showToast('Modo teste desativado');
         }
         
-        async function refreshLogs() {
+        
+            const container = document.getElementById('log-container');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            // Em produção, buscar de API real
+            const logs = [
+                { time: new Date().toLocaleTimeString(), level: 'info', message: 'Dashboard atualizado' },
+            ];
+            
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                logs.unshift({ time: new Date().toLocaleTimeString(), level: 'success', message: `Sistema online - Uptime: ${Math.floor(health.uptime_seconds / 60)}min` });
+            } catch (e) {
+                logs.unshift({ time: new Date().toLocaleTimeString(), level: 'error', message: 'Sistema offline' });
+            }
+            
+            const metrics = await fetchJSON('/admin/metrics');
+            if (metrics) {
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Clientes pausados: ${metrics.paused_clients}` });
+                logs.push({ time: new Date().toLocaleTimeString(), level: 'info', message: `Contatos pausados: ${metrics.paused_contacts}` });
+            }
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry ${log.level}">
+                    <span style="color: var(--text-muted);">[${log.time}]</span> ${log.message}
+                </div>
+            `).join('');
+        }
+updateStatus()
             const container = document.getElementById('log-container');
             container.innerHTML = '<div class="empty-state">Carregando...</div>';
             
@@ -872,7 +1136,38 @@
             `).join('');
         }
         
-        updateStatus();
+        
+        async function refreshSessions() {
+            const container = document.getElementById('sessions-list');
+            container.innerHTML = '<div class="empty-state">Carregando...</div>';
+            
+            const data = await fetchJSON('/admin/sessions');
+            if (data && data.sessions && data.sessions.length > 0) {
+                container.innerHTML = data.sessions.map(s => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: var(--accent);">${s.phone ? s.phone[0] : '?'}</div>
+                            <div>
+                                <div class="paused-name">${s.phone || 'Desconhecido'}</div>
+                                <div class="paused-detail">${s.client || 'N/A'} • ${s.last_activity || ''}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="clearSession('${s.session_id}')">Limpar</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="empty-state">Nenhuma sessão ativa</div>';
+            }
+        }
+        
+        async function clearSession(sessionId) {
+            await fetchJSON('/admin/clear-sessions', { method: 'POST' });
+            showToast('Sessão limpa');
+            refreshSessions();
+        }
+        
+updateStatus();
+        refreshSessions();
         loadConfig();
         setInterval(updateStatus, 30000);
     </script>
