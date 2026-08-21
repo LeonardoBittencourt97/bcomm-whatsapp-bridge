@@ -234,6 +234,32 @@ async def reload_clients():
 
 # ── Test Mode ──────────────────────────────────────────────────────
 
+TEST_MODE_FILE = "/app/data/test_mode.json"
+
+def load_test_mode():
+    """Carrega modo teste de arquivo."""
+    if os.path.exists(TEST_MODE_FILE):
+        try:
+            with open(TEST_MODE_FILE, "r") as f:
+                data = json.load(f)
+                settings.test_mode = data.get("test_mode", False)
+                settings.test_numbers = data.get("test_numbers", "")
+                logger.info(f"Modo teste carregado: {settings.test_mode}, números: {settings.test_numbers}")
+        except Exception as e:
+            logger.error(f"Erro ao carregar modo teste: {e}")
+
+def save_test_mode():
+    """Salva modo teste em arquivo."""
+    try:
+        with open(TEST_MODE_FILE, "w") as f:
+            json.dump({
+                "test_mode": settings.test_mode,
+                "test_numbers": settings.test_numbers,
+            }, f)
+        logger.info(f"Modo teste salvo: {settings.test_mode}")
+    except Exception as e:
+        logger.error(f"Erro ao salvar modo teste: {e}")
+
 @app.post("/admin/test-mode")
 async def set_test_mode(enabled: bool, numbers: str = ""):
     """Habilita/desabilita modo teste."""
