@@ -123,3 +123,93 @@ async def get_outreach_stats():
     
     return stats
 
+
+# ── Novos endpoints de controle ──────────────────────────────────
+
+@router.post("/{task_id}/stop")
+async def stop_outreach_task(task_id: str, reason: str = ""):
+    """Para o contato com um lead"""
+    if task_id not in outreach_tasks:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    
+    task = outreach_tasks[task_id]
+    task["status"] = "cancelled"
+    task["cancelled_reason"] = reason
+    task["updated_at"] = datetime.now().isoformat()
+    
+    # Pausar conversa
+    from config import settings
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    contact_key = f"BCOMM:{task['contact_phone']}"
+    if contact_key not in paused:
+        paused.append(contact_key)
+    settings.paused_contacts = ",".join(paused)
+    
+    return {"status": "stopped", "task": task}
+
+@router.post("/{task_id}/command")
+async def send_command_to_agent(task_id: str, command: str):
+    """Envia comando direto para o agente"""
+    if task_id not in outreach_tasks:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    
+    task = outreach_tasks[task_id]
+    task["last_command"] = command
+    task["command_sent_at"] = datetime.now().isoformat()
+    task["updated_at"] = datetime.now().isoformat()
+    
+    return {"status": "command_sent", "command": command}
+
+@router.put("/{task_id}/instructions")
+async def update_task_instructions(task_id: str, instructions: str):
+    """Atualiza as instruções do agente"""
+    if task_id not in outreach_tasks:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    
+    task = outreach_tasks[task_id]
+    task["instructions"] = instructions
+    task["instructions_updated_at"] = datetime.now().isoformat()
+    task["updated_at"] = datetime.now().isoformat()
+    
+    return {"status": "instructions_updated", "task": task}
+
+@router.post("/{task_id}/pause")
+async def pause_outreach_task(task_id: str):
+    """Pausa o contato (agente para de responder)"""
+    if task_id not in outreach_tasks:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    
+    task = outreach_tasks[task_id]
+    task["status"] = "paused"
+    task["updated_at"] = datetime.now().isoformat()
+    
+    # Pausar conversa
+    from config import settings
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    contact_key = f"BCOMM:{task['contact_phone']}"
+    if contact_key not in paused:
+        paused.append(contact_key)
+    settings.paused_contacts = ",".join(paused)
+    
+    return {"status": "paused", "task": task}
+
+@router.post("/{task_id}/resume")
+async def resume_outreach_task(task_id: str):
+    """Retoma o contato"""
+    if task_id not in outreach_tasks:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    
+    task = outreach_tasks[task_id]
+    task["status"] = "active"
+    task["updated_at"] = datetime.now().isoformat()
+    
+    # Retomar conversa
+    from config import settings
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    contact_key = f"BCOMM:{task['contact_phone']}"
+    if contact_key in paused:
+        paused.remove(contact_key)
+    settings.paused_contacts = ",".join(paused)
+    
+    return {"status": "resumed", "task": task}
+
