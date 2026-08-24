@@ -538,3 +538,8 @@ if __name__ == "__main__":
         reload=settings.debug,
         log_level=settings.log_level.lower(),
     )
+
+# ── Outreach Routes ─────────────────────────────────────────────
+from outreach import router as outreach_router
+app.include_router(outreach_router)
+
