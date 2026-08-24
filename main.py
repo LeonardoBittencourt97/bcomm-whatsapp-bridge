@@ -543,3 +543,14 @@ if __name__ == "__main__":
 from outreach import router as outreach_router
 app.include_router(outreach_router)
 
+
+@app.get("/outreach")
+async def outreach_page():
+    """Página de outreach"""
+    from fastapi.responses import HTMLResponse
+    outreach_path = os.path.join(os.path.dirname(__file__), "static", "outreach.html")
+    if os.path.exists(outreach_path):
+        with open(outreach_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
+
