@@ -221,9 +221,22 @@ def _get_outreach_instructions(phone: str) -> str:
         with open(data_file, "r") as f:
             tasks = json.load(f)
         
+        # Normalizar telefone para comparação
+        normalized = phone.replace("+", "").replace("-", "").replace(" ", "")
+        
         for task in tasks.values():
-            if task.get("contact_phone") == phone and task.get("status") == "active":
-                return task.get("instructions", "")
+            task_phone = task.get("contact_phone", "").replace("+", "").replace("-", "").replace(" ", "")
+            if task.get("status") == "active":
+                # Verificar correspondência exata
+                if task_phone == normalized:
+                    return task.get("instructions", "")
+                # Verificar com/sem 9 adicional
+                if task_phone.endswith(normalized) or normalized.endswith(task_phone):
+                    return task.get("instructions", "")
+                # Verificar se um contém o outro (últimos 8 dígitos)
+                if len(task_phone) >= 8 and len(normalized) >= 8:
+                    if task_phone[-8:] == normalized[-8:]:
+                        return task.get("instructions", "")
     except Exception:
         pass
     
