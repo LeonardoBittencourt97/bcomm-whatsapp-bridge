@@ -66,8 +66,10 @@ async def start_outreach(request: OutreachStartRequest):
     save_tasks(outreach_tasks)
     
     try:
-        from services.evolution import evolution_client
-        result = await evolution_client.send_text(phone, request.initial_message)
+        from services.evolution import EvolutionClient
+        evo = EvolutionClient()
+        result = await evo.send_text(phone, request.initial_message)
+        await evo.close()
         if result.get("success"):
             task["status"] = "active"
             task["messages_sent"] = 1
@@ -209,14 +211,16 @@ async def resume_outreach_task(task_id: str):
 
 @router.post("/send")
 async def send_direct_message(phone: str, message: str, client_id: str = "BCOMM"):
-    """Envia mensagem direta (fora de outreach)"""
+    """Envia mensagem direta"""
     phone = phone.replace("-", "").replace(" ", "").replace("+", "")
     if not phone.startswith("55"):
         phone = "55" + phone
     
     try:
-        from services.evolution import evolution_client
-        result = await evolution_client.send_text(phone, message)
+        from services.evolution import EvolutionClient
+        evo = EvolutionClient()
+        result = await evo.send_text(phone, message)
+        await evo.close()
         return result
     except Exception as e:
         return {"success": False, "error": str(e)}
