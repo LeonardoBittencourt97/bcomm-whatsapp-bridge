@@ -206,6 +206,29 @@ async def _send_typing_indicator(
 
 # ── Processamento de batch ─────────────────────────────────────────
 
+
+
+def _get_outreach_instructions(phone: str) -> str:
+    """Busca instruções de outreach para um contato"""
+    import json
+    import os
+    
+    data_file = "/app/data/outreach_tasks.json"
+    if not os.path.exists(data_file):
+        return ""
+    
+    try:
+        with open(data_file, "r") as f:
+            tasks = json.load(f)
+        
+        for task in tasks.values():
+            if task.get("contact_phone") == phone and task.get("status") == "active":
+                return task.get("instructions", "")
+    except Exception:
+        pass
+    
+    return ""
+
 async def _process_batch(
     phone: str,
     messages: list[IncomingMessage],
@@ -247,7 +270,13 @@ async def _process_batch(
                 content = "[Não foi possível transcrever o áudio]"
                 logger.warning("Falha na transcrição do áudio")
 
-    # Carregar prompt de sistema
+        # Carregar prompt de sistema
+    system_prompt = _load_prompt("atendimento")
+    
+    # Verificar se há instruções de outreach para este contato
+    outreach_instructions = _get_outreach_instructions(phone)
+    if outreach_instructions:
+        logger.info(f"Instruções de outreach encontradas para {phone}")
     system_prompt = _load_prompt("atendimento")
 
     response_content = None
@@ -256,8 +285,13 @@ async def _process_batch(
 
     # Tentar Hermes CLI primeiro (se habilitado)
     if use_hermes:
+        # Construir mensagem com contexto do outreach
+        full_message = f"Usuário WhatsApp {phone} diz: {content}"
+        if outreach_instructions:
+            full_message = f"[CONTEXTO OUTREACH - Instruções: {outreach_instructions}]\n\n{full_message}"
+        
         hermes_response = await hermes.chat(
-            f"Usuário WhatsApp {phone} diz: {content}", phone=phone
+            full_message, phone=phone
         )
         if hermes_response:
             response_content = hermes_response
