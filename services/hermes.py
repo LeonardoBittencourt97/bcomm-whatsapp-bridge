@@ -73,6 +73,7 @@ class HermesClient:
         ])
 
         logger.info(f"Hermes (phone={phone}): {message[:80]}...")
+        await self._track_message(phone, "user", message)
 
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -115,6 +116,7 @@ class HermesClient:
             response = response.replace("╰─", "").strip()
 
             logger.info(f"Hermes respondeu ({len(response)} chars)")
+            await self._track_message(phone, "agent", response, model_used or "")
             return response
 
         except asyncio.TimeoutError:
@@ -126,6 +128,22 @@ class HermesClient:
             logger.error(f"Erro Hermes: {e}")
             return None
 
+
+
+    async def _track_message(self, phone: str, sender: str, content: str, model: str = ""):
+        """Registra mensagem no CRM"""
+        try:
+            import httpx
+            
+            if sender == "user":
+                endpoint = f"http://localhost:8000/crm/conversations/{phone}/receive"
+            else:
+                endpoint = f"http://localhost:8000/crm/conversations/{phone}/agent-response"
+            
+            async with httpx.AsyncClient() as client:
+                await client.post(endpoint, json={"content": content}, params={"model": model})
+        except Exception as e:
+            logger.error(f"Erro ao rastrear mensagem: {e}")
 
     def get_active_sessions(self) -> list:
         """Retorna sessões ativas do arquivo de sessões."""

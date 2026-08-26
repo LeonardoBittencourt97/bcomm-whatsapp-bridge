@@ -109,6 +109,7 @@
                 <button class="nav-tab" onclick="switchTab('logs', this)">Logs</button>
                 <button class="nav-tab" onclick="switchTab('outreach', this)">Outreach</button>
                 <button class="nav-tab" onclick="switchTab('vendas', this)">Vendas</button>
+                <button class="nav-tab" onclick="switchTab('crm', this)">CRM</button>
             </div>
             <div class="status-badge">
                 <div id="status-dot" class="status-dot"></div>
@@ -171,6 +172,58 @@
         </div>
 
         <!-- Tab: Logs -->
+        
+        <div id="tab-crm" class="tab-content">
+            <div class="page-title">CRM - Atendimento</div>
+            <div class="page-subtitle">Gerencie conversas com seus clientes</div>
+            
+            <!-- Stats -->
+            <div class="stats" style="margin-bottom: 24px;">
+                <div class="stat">
+                    <div class="stat-value" id="crm-total">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="crm-open">0</div>
+                    <div class="stat-label">Abertas</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="crm-paused">0</div>
+                    <div class="stat-label">Pausadas</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="crm-messages">0</div>
+                    <div class="stat-label">Mensagens Hoje</div>
+                </div>
+            </div>
+            
+            <!-- Link para CRM completo -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">💬 Abrir CRM Completo</div>
+                </div>
+                <div style="text-align: center; padding: 20px;">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Para gerenciar conversas com interface completa tipo Chatwoot, abra o CRM em uma nova aba.
+                    </p>
+                    <a href="/crm" target="_blank" class="btn btn-primary">
+                        🚀 Abrir CRM
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Últimas Conversas -->
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <div class="card-title">📋 Últimas Conversas</div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadCrmRecent()">🔄 Atualizar</button>
+                </div>
+                <div id="crm-recent-list">
+                    <div class="empty-state">Carregando...</div>
+                </div>
+            </div>
+        </div>
+
         <div id="tab-logs" class="tab-content">
             <h1 class="page-title">Logs</h1>
             <p class="page-subtitle">Últimas entradas</p>
@@ -326,6 +379,7 @@
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
             if (tab === 'vendas') { initSalesTab(); }
             if (tab === 'outreach') { initOutreachTab(); }
+            if (tab === 'crm') { initCrmTab(); }
             document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
             document.getElementById('tab-' + tab).classList.add('active');
             el.classList.add('active');
@@ -779,6 +833,58 @@
         
         function initOutreachTab() {
             loadOutreachTasks();
+        }
+
+        
+        // ── CRM Tab Functions ──────────────────────────────────────
+        async function loadCrmStats() {
+            try {
+                const response = await fetch('/crm/stats');
+                const stats = await response.json();
+                
+                document.getElementById('crm-total').textContent = stats.total_conversations;
+                document.getElementById('crm-open').textContent = stats.open;
+                document.getElementById('crm-paused').textContent = stats.paused;
+                document.getElementById('crm-messages').textContent = stats.messages_today;
+            } catch (error) {
+                console.error('Erro ao carregar stats CRM:', error);
+            }
+        }
+        
+        async function loadCrmRecent() {
+            try {
+                const response = await fetch('/crm/conversations?limit=5');
+                const data = await response.json();
+                
+                const container = document.getElementById('crm-recent-list');
+                
+                if (!data.conversations || data.conversations.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Nenhuma conversa</div>';
+                    return;
+                }
+                
+                container.innerHTML = data.conversations.map(conv => `
+                    <div class="paused-item">
+                        <div class="paused-info">
+                            <div class="paused-avatar" style="background: ${conv.status === 'open' ? 'var(--success)' : conv.status === 'paused' ? 'var(--warning)' : 'var(--text-muted)'}">
+                                ${conv.phone ? conv.phone.slice(-2) : '?'}
+                            </div>
+                            <div>
+                                <div class="paused-name">${conv.phone}</div>
+                                <div class="paused-detail">${conv.last_message || 'Sem mensagens'}</div>
+                            </div>
+                        </div>
+                        <span class="status-badge">${conv.status}</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar conversas recentes:', error);
+            }
+        }
+        
+        function initCrmTab() {
+            loadCrmStats();
+            loadCrmRecent();
         }
 
         function initSalesTab() {
