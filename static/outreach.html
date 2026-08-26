@@ -6,137 +6,95 @@
     <title>BCOMM - Outreach</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-primary: #0b0b0c;
-            --bg-surface: #0b0e14;
-            --bg-card: #13161a;
-            --bg-elevated: #1a1d21;
-            --border: #292d30;
-            --text-primary: #ffffff;
-            --text-secondary: #a1a4a5;
-            --text-muted: #6e727a;
-            --accent: #3b9eff;
-            --success: #34c759;
-            --danger: #ff453a;
-            --warning: #ffd60a;
-            --radius: 12px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
-        .header { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 16px 24px; }
-        .header-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
-        .logo { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; }
-        .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-        .back-btn { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
-        .main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
-        .page-title { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
-        .page-subtitle { font-size: 15px; color: var(--text-muted); margin-bottom: 32px; }
-        .grid { display: grid; grid-template-columns: 400px 1fr; gap: 24px; }
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
-        .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
-        .form-group { margin-bottom: 16px; }
-        .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
-        .form-input { width: 100%; padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 14px; font-family: inherit; }
-        .form-input:focus { outline: none; border-color: var(--accent); }
-        .form-input::placeholder { color: var(--text-muted); }
-        textarea.form-input { min-height: 100px; resize: vertical; }
-        .btn { padding: 10px 20px; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-warning { background: var(--warning); color: #000; }
-        .btn-sm { padding: 6px 12px; font-size: 12px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
-        .stat-card { background: var(--bg-surface); border-radius: var(--radius); padding: 16px; text-align: center; }
-        .stat-value { font-size: 24px; font-weight: 700; color: var(--accent); }
-        .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; }
-        .task-list { display: flex; flex-direction: column; gap: 12px; max-height: 600px; overflow-y: auto; }
-        .task-item { background: var(--bg-surface); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); }
-        .task-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .task-name { font-weight: 600; font-size: 15px; }
-        .task-phone { font-size: 13px; color: var(--text-muted); }
-        .task-instructions { font-size: 13px; color: var(--text-secondary); margin: 12px 0; padding: 12px; background: var(--bg-primary); border-radius: 8px; max-height: 80px; overflow: hidden; }
-        .task-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-        .status-pending { background: rgba(255, 214, 10, 0.2); color: var(--warning); }
-        .status-active { background: rgba(52, 199, 89, 0.2); color: var(--success); }
-        .status-paused { background: rgba(255, 149, 0, 0.2); color: #ff9500; }
-        .status-completed { background: rgba(59, 157, 255, 0.2); color: var(--accent); }
-        .status-cancelled { background: rgba(255, 69, 58, 0.2); color: var(--danger); }
-        .empty-state { text-align: center; padding: 48px; color: var(--text-muted); }
-        .command-input { display: flex; gap: 8px; margin-top: 12px; }
-        .command-input input { flex: 1; }
-        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 14px; display: none; z-index: 1000; }
-        .toast.success { border-color: var(--success); }
-        .toast.error { border-color: var(--danger); }
-        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        :root{--bg-primary:#0b0b0c;--bg-surface:#0b0e14;--bg-card:#13161a;--bg-elevated:#1a1d21;--border:#292d30;--text-primary:#ffffff;--text-secondary:#a1a4a5;--text-muted:#6e727a;--accent:#3b9eff;--success:#34c759;--danger:#ff453a;--warning:#ffd60a;--radius:12px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
+        .header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:16px 24px}
+        .header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+        .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600}
+        .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+        .back-btn{color:var(--text-secondary);text-decoration:none;font-size:14px}
+        .main{max-width:1400px;margin:0 auto;padding:32px 24px}
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--text-muted);margin-bottom:32px}
+        .grid{display:grid;grid-template-columns:400px 1fr;gap:24px}
+        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:24px}
+        .card-title{font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+        .form-group{margin-bottom:16px}
+        .form-label{display:block;font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:6px}
+        .form-input{width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;font-family:inherit}
+        .form-input:focus{outline:none;border-color:var(--accent)}
+        .form-input::placeholder{color:var(--text-muted)}
+        textarea.form-input{min-height:100px;resize:vertical}
+        .btn{padding:10px 20px;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+        .btn-primary{background:var(--accent);color:white}
+        .btn-success{background:var(--success);color:white}
+        .btn-danger{background:var(--danger);color:white}
+        .btn-warning{background:var(--warning);color:#000}
+        .btn-sm{padding:6px 12px;font-size:12px}
+        .btn-secondary{background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border)}
+        .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+        .stat-card{background:var(--bg-surface);border-radius:var(--radius);padding:16px;text-align:center}
+        .stat-value{font-size:24px;font-weight:700;color:var(--accent)}
+        .stat-label{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase}
+        .task-list{display:flex;flex-direction:column;gap:12px;max-height:600px;overflow-y:auto}
+        .task-item{background:var(--bg-surface);border-radius:var(--radius);padding:16px;border:1px solid var(--border)}
+        .task-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+        .task-name{font-weight:600;font-size:15px}
+        .task-phone{font-size:13px;color:var(--text-muted)}
+        .task-instructions{font-size:13px;color:var(--text-secondary);margin:12px 0;padding:12px;background:var(--bg-primary);border-radius:8px;max-height:80px;overflow:hidden}
+        .task-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+        .status-badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
+        .status-sending{background:rgba(255,214,10,0.2);color:var(--warning)}
+        .status-active{background:rgba(52,199,89,0.2);color:var(--success)}
+        .status-paused{background:rgba(255,149,0,0.2);color:#ff9500}
+        .status-failed{background:rgba(255,69,58,0.2);color:var(--danger)}
+        .status-cancelled{background:rgba(110,114,122,0.2);color:var(--text-muted)}
+        .empty-state{text-align:center;padding:48px;color:var(--text-muted)}
+        .command-input{display:flex;gap:8px;margin-top:12px}
+        .command-input input{flex:1}
+        .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;display:none;z-index:1000}
+        .toast.success{border-color:var(--success)}
+        .toast.error{border-color:var(--danger)}
+        @media(max-width:900px){.grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
     </style>
 </head>
 <body>
     <header class="header">
         <div class="header-inner">
-            <div class="logo">
-                <div class="logo-icon">B</div>
-                <span>Outreach</span>
-            </div>
+            <div class="logo"><div class="logo-icon">B</div><span>Outreach</span></div>
             <a href="/dashboard" class="back-btn">← Voltar</a>
         </div>
     </header>
-
     <main class="main">
         <h1 class="page-title">Cold Outreach</h1>
         <p class="page-subtitle">Inicie e gerencie contatos com leads</p>
-
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total</div></div>
-            <div class="stat-card"><div class="stat-value" id="stat-pending">0</div><div class="stat-label">Pendente</div></div>
             <div class="stat-card"><div class="stat-value" id="stat-active">0</div><div class="stat-label">Ativo</div></div>
             <div class="stat-card"><div class="stat-value" id="stat-paused">0</div><div class="stat-label">Pausado</div></div>
+            <div class="stat-card"><div class="stat-value" id="stat-failed">0</div><div class="stat-label">Falhou</div></div>
             <div class="stat-card"><div class="stat-value" id="stat-cancelled">0</div><div class="stat-label">Cancelado</div></div>
         </div>
-
         <div class="grid">
-            <!-- Formulário -->
             <div class="card">
                 <div class="card-title">🚀 Novo Contato</div>
-                <div class="form-group">
-                    <label class="form-label">📱 Número *</label>
-                    <input type="text" class="form-input" id="phone" placeholder="554197054071">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">👤 Nome</label>
-                    <input type="text" class="form-input" id="name" placeholder="João da Silva">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">🏢 Empresa</label>
-                    <input type="text" class="form-input" id="company" placeholder="Empresa XYZ">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">📝 Instruções *</label>
-                    <textarea class="form-input" id="instructions" placeholder="Descreva o perfil do lead, problema, solução, abordagem..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">💬 Mensagem Inicial *</label>
-                    <textarea class="form-input" id="initial-message" placeholder="Olá! Sou da BCOMM..."></textarea>
-                </div>
-                <button class="btn btn-primary" onclick="startOutreach()" style="width: 100%;">🚀 Iniciar Contato</button>
+                <div class="form-group"><label class="form-label">📱 Número *</label><input type="text" class="form-input" id="phone" placeholder="5541997054071"></div>
+                <div class="form-group"><label class="form-label">👤 Nome</label><input type="text" class="form-input" id="name" placeholder="João da Silva"></div>
+                <div class="form-group"><label class="form-label">🏢 Empresa</label><input type="text" class="form-input" id="company" placeholder="Empresa XYZ"></div>
+                <div class="form-group"><label class="form-label">📝 Instruções *</label><textarea class="form-input" id="instructions" placeholder="Descreva o perfil do lead, problema, solução, abordagem..."></textarea></div>
+                <div class="form-group"><label class="form-label">💬 Mensagem Inicial *</label><textarea class="form-input" id="initial-message" placeholder="Olá! Sou da BCOMM..."></textarea></div>
+                <button class="btn btn-primary" onclick="startOutreach()" style="width:100%">🚀 Iniciar Contato</button>
             </div>
-
-            <!-- Lista -->
             <div class="card">
                 <div class="card-title">📋 Contatos</div>
-                <div id="task-list" class="task-list">
-                    <div class="empty-state">Nenhum contato</div>
-                </div>
+                <div id="task-list" class="task-list"><div class="empty-state">Nenhum contato</div></div>
             </div>
         </div>
     </main>
-
     <div id="toast" class="toast"></div>
-
     <script>
         var API = '';
-        var selectedTask = null;
 
         function showToast(msg, type) {
             var t = document.getElementById('toast');
@@ -146,8 +104,10 @@
             setTimeout(function() { t.style.display = 'none'; }, 3000);
         }
 
-        function api(url, method) {
-            return fetch(API + url, { method: method || 'GET', headers: {'Content-Type': 'application/json'} }).then(function(r) { return r.json(); });
+        function api(url, method, body) {
+            var opts = { method: method || 'GET', headers: {'Content-Type': 'application/json'} };
+            if (body) opts.body = JSON.stringify(body);
+            return fetch(API + url, opts).then(function(r) { return r.json(); });
         }
 
         function startOutreach() {
@@ -162,8 +122,23 @@
                 return;
             }
 
-            api('/outreach/start', 'POST').then(function(r) {
-                showToast('Contato iniciado!');
+            var data = {
+                phone: phone,
+                name: name,
+                company: company,
+                instructions: instructions,
+                initial_message: message,
+                client_id: 'BCOMM'
+            };
+
+            api('/outreach/start', 'POST', data).then(function(r) {
+                if (r.status === 'active' || r.status === 'sending') {
+                    showToast('Mensagem enviada com sucesso!');
+                } else if (r.status === 'failed') {
+                    showToast('Falha ao enviar: ' + (r.message || 'Erro desconhecido'), 'error');
+                } else {
+                    showToast('Contato iniciado!');
+                }
                 loadStats();
                 loadTasks();
                 document.getElementById('phone').value = '';
@@ -171,6 +146,8 @@
                 document.getElementById('company').value = '';
                 document.getElementById('instructions').value = '';
                 document.getElementById('initial-message').value = '';
+            }).catch(function(e) {
+                showToast('Erro de conexão', 'error');
             });
         }
 
@@ -203,29 +180,19 @@
         function sendCommand(id) {
             var input = document.getElementById('cmd-' + id);
             if (!input || !input.value) return;
-            
             api('/outreach/' + id + '/command?command=' + encodeURIComponent(input.value), 'POST').then(function() {
                 showToast('Comando enviado');
                 input.value = '';
             });
         }
 
-        function updateInstructions(id) {
-            var newInstructions = prompt('Novas instruções:');
-            if (newInstructions === null) return;
-            api('/outreach/' + id + '/instructions?instructions=' + encodeURIComponent(newInstructions), 'PUT').then(function() {
-                showToast('Instruções atualizadas');
-                loadTasks();
-            });
-        }
-
         function loadStats() {
             api('/outreach/stats/summary').then(function(s) {
                 document.getElementById('stat-total').textContent = s.total || 0;
-                document.getElementById('stat-pending').textContent = s.pending || 0;
                 document.getElementById('stat-active').textContent = s.active || 0;
                 document.getElementById('stat-paused').textContent = s.paused || 0;
-                document.getElementById('stat-cancelled').textContent = (s.cancelled || 0) + (s.failed || 0);
+                document.getElementById('stat-failed').textContent = s.failed || 0;
+                document.getElementById('stat-cancelled').textContent = (s.cancelled || 0);
             });
         }
 
@@ -238,18 +205,16 @@
                 }
                 el.innerHTML = d.tasks.map(function(t) {
                     var actions = '';
-                    if (t.status === 'active' || t.status === 'pending') {
+                    if (t.status === 'active') {
                         actions = '<button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button>' +
-                                  '<button class="btn btn-warning btn-sm" onclick="pauseTask(\'' + t.id + '\')">⏸ Pausar</button>' +
-                                  '<button class="btn btn-sm btn-secondary" onclick="updateInstructions(\'' + t.id + '\')">📝 Instruções</button>';
+                                  '<button class="btn btn-warning btn-sm" onclick="pauseTask(\'' + t.id + '\')">⏸ Pausar</button>';
                     } else if (t.status === 'paused') {
                         actions = '<button class="btn btn-success btn-sm" onclick="resumeTask(\'' + t.id + '\')">▶ Retomar</button>' +
                                   '<button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button>';
                     }
-                    
                     return '<div class="task-item">' +
                         '<div class="task-header"><div><div class="task-name">' + (t.contact_name || 'Sem nome') + '</div><div class="task-phone">' + t.contact_phone + '</div></div><span class="status-badge status-' + t.status + '">' + t.status + '</span></div>' +
-                        '<div class="task-instructions">' + (t.instructions || '').substring(0, 150) + '...</div>' +
+                        '<div class="task-instructions">' + (t.instructions || '').substring(0, 100) + '...</div>' +
                         '<div class="task-actions">' + actions + '</div>' +
                         '<div class="command-input"><input type="text" class="form-input" id="cmd-' + t.id + '" placeholder="Comando para o agente..."><button class="btn btn-primary btn-sm" onclick="sendCommand(\'' + t.id + '\')">Enviar</button></div>' +
                     '</div>';
