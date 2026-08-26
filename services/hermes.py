@@ -126,6 +126,21 @@ class HermesClient:
             logger.error(f"Erro Hermes: {e}")
             return None
 
+
+    def get_active_sessions(self) -> list:
+        """Retorna sessões ativas do arquivo de sessões."""
+        try:
+            if os.path.exists(SESSION_FILE):
+                with open(SESSION_FILE, "r") as f:
+                    sessions = json.load(f)
+                return [
+                    {"phone": phone, "session_id": session_id}
+                    for phone, session_id in sessions.items()
+                ]
+        except Exception as e:
+            logger.error(f"Erro ao ler sessões: {e}")
+        return []
+
     async def is_available(self) -> bool:
         try:
             proc = await asyncio.create_subprocess_exec(

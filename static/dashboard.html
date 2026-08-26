@@ -107,7 +107,7 @@
                 <button class="nav-tab" onclick="switchTab('sessions', this)">Sessões</button>
                 <button class="nav-tab" onclick="switchTab('config', this)">Configurações</button>
                 <button class="nav-tab" onclick="switchTab('logs', this)">Logs</button>
-                <a href="/outreach" class="nav-tab" style="text-decoration:none">Outreach</a>
+                <button class="nav-tab" onclick="switchTab('outreach', this)">Outreach</button>
                 <button class="nav-tab" onclick="switchTab('vendas', this)">Vendas</button>
             </div>
             <div class="status-badge">
@@ -177,6 +177,65 @@
             <div class="card"><div class="card-header"><span class="card-title">📋 Logs</span><button class="btn btn-secondary btn-sm" onclick="refreshLogs()">Atualizar</button></div><div id="log-container" class="log-container"><div class="empty-state">Carregando...</div></div></div>
         </div>
     
+        
+        <div id="tab-outreach" class="tab-content">
+            <div class="page-title">Outreach</div>
+            <div class="page-subtitle">Gerencie conversas frias e prospecção</div>
+            
+            <!-- Stats -->
+            <div class="stats" style="margin-bottom: 24px;">
+                <div class="stat">
+                    <div class="stat-value" id="outreach-active">0</div>
+                    <div class="stat-label">Ativos</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="outreach-paused">0</div>
+                    <div class="stat-label">Pausados</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="outreach-completed">0</div>
+                    <div class="stat-label">Concluídos</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="outreach-failed">0</div>
+                    <div class="stat-label">Falhas</div>
+                </div>
+            </div>
+            
+            <!-- Formulário Nova Conversa -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <div class="card-title">➕ Nova Conversa</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Telefone</label>
+                        <input type="text" class="form-input" id="outreach-phone" placeholder="(41) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nome do Contato</label>
+                        <input type="text" class="form-input" id="outreach-name" placeholder="Nome do lead">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Instruções (opcional)</label>
+                    <textarea class="form-input" id="outreach-instructions" placeholder="Ex: tentar vender site para clínica de estética"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="startOutreach()">🚀 Iniciar Conversa</button>
+            </div>
+            
+            <!-- Lista de Conversas -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📋 Conversas</div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadOutreachTasks()">🔄 Atualizar</button>
+                </div>
+                <div id="outreach-list">
+                    <div class="empty-state">Carregando conversas...</div>
+                </div>
+            </div>
+        </div>
+
         <div id="tab-vendas" class="tab-content">
             <div class="page-title">Inbox de Vendas</div>
             <div class="page-subtitle">Gerencie leads e aprovações do agente de vendas</div>
@@ -266,6 +325,7 @@
         function switchTab(tab, el) {
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
             if (tab === 'vendas') { initSalesTab(); }
+            if (tab === 'outreach') { initOutreachTab(); }
             document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
             document.getElementById('tab-' + tab).classList.add('active');
             el.classList.add('active');
@@ -600,6 +660,127 @@
         }
         
         // Carregar dados de vendas quando a aba é acessada
+        
+        // ── Outreach Tab Functions ──────────────────────────────────────
+        async function loadOutreachTasks() {
+            try {
+                const response = await fetch('/outreach/tasks');
+                const data = await response.json();
+                
+                const container = document.getElementById('outreach-list');
+                
+                if (!data.tasks || data.tasks.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Nenhuma conversa ativa</div>';
+                    return;
+                }
+                
+                container.innerHTML = data.tasks.map(task => `
+                    <div class="paused-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <div class="paused-info">
+                                <div class="paused-avatar" style="background: ${task.status === 'active' ? 'var(--success)' : task.status === 'paused' ? 'var(--warning)' : 'var(--text-muted)'}">
+                                    ${task.contact_name ? task.contact_name[0] : '?'}
+                                </div>
+                                <div>
+                                    <div class="paused-name">${task.contact_name || 'Sem nome'}</div>
+                                    <div class="paused-detail">${task.contact_phone} • ${task.status}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                ${task.status === 'active' ? `
+                                    <button class="btn btn-warning btn-sm" onclick="pauseOutreach('${task.id}')">⏸ Pausar</button>
+                                ` : task.status === 'paused' ? `
+                                    <button class="btn btn-success btn-sm" onclick="resumeOutreach('${task.id}')">▶ Retomar</button>
+                                ` : ''}
+                                <button class="btn btn-danger btn-sm" onclick="cancelOutreach('${task.id}')">❌ Cancelar</button>
+                            </div>
+                        </div>
+                        ${task.instructions ? `
+                            <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-secondary); width: 100%;">
+                                <strong>Instruções:</strong> ${task.instructions}
+                            </div>
+                        ` : ''}
+                        <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);">
+                            <span>📱 ${task.messages_sent || 0} enviadas</span>
+                            <span>📩 ${task.messages_received || 0} recebidas</span>
+                            <span>📅 ${task.created_at ? new Date(task.created_at).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Erro ao carregar conversas:', error);
+            }
+        }
+        
+        async function startOutreach() {
+            const phone = document.getElementById('outreach-phone').value;
+            const name = document.getElementById('outreach-name').value;
+            const instructions = document.getElementById('outreach-instructions').value;
+            
+            if (!phone) {
+                showToast('Informe o telefone', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/outreach/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, name, instructions })
+                });
+                
+                if (response.ok) {
+                    showToast('Conversa iniciada!', 'success');
+                    document.getElementById('outreach-phone').value = '';
+                    document.getElementById('outreach-name').value = '';
+                    document.getElementById('outreach-instructions').value = '';
+                    loadOutreachTasks();
+                } else {
+                    const error = await response.json();
+                    showToast(error.detail || 'Erro ao iniciar conversa', 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao iniciar conversa', 'error');
+            }
+        }
+        
+        async function pauseOutreach(taskId) {
+            try {
+                await fetch(`/outreach/tasks/${taskId}/pause`, { method: 'POST' });
+                showToast('Conversa pausada', 'success');
+                loadOutreachTasks();
+            } catch (error) {
+                showToast('Erro ao pausar', 'error');
+            }
+        }
+        
+        async function resumeOutreach(taskId) {
+            try {
+                await fetch(`/outreach/tasks/${taskId}/resume`, { method: 'POST' });
+                showToast('Conversa retomada', 'success');
+                loadOutreachTasks();
+            } catch (error) {
+                showToast('Erro ao retomar', 'error');
+            }
+        }
+        
+        async function cancelOutreach(taskId) {
+            if (!confirm('Tem certeza que deseja cancelar esta conversa?')) return;
+            
+            try {
+                await fetch(`/outreach/tasks/${taskId}/cancel`, { method: 'POST' });
+                showToast('Conversa cancelada', 'success');
+                loadOutreachTasks();
+            } catch (error) {
+                showToast('Erro ao cancelar', 'error');
+            }
+        }
+        
+        function initOutreachTab() {
+            loadOutreachTasks();
+        }
+
         function initSalesTab() {
             loadLeads();
             loadSalesStats();
