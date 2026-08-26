@@ -292,7 +292,6 @@ async def _process_batch(
         logger.info(f"Usando prompt de outreach para {phone}")
     else:
         system_prompt = _load_prompt("atendimento")
-    system_prompt = _load_prompt("atendimento")
 
     response_content = None
     source = MessageSource.LLM
@@ -306,7 +305,7 @@ async def _process_batch(
             full_message = f"[CONTEXTO OUTREACH - Instruções: {outreach_instructions}]\n\n{full_message}"
         
         hermes_response = await hermes.chat(
-            full_message, phone=phone
+            full_message, phone=phone, force_new_session=bool(outreach_instructions)
         )
         if hermes_response:
             response_content = hermes_response

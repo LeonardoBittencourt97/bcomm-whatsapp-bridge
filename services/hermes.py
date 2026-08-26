@@ -41,19 +41,30 @@ class HermesClient:
         self.profile = settings.hermes_profile
         self.sessions = _load_sessions()
 
-    async def chat(self, message: str, phone: str = "unknown", timeout: int = 120) -> Optional[str]:
+    async def chat(self, message: str, phone: str = "unknown", timeout: int = 120, force_new_session: bool = False) -> Optional[str]:
         """
         Envia mensagem ao Hermes. Se já existe sessão para o phone, retoma.
+        Se force_new_session=True, ignora sessão anterior e cria nova.
         """
         cmd = ["docker", "exec", HERMES_CONTAINER, "/opt/hermes/.venv/bin/hermes", "chat"]
 
-        # Se já tem sessão, retomar
-        session_id = self.sessions.get(phone)
-        if session_id:
-            cmd.extend(["--resume", session_id])
-            logger.info(f"Retomando sessão {session_id} para {phone}")
+        session_id = None
+
+        # Se force_new_session, limpar sessão anterior
+        if force_new_session:
+            old_session = self.sessions.pop(phone, None)
+            if old_session:
+                _save_sessions(self.sessions)
+                logger.info(f"Sessão anterior {old_session} removida (force_new_session) para {phone}")
+            logger.info(f"Forçando nova sessão para {phone} (outreach)")
         else:
-            logger.info(f"Nova sessão para {phone}")
+            # Se já tem sessão, retomar
+            session_id = self.sessions.get(phone)
+            if session_id:
+                cmd.extend(["--resume", session_id])
+                logger.info(f"Retomando sessão {session_id} para {phone}")
+            else:
+                logger.info(f"Nova sessão para {phone}")
 
         cmd.extend([
             "--query", message,
