@@ -283,13 +283,15 @@ async def _process_batch(
                 content = "[Não foi possível transcrever o áudio]"
                 logger.warning("Falha na transcrição do áudio")
 
-        # Carregar prompt de sistema
-    system_prompt = _load_prompt("atendimento")
-    
-    # Verificar se há instruções de outreach para este contato
+        # Verificar se há instruções de outreach para este contato
     outreach_instructions = _get_outreach_instructions(phone)
+    
+    # Carregar prompt apropriado
     if outreach_instructions:
-        logger.info(f"Instruções de outreach encontradas para {phone}")
+        system_prompt = _load_prompt("outreach")
+        logger.info(f"Usando prompt de outreach para {phone}")
+    else:
+        system_prompt = _load_prompt("atendimento")
     system_prompt = _load_prompt("atendimento")
 
     response_content = None
