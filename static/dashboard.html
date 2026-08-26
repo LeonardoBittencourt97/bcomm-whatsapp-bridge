@@ -108,6 +108,7 @@
                 <button class="nav-tab" onclick="switchTab('config', this)">Configurações</button>
                 <button class="nav-tab" onclick="switchTab('logs', this)">Logs</button>
                 <a href="/outreach" class="nav-tab" style="text-decoration:none">Outreach</a>
+                <button class="nav-tab" onclick="switchTab('vendas', this)">Vendas</button>
             </div>
             <div class="status-badge">
                 <div id="status-dot" class="status-dot"></div>
@@ -175,6 +176,80 @@
             <p class="page-subtitle">Últimas entradas</p>
             <div class="card"><div class="card-header"><span class="card-title">📋 Logs</span><button class="btn btn-secondary btn-sm" onclick="refreshLogs()">Atualizar</button></div><div id="log-container" class="log-container"><div class="empty-state">Carregando...</div></div></div>
         </div>
+    
+        <div id="tab-vendas" class="tab-content">
+            <div class="page-title">Inbox de Vendas</div>
+            <div class="page-subtitle">Gerencie leads e aprovações do agente de vendas</div>
+            
+            <!-- Stats -->
+            <div class="stats" style="margin-bottom: 24px;">
+                <div class="stat">
+                    <div class="stat-value" id="sales-pending">0</div>
+                    <div class="stat-label">Pendentes</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="sales-approved">0</div>
+                    <div class="stat-label">Aprovados</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="sales-sent">0</div>
+                    <div class="stat-label">Enviados</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="sales-rejected">0</div>
+                    <div class="stat-label">Rejeitados</div>
+                </div>
+            </div>
+            
+            <!-- Agent Status -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <div class="card-title">Status do Agente</div>
+                    <div class="btn-group">
+                        <button class="btn btn-success btn-sm" id="btn-resume" onclick="resumeAgent()" style="display:none;">▶ Retomar</button>
+                        <button class="btn btn-warning btn-sm" id="btn-pause" onclick="pauseAgent()">⏸ Pausar</button>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="status-dot" id="agent-status-dot"></div>
+                    <span id="agent-status-text" style="color: var(--text-secondary);">Ativo</span>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <div class="card-title">Filtros</div>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <select class="input" style="width: auto;" id="filter-status" onchange="loadLeads()">
+                        <option value="">Todos os Status</option>
+                        <option value="pending">Pendentes</option>
+                        <option value="approved">Aprovados</option>
+                        <option value="sent">Enviados</option>
+                        <option value="rejected">Rejeitados</option>
+                    </select>
+                    <select class="input" style="width: auto;" id="filter-segment" onchange="loadLeads()">
+                        <option value="">Todos os Segmentos</option>
+                        <option value="estetica">Estética</option>
+                        <option value="barbearia">Barbearia</option>
+                        <option value="generico">Genérico</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Leads List -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Leads</div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadLeads()">🔄 Atualizar</button>
+                </div>
+                <div id="leads-list">
+                    <div class="empty-state">Carregando leads...</div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <div id="toast" class="toast"></div>
@@ -190,6 +265,7 @@
 
         function switchTab(tab, el) {
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            if (tab === 'vendas') { initSalesTab(); }
             document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
             document.getElementById('tab-' + tab).classList.add('active');
             el.classList.add('active');
@@ -366,6 +442,169 @@
         updateStatus();
         loadConfig();
         setInterval(updateStatus, 30000);
-    </script>
+    
+        // ── Sales Tab Functions ──────────────────────────────────────
+        async function loadLeads() {
+            const status = document.getElementById('filter-status').value;
+            const segment = document.getElementById('filter-segment').value;
+            
+            let url = '/sales/leads?limit=50';
+            if (status) url += '&status=' + status;
+            if (segment) url += '&segment=' + segment;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const container = document.getElementById('leads-list');
+                
+                if (data.leads.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Nenhum lead encontrado</div>';
+                    return;
+                }
+                
+                container.innerHTML = data.leads.map(lead => `
+                    <div class="paused-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <div class="paused-info">
+                                <div class="paused-avatar" style="background: ${getScoreColor(lead.score)}">${lead.score}</div>
+                                <div>
+                                    <div class="paused-name">${lead.nome}</div>
+                                    <div class="paused-detail">${lead.telefone} • ${lead.categoria || 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                ${lead.status === 'pending' ? `
+                                    <button class="btn btn-success btn-sm" onclick="approveLead('${lead.id}')">✅ Aprovar</button>
+                                    <button class="btn btn-danger btn-sm" onclick="rejectLead('${lead.id}')">❌ Rejeitar</button>
+                                ` : `
+                                    <span class="status-badge">${getStatusLabel(lead.status)}</span>
+                                `}
+                            </div>
+                        </div>
+                        ${lead.message ? `
+                            <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-secondary); width: 100%;">
+                                <strong>Mensagem:</strong> ${lead.message}
+                            </div>
+                        ` : ''}
+                        <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);">
+                            <span>⭐ ${lead.avaliacao || 0} (${lead.qtd_avaliacoes || 0} av.)</span>
+                            <span>📷 ${lead.instagram || 'Sem IG'}</span>
+                            <span>${lead.segment || 'N/A'}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Erro ao carregar leads:', error);
+            }
+        }
+        
+        function getScoreColor(score) {
+            if (score >= 80) return 'var(--danger)';
+            if (score >= 60) return 'var(--success)';
+            if (score >= 40) return 'var(--warning)';
+            return 'var(--text-muted)';
+        }
+        
+        function getStatusLabel(status) {
+            const labels = {
+                'pending': '⏳ Pendente',
+                'approved': '✅ Aprovado',
+                'sent': '📤 Enviado',
+                'rejected': '❌ Rejeitado'
+            };
+            return labels[status] || status;
+        }
+        
+        async function approveLead(leadId) {
+            try {
+                const response = await fetch(`/sales/leads/${leadId}/approve`, { method: 'POST' });
+                if (response.ok) {
+                    showToast('Lead aprovado!', 'success');
+                    loadLeads();
+                    loadSalesStats();
+                }
+            } catch (error) {
+                showToast('Erro ao aprovar lead', 'error');
+            }
+        }
+        
+        async function rejectLead(leadId) {
+            try {
+                const response = await fetch(`/sales/leads/${leadId}/reject`, { method: 'POST' });
+                if (response.ok) {
+                    showToast('Lead rejeitado', 'success');
+                    loadLeads();
+                    loadSalesStats();
+                }
+            } catch (error) {
+                showToast('Erro ao rejeitar lead', 'error');
+            }
+        }
+        
+        async function loadSalesStats() {
+            try {
+                const response = await fetch('/sales/stats');
+                const stats = await response.json();
+                
+                document.getElementById('sales-pending').textContent = stats.pending;
+                document.getElementById('sales-approved').textContent = stats.approved;
+                document.getElementById('sales-sent').textContent = stats.sent;
+                document.getElementById('sales-rejected').textContent = stats.rejected;
+                
+                // Agent status
+                const agentResponse = await fetch('/sales/agent/status');
+                const agent = await agentResponse.json();
+                
+                const statusDot = document.getElementById('agent-status-dot');
+                const statusText = document.getElementById('agent-status-text');
+                const btnPause = document.getElementById('btn-pause');
+                const btnResume = document.getElementById('btn-resume');
+                
+                if (agent.paused) {
+                    statusDot.classList.add('offline');
+                    statusText.textContent = 'Pausado';
+                    btnPause.style.display = 'none';
+                    btnResume.style.display = 'inline-flex';
+                } else {
+                    statusDot.classList.remove('offline');
+                    statusText.textContent = 'Ativo';
+                    btnPause.style.display = 'inline-flex';
+                    btnResume.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar stats:', error);
+            }
+        }
+        
+        async function pauseAgent() {
+            try {
+                await fetch('/sales/agent/pause', { method: 'POST' });
+                showToast('Agente pausado', 'success');
+                loadSalesStats();
+            } catch (error) {
+                showToast('Erro ao pausar agente', 'error');
+            }
+        }
+        
+        async function resumeAgent() {
+            try {
+                await fetch('/sales/agent/resume', { method: 'POST' });
+                showToast('Agente retomado', 'success');
+                loadSalesStats();
+            } catch (error) {
+                showToast('Erro ao retomar agente', 'error');
+            }
+        }
+        
+        // Carregar dados de vendas quando a aba é acessada
+        function initSalesTab() {
+            loadLeads();
+            loadSalesStats();
+        }
+
+        </script>
 </body>
 </html>

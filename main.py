@@ -553,3 +553,7 @@ async def outreach_page():
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
+
+# ── Sales Routes ─────────────────────────────────────────────
+from sales_routes import router as sales_router
+app.include_router(sales_router)
