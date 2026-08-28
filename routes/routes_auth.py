@@ -102,15 +102,17 @@ def _clear_auth_cookies(response: Response):
 async def _verify_supabase_token(token: str) -> Optional[dict]:
     """
     Verifica JWT do Supabase Auth.
-    Decodifica localmente usando o JWT secret do Supabase.
+    Decodifica localmente usando o JWT secret do Supabase (SUPABASE_JWT_SECRET).
     """
     try:
-        # Decode the Supabase JWT using the JWT secret from settings
-        # Supabase uses HS256 with the JWT_SECRET env var
-        from config import settings as cfg
+        import os
+        supabase_jwt_secret = os.getenv("SUPABASE_JWT_SECRET", "")
+        if not supabase_jwt_secret:
+            from config import settings as cfg
+            supabase_jwt_secret = cfg.jwt_secret
         payload = jwt.decode(
             token,
-            cfg.jwt_secret,
+            supabase_jwt_secret,
             algorithms=["HS256"],
             audience="authenticated",
         )
