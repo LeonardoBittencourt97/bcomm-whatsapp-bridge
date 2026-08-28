@@ -10,7 +10,8 @@ import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from config import settings
-from services.database import select, insert, delete, get_client, get_supabase
+from services.database import select, insert, delete, get_client, get_supabase, ensure_supabase
+from routes.deps import get_current_user
 
 logger = logging.getLogger("bridge")
 
@@ -19,43 +20,6 @@ router = APIRouter(prefix="/crm", tags=["whatsapp"])
 # ── Tables ──────────────────────────────────────────────────────
 WHATSAPP_TABLE = "bcomm_inbox.whatsapp_numbers"
 ORGS_TABLE = "bcomm_inbox.organizations"
-
-# ── Helpers ─────────────────────────────────────────────────────
-
-
-def _ensure_supabase():
-    """Inicializa Supabase se ainda não estiver conectado."""
-    if get_client() is None:
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
-
-
-async def _get_current_user(request: Request) -> dict:
-    """Extrai usuário do cookie JWT da request.
-    Levanta HTTPException 401 se não autenticado.
-    """
-    from routes.routes_auth import _verify_supabase_token, COOKIE_NAME
-
-    token = request.cookies.get(COOKIE_NAME)
-    if not token:
-        auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Não autenticado")
-
-    payload = await _verify_supabase_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Sessão expirada")
-
-    supabase_user_id = payload.get("sub")
-    if not supabase_user_id:
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-    _ensure_supabase()
-    rows = await select("bcomm_inbox.users", filters={"id": supabase_user_id})
-    if not rows:
-        raise HTTPException(status_code=401, detail="Usuário não encontrado")
-    return rows[0]
 
 
 async def _evolution_request(method: str, path: str, data: dict = None) -> dict:

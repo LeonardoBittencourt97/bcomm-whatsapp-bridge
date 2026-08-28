@@ -1,15 +1,14 @@
 """
 Search routes — CRM bcomm_inbox
 Global search across contacts, deals, organizations, and messages.
+Uses database-level ilike filtering for efficiency.
 """
 import logging
 from typing import Optional, List
-from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Query
 
-from services.database import select, get_client
+from services.database import select, ensure_supabase, get_client, _get_table_ref
 
 logger = logging.getLogger("bridge")
 
@@ -20,27 +19,34 @@ DEALS_TABLE = "bcomm_inbox.deals"
 ORGANIZATIONS_TABLE = "bcomm_inbox.organizations"
 MESSAGES_TABLE = "bcomm_inbox.messages"
 
-SEARCH_LIMIT = 5
 
+async def _db_ilike_search(table: str, fields: list, query: str, limit: int = 5) -> list:
+    """Busca com ilike no banco de dados para múltiplos campos (OR)."""
+    client = get_client()
+    if not client:
+        return []
 
-def _ensure_supabase():
-    if get_client() is None:
-        from config import settings
-        from services.database import get_supabase
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
+    try:
+        schema, tbl = table.split(".", 1) if "." in table else ("bcomm_inbox", table)
+        q = f"%{query}%"
 
-
-def _ilike_matches(rows: list, fields: list, query: str) -> list:
-    """Filter rows where any field contains the query (case-insensitive, in-memory)."""
-    q = query.lower()
-    matches = []
-    for row in rows:
+        or_filters = []
         for field in fields:
-            val = row.get(field, "")
-            if val and q in str(val).lower():
-                matches.append(row)
-                break
-    return matches
+            or_filters.append(f"{field}.ilike.{q}")
+
+        query_builder = client.schema(schema).table(tbl).select("*")
+
+        if len(fields) == 1:
+            query_builder = query_builder.ilike(fields[0], q)
+        else:
+            for field in fields:
+                query_builder = query_builder.or_(f"{field}.ilike.{q}")
+
+        result = query_builder.limit(limit).execute()
+        return result.data or []
+    except Exception as e:
+        logger.error(f"Erro na busca ilike em {table}: {e}")
+        return []
 
 
 # ── Routes ──────────────────────────────────────────────────────
@@ -54,16 +60,15 @@ async def search(
     Busca global no CRM — contatos, deals, organizações e mensagens.
     Retorna resultados agrupados por tipo, com limite por tipo.
     """
-    _ensure_supabase()
+    ensure_supabase()
 
     results = {}
 
     # ── Contacts: name, phone, email ──
     try:
-        contacts = await select(CONTACTS_TABLE, limit=500)
-        matched_contacts = _ilike_matches(
-            contacts or [], ["name", "phone", "email", "company"], q
-        )[:limit]
+        matched_contacts = await _db_ilike_search(
+            CONTACTS_TABLE, ["name", "phone", "email", "company"], q, limit
+        )
         results["contacts"] = [
             {
                 "id": c.get("id"),
@@ -80,8 +85,9 @@ async def search(
 
     # ── Deals: title ──
     try:
-        deals = await select(DEALS_TABLE, limit=500)
-        matched_deals = _ilike_matches(deals or [], ["title", "contact_name", "notes"], q)[:limit]
+        matched_deals = await _db_ilike_search(
+            DEALS_TABLE, ["title", "contact_name", "notes"], q, limit
+        )
         results["deals"] = [
             {
                 "id": d.get("id"),
@@ -98,8 +104,9 @@ async def search(
 
     # ── Organizations: name ──
     try:
-        orgs = await select(ORGANIZATIONS_TABLE, limit=500)
-        matched_orgs = _ilike_matches(orgs or [], ["name", "domain"], q)[:limit]
+        matched_orgs = await _db_ilike_search(
+            ORGANIZATIONS_TABLE, ["name", "domain"], q, limit
+        )
         results["organizations"] = [
             {
                 "id": o.get("id"),
@@ -114,8 +121,9 @@ async def search(
 
     # ── Messages: content ──
     try:
-        messages = await select(MESSAGES_TABLE, order="created_at.desc", limit=200)
-        matched_messages = _ilike_matches(messages or [], ["content"], q)[:limit]
+        matched_messages = await _db_ilike_search(
+            MESSAGES_TABLE, ["content"], q, limit
+        )
         results["messages"] = [
             {
                 "id": m.get("id"),

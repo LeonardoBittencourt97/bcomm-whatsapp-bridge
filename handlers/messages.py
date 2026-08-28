@@ -91,10 +91,8 @@ def _load_prompt(name: str) -> str:
 
 def _ensure_supabase():
     """Inicializa Supabase se ainda não estiver conectado."""
-    from services.database import get_client as _gc, get_supabase as _gs
-    from config import settings as _s
-    if _gc() is None:
-        _gs(_s.supabase_url, _s.supabase_service_key)
+    from services.database import ensure_supabase as _es
+    _es()
 
 
 # ── Fallback chain ──────────────────────────────────────────────────
@@ -242,38 +240,34 @@ async def _send_typing_indicator(
 # ── Processamento de batch ─────────────────────────────────────────
 
 
-def _get_outreach_instructions(phone: str) -> str:
-    """Busca instruções de outreach para um contato"""
-    import json
-    import os
-    
-    data_file = "/app/data/outreach_tasks.json"
-    if not os.path.exists(data_file):
-        return ""
-    
+async def _get_outreach_instructions(phone: str) -> str:
+    """Busca instruções de outreach para um contato no Supabase."""
+    from services.database import select as _select
+
     try:
-        with open(data_file, "r") as f:
-            tasks = json.load(f)
-        
-        # Normalizar telefone para comparação
+        _ensure_supabase()
+        rows = await _select(
+            "bcomm_inbox.outreach_tasks",
+            filters={"status": "active"},
+            limit=100,
+        )
+        if not rows:
+            return ""
+
         normalized = phone.replace("+", "").replace("-", "").replace(" ", "")
-        
-        for task in tasks.values():
+
+        for task in rows:
             task_phone = task.get("contact_phone", "").replace("+", "").replace("-", "").replace(" ", "")
-            if task.get("status") == "active":
-                # Verificar correspondência exata
-                if task_phone == normalized:
+            if task_phone == normalized:
+                return task.get("instructions", "")
+            if task_phone.endswith(normalized) or normalized.endswith(task_phone):
+                return task.get("instructions", "")
+            if len(task_phone) >= 8 and len(normalized) >= 8:
+                if task_phone[-8:] == normalized[-8:]:
                     return task.get("instructions", "")
-                # Verificar com/sem 9 adicional
-                if task_phone.endswith(normalized) or normalized.endswith(task_phone):
-                    return task.get("instructions", "")
-                # Verificar se um contém o outro (últimos 8 dígitos)
-                if len(task_phone) >= 8 and len(normalized) >= 8:
-                    if task_phone[-8:] == normalized[-8:]:
-                        return task.get("instructions", "")
-    except Exception:
-        pass
-    
+    except Exception as e:
+        logger.error(f"Erro ao buscar instruções de outreach: {e}")
+
     return ""
 
 async def _process_batch(

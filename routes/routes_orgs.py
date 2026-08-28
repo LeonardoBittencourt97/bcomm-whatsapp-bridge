@@ -4,40 +4,11 @@ from typing import Optional
 from datetime import datetime
 import logging
 
-from routes.routes_auth import _verify_supabase_token, COOKIE_NAME
-from services.database import select, insert, update, delete, get_client, get_supabase
+from services.database import select, insert, update, delete, ensure_supabase
+from routes.deps import get_current_user
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
-
-
-def _ensure_supabase():
-    """Ensure Supabase client is available"""
-    client = get_client()
-    if not client:
-        raise HTTPException(status_code=503, detail="Database not configured")
-    return client
-
-
-async def _get_current_user(request: Request) -> dict:
-    """Extrai usuário da sessão via cookie JWT do Supabase."""
-    token = request.cookies.get(COOKIE_NAME)
-    if not token:
-        auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="Não autenticado")
-    payload = await _verify_supabase_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Sessão expirada")
-    supabase_user_id = payload.get("sub")
-    if not supabase_user_id:
-        raise HTTPException(status_code=401, detail="Token inválido")
-    _ensure_supabase()
-    rows = await select("bcomm_inbox.users", filters={"supabase_user_id": supabase_user_id})
-    if not rows:
-        raise HTTPException(status_code=401, detail="Usuário não encontrado")
     return rows[0]
 
 

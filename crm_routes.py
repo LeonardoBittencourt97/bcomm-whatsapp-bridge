@@ -37,8 +37,8 @@ PIPELINE_STAGES_TABLE = "bcomm_inbox.pipeline_stages"
 
 def _ensure_supabase():
     """Inicializa Supabase se ainda não estiver conectado."""
-    if get_client() is None:
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
+    from services.database import ensure_supabase as _es
+    _es()
 
 
 async def _get_or_create_conversation(phone: str) -> dict:
@@ -103,10 +103,29 @@ async def _get_messages(conversation_id: str, limit: int = 100) -> list:
     return rows or []
 
 
-# ── Audio Storage (in-memory) ──────────────────────────────────
+# ── Audio Storage (in-memory with size limit) ─────────────────
 import base64
+from collections import OrderedDict
 from fastapi.responses import Response as FastAPIResponse
-_audio_cache: dict[str, bytes] = {}  # media_key -> audio bytes
+
+_audio_cache: OrderedDict[str, bytes] = OrderedDict()
+_AUDIO_CACHE_MAX = 100  # ponytail: 100 entries, upgrade to Redis if memory pressure
+
+
+def _cache_get(key: str) -> bytes | None:
+    if key in _audio_cache:
+        _audio_cache.move_to_end(key)
+        return _audio_cache[key]
+    return None
+
+
+def _cache_put(key: str, value: bytes):
+    if key in _audio_cache:
+        _audio_cache.move_to_end(key)
+    else:
+        if len(_audio_cache) >= _AUDIO_CACHE_MAX:
+            _audio_cache.popitem(last=False)
+        _audio_cache[key] = value
 
 
 # ── Audio & Transcription Endpoints ────────────────────────────
@@ -117,15 +136,16 @@ async def get_audio(msg_id: str):
     import os
 
     # Check in-memory cache first
-    if msg_id in _audio_cache:
-        return FastAPIResponse(content=_audio_cache[msg_id], media_type="audio/ogg")
+    cached = _cache_get(msg_id)
+    if cached is not None:
+        return FastAPIResponse(content=cached, media_type="audio/ogg")
 
     # Check file system (saved during processing)
     audio_path = f"/app/data/audio/{msg_id}.ogg"
     if os.path.exists(audio_path):
         with open(audio_path, "rb") as f:
             audio_bytes = f.read()
-        _audio_cache[msg_id] = audio_bytes
+        _cache_put(msg_id, audio_bytes)
         return FastAPIResponse(content=audio_bytes, media_type="audio/ogg")
 
     # Try to fetch from Evolution API (for old messages)
@@ -134,7 +154,7 @@ async def get_audio(msg_id: str):
         from urllib.parse import quote
         resp = await client.get(f"/chat/downloadMedia/{settings.evolution_instance}/{quote(msg_id, safe='')}")
         if resp.status_code == 200:
-            _audio_cache[msg_id] = resp.content
+            _cache_put(msg_id, resp.content)
             return FastAPIResponse(content=resp.content, media_type="audio/ogg")
     except Exception as e:
         logger.error(f"Erro ao buscar áudio {msg_id}: {e}")
@@ -152,15 +172,16 @@ async def transcribe_message(msg_id: str):
 
     # Check if already transcribed (cached in memory)
     cached_key = f"transcription_{msg_id}"
-    if cached_key in _audio_cache:
-        return {"transcription": _audio_cache[cached_key].decode(), "cached": True}
+    cached_val = _cache_get(cached_key)
+    if cached_val is not None:
+        return {"transcription": cached_val.decode(), "cached": True}
 
     # Check for transcription file on disk
     txt_path = f"/app/data/audio/{msg_id}.txt"
     if os.path.exists(txt_path):
         with open(txt_path, "r", encoding="utf-8") as f:
             transcription = f.read()
-        _audio_cache[cached_key] = transcription.encode()
+        _cache_put(cached_key, transcription.encode())
         return {"transcription": transcription, "cached": True}
 
     # Check if DB content is already a transcription (not [audioMessage])
@@ -172,13 +193,13 @@ async def transcribe_message(msg_id: str):
             return {"transcription": content, "cached": True}
 
     # Get audio bytes - try file system first
-    audio_bytes = _audio_cache.get(msg_id)
+    audio_bytes = _cache_get(msg_id)
     if not audio_bytes:
         audio_path = f"/app/data/audio/{msg_id}.ogg"
         if os.path.exists(audio_path):
             with open(audio_path, "rb") as f:
                 audio_bytes = f.read()
-            _audio_cache[msg_id] = audio_bytes
+            _cache_put(msg_id, audio_bytes)
 
     # Try Evolution API as last resort
     if not audio_bytes:
@@ -188,7 +209,7 @@ async def transcribe_message(msg_id: str):
             resp = await client.get(f"/chat/downloadMedia/{settings.evolution_instance}/{quote(msg_id, safe='')}")
             if resp.status_code == 200:
                 audio_bytes = resp.content
-                _audio_cache[msg_id] = audio_bytes
+                _cache_put(msg_id, audio_bytes)
         except Exception:
             pass
 
@@ -201,7 +222,7 @@ async def transcribe_message(msg_id: str):
         transcription = await stt.transcribe(audio_bytes=audio_bytes, filename="audio.ogg", language="pt")
         if transcription:
             # Cache in memory
-            _audio_cache[f"transcription_{msg_id}"] = transcription.encode()
+            _cache_put(f"transcription_{msg_id}", transcription.encode())
             # Save to disk for persistence
             try:
                 txt_path = f"/app/data/audio/{msg_id}.txt"
@@ -404,9 +425,28 @@ async def get_conversations(
     total = len(all_convs)
     conv_list = all_convs[offset:offset + limit]
 
+    # Buscar todas as mensagens das conversas em uma query (evita N+1)
+    conv_ids = [c["id"] for c in conv_list]
+    all_messages = []
+    if conv_ids:
+        all_messages = await select(
+            MESSAGES_TABLE,
+            filters={"conversation_id": {"in": conv_ids}},
+            order="created_at.asc",
+            limit=1000,
+        ) or []
+
+    # Agrupar mensagens por conversation_id
+    msgs_by_conv = {}
+    for msg in all_messages:
+        cid = msg.get("conversation_id")
+        if cid not in msgs_by_conv:
+            msgs_by_conv[cid] = []
+        msgs_by_conv[cid].append(msg)
+
     # Enriquecer dados: última mensagem e contagem de não respondidas
     for conv in conv_list:
-        messages = await _get_messages(conv["id"], limit=1000)
+        messages = msgs_by_conv.get(conv["id"], [])
 
         if messages:
             last_msg = messages[-1]
@@ -420,7 +460,7 @@ async def get_conversations(
             1 for m in messages
             if m.get("sender") == "user" and not m.get("responded", True)
         )
-        conv["messages"] = messages  # Incluir mensagens para compatibilidade
+        conv["messages"] = messages
 
     return {
         "conversations": conv_list,
@@ -1076,7 +1116,7 @@ async def import_conversation_history(
         content = message_data.get("conversation", "")
         if not content:
             # Tentar outros formatos de mensagem (image, audio, etc)
-            content = f"[{record.get('"'"'messageType'"'"', '"'"'media'"'"')}"
+            content = f"[{record.get('messageType', 'media')}]"
 
         # Determinar sender
         from_me = record.get("key", {}).get("fromMe", False)

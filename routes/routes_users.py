@@ -16,7 +16,7 @@ from pydantic import BaseModel, EmailStr, Field
 from passlib.context import CryptContext
 
 from config import settings
-from services.database import select, insert, update, delete, get_client, get_supabase
+from services.database import select, insert, update, delete, ensure_supabase
 
 logger = logging.getLogger('bridge')
 
@@ -37,8 +37,8 @@ VALID_ROLES = {"master", "admin_geral", "admin_contas", "agent"}
 
 def _ensure_supabase():
     """Inicializa Supabase se ainda não estiver conectado."""
-    if get_client() is None:
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
+    from services.database import ensure_supabase as _es
+    _es()
 
 
 def _hash_password(password: str) -> str:

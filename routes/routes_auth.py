@@ -39,8 +39,8 @@ SUPABASE_SERVICE_KEY = settings.supabase_service_key or "eyJ0eXAiOiJKV1QiLCJhbGc
 
 def _ensure_supabase():
     """Inicializa Supabase se ainda não estiver conectado."""
-    if get_client() is None:
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
+    from services.database import ensure_supabase as _es
+    _es()
 
 
 def _sanitize_user(user: dict) -> dict:

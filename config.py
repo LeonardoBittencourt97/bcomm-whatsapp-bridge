@@ -46,11 +46,18 @@ class Settings(BaseSettings):
     supabase_anon_key: str = Field(default="", description="Anon Key do Supabase")
 
     # Auth / JWT
-    jwt_secret: str = Field(default="bcomm-crm-jwt-secret-change-in-production-2024", description="Secret para assinatura JWT")
+    jwt_secret: str = Field(default="", description="Secret para assinatura JWT (obrigatório em produção)")
     jwt_algorithm: str = Field(default="HS256", description="Algoritmo JWT")
     jwt_expire_hours: int = Field(default=24, description="Expiração do token JWT em horas")
     cookie_domain: str = Field(default="", description="Domínio do cookie (vazio = auto)")
     cookie_secure: bool = Field(default=True, description="Cookie apenas HTTPS")
+
+    # CORS
+    cors_origins: str = Field(default="http://localhost:8000", description="Origens permitidas (separadas por vírgula)")
+
+    # Master user setup
+    master_email: str = Field(default="admin@bcomm.com", description="Email do usuário master")
+    master_password: str = Field(default="", description="Senha do usuário master (obrigatória para setup)")
 
     # Human delay
     human_delay_enabled: bool = Field(default=True, description="Ativar delay humanizado")

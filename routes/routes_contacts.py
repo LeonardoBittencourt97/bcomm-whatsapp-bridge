@@ -4,18 +4,10 @@ from typing import Optional
 from datetime import datetime
 import logging
 
-from services.database import select, insert, update, delete, get_client
+from services.database import select, insert, update, delete, ensure_supabase
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
-
-
-def _ensure_supabase():
-    """Ensure Supabase client is available"""
-    client = get_client()
-    if not client:
-        raise HTTPException(status_code=503, detail="Database not configured")
-    return client
 
 
 # GET /crm/contacts - List contacts with filters
@@ -93,7 +85,7 @@ async def create_contact(data: dict):
         data["created_at"] = datetime.utcnow().isoformat()
         data["updated_at"] = datetime.utcnow().isoformat()
         
-        result = insert(
+        result = await insert(
             table="contacts",
             data=data,
             
@@ -122,7 +114,7 @@ async def update_contact(contact_id: str, data: dict):
         # Remove id from data if present
         data.pop("id", None)
         
-        result = update(
+        result = await update(
             table="contacts",
             filters={"id": contact_id},
             data=data,
@@ -146,7 +138,7 @@ async def delete_contact(contact_id: str):
     try:
         _ensure_supabase()
         
-        result = delete(
+        result = await delete(
             table="contacts",
             filters={"id": contact_id},
             

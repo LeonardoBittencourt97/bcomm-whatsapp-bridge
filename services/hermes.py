@@ -19,9 +19,8 @@ SESSIONS_TABLE = "bcomm_inbox.sessions"
 
 def _ensure_supabase():
     """Inicializa Supabase se ainda não estiver conectado."""
-    from services.database import get_client
-    if get_client() is None:
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
+    from services.database import ensure_supabase as _es
+    _es()
 
 
 async def _load_sessions() -> Dict[str, str]:
@@ -179,21 +178,37 @@ class HermesClient:
             return None
 
     async def _track_message(self, phone: str, sender: str, content: str, model: str = "", message_id: str = ""):
-        """Registra mensagem no CRM"""
+        """Registra mensagem no CRM diretamente no Supabase (sem HTTP loop)."""
         try:
-            import httpx
+            from services.database import select as _select, insert as _insert, update as _update
 
-            if sender == "user":
-                endpoint = f"http://localhost:8000/crm/conversations/{phone}/receive"
+            _ensure_supabase()
+
+            # Buscar ou criar conversa
+            conv_rows = await _select("bcomm_inbox.conversations", filters={"phone": phone})
+            if conv_rows:
+                conv_id = conv_rows[0]["id"]
             else:
-                endpoint = f"http://localhost:8000/crm/conversations/{phone}/agent-response"
+                now = __import__("datetime").datetime.utcnow().isoformat()
+                new_conv = {"phone": phone, "status": "active", "agent_enabled": True, "created_at": now, "updated_at": now}
+                result = await _insert("bcomm_inbox.conversations", new_conv)
+                conv_id = result[0]["id"] if result else None
 
-            payload = {"content": content}
-            if message_id:
-                payload["message_id"] = message_id
+            if not conv_id:
+                return
 
-            async with httpx.AsyncClient() as client:
-                await client.post(endpoint, json=payload, params={"model": model})
+            # Inserir mensagem
+            now = __import__("datetime").datetime.utcnow().isoformat()
+            msg_data = {
+                "conversation_id": conv_id,
+                "sender": sender,
+                "content": content,
+                "model": model,
+                "message_id": message_id,
+                "created_at": now,
+            }
+            await _insert("bcomm_inbox.messages", msg_data)
+
         except Exception as e:
             logger.error(f"Erro ao rastrear mensagem: {e}")
 

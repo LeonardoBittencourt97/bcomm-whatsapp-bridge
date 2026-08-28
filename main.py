@@ -30,7 +30,7 @@ from services.evolution import EvolutionClient
 from services.hermes import HermesClient
 from services.llm import LLMClient
 from services.stt import STTClient
-from services.database import get_supabase, get_client, select, upsert, insert
+from services.database import get_supabase, get_client, select, upsert, insert, ensure_supabase
 # ── Auth helpers ──────────────────────────────────────────────
 from routes.routes_auth import COOKIE_NAME, _verify_supabase_token
 
@@ -41,8 +41,8 @@ MESSAGES_TABLE = "bcomm_inbox.messages"
 
 def _ensure_supabase():
     """Inicializa Supabase se ainda não estiver conectado."""
-    if get_client() is None:
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
+    from services.database import ensure_supabase as _es
+    _es()
 
 # ── Logging ─────────────────────────────────────────────────────────
 
@@ -175,6 +175,13 @@ async def lifespan(app: FastAPI):
     logger.info("📦 Conectando ao Supabase...")
     get_supabase(settings.supabase_url, settings.supabase_service_key)
 
+    # Validate JWT secret
+    if not settings.jwt_secret and not settings.debug:
+        logger.critical("⚠️  JWT_SECRET não configurada! Defina a variável de ambiente JWT_SECRET.")
+        raise RuntimeError("JWT_SECRET é obrigatória em produção")
+    elif not settings.jwt_secret:
+        logger.warning("⚠️  JWT_SECRET não configurada — usando modo debug (NÃO use em produção)")
+
     # Load settings from Supabase
     await load_test_mode()
     await load_paused_clients()
@@ -197,9 +204,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -719,39 +727,43 @@ async def login_page():
     return HTMLResponse(content="<h1>Página de login não encontrada</h1>", status_code=404)
 
 
-@app.get("/setup-master")
+@app.post("/setup-master")
 async def setup_master():
-    """Cria usuário master inicial se não existir."""
+    """Cria usuário master inicial se não existir. Requer MASTER_PASSWORD configurada."""
     from datetime import datetime, timezone
     from routes.routes_auth import _hash_password
+
+    if not settings.master_password:
+        raise HTTPException(
+            status_code=400,
+            detail="MASTER_PASSWORD não configurada. Defina a variável de ambiente MASTER_PASSWORD.",
+        )
 
     _ensure_supabase()
 
     # Verificar se já existe master
     rows = await select("bcomm_inbox.users", filters={"role": "master"})
     if rows:
-        return {"status": "exists", "message": "Usuário master já existe", "email": rows[0].get("email")}
+        return {"status": "exists", "message": "Usuário master já existe"}
 
     # Criar master
     now = datetime.now(timezone.utc).isoformat()
     master = {
-        "email": "admin@bcomm.com",
+        "email": settings.master_email,
         "name": "Admin Master",
-        "password_hash": _hash_password("Bcomm@2024"),
+        "password_hash": _hash_password(settings.master_password),
         "role": "master",
         "is_active": True,
         "created_at": now,
         "updated_at": now,
     }
 
-    result = await insert("bcomm_inbox.users", master)
-    logger.info("Usuário master criado: admin@bcomm.com")
+    await insert("bcomm_inbox.users", master)
+    logger.info("Usuário master criado via /setup-master")
 
     return {
         "status": "created",
-        "email": "admin@bcomm.com",
-        "password": "Bcomm@2024",
-        "message": "Usuário master criado. Altere a senha após o primeiro login."
+        "message": "Usuário master criado. Altere a senha após o primeiro login.",
     }
 
 if __name__ == "__main__":

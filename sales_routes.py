@@ -2,19 +2,20 @@
 Rotas de Vendas - BCOMM Sales Agent
 Endpoints para o inbox de vendas no dashboard
 """
-import json
-import os
-from pathlib import Path
+from datetime import datetime
 from typing import Optional
+import logging
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/sales", tags=["sales"])
+from services.database import select, insert, update, ensure_supabase
 
-# Paths
-DATA_DIR = Path("/app/data/sales")
-LEADS_FILE = DATA_DIR / "leads.json"
-CONFIG_FILE = Path("/app/data/.env")
+router = APIRouter(prefix="/sales", tags=["sales"])
+logger = logging.getLogger(__name__)
+
+LEADS_TABLE = "bcomm_inbox.sales_leads"
+AGENT_STATUS_TABLE = "bcomm_inbox.sales_agent_status"
 
 
 class LeadResponse(BaseModel):
@@ -58,49 +59,6 @@ class AgentStatus(BaseModel):
     rejected_today: int = 0
 
 
-def _load_leads() -> list:
-    """Carrega leads do arquivo JSON"""
-    if not LEADS_FILE.exists():
-        return []
-    
-    try:
-        with open(LEADS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-
-def _save_leads(leads: list):
-    """Salva leads no arquivo JSON"""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
-    with open(LEADS_FILE, "w", encoding="utf-8") as f:
-        json.dump(leads, f, ensure_ascii=False, indent=2)
-
-
-def _load_agent_status() -> dict:
-    """Carrega status do agente"""
-    status_file = DATA_DIR / "agent_status.json"
-    
-    if not status_file.exists():
-        return {"paused": False}
-    
-    try:
-        with open(status_file, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {"paused": False}
-
-
-def _save_agent_status(status: dict):
-    """Salva status do agente"""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
-    status_file = DATA_DIR / "agent_status.json"
-    with open(status_file, "w") as f:
-        json.dump(status, f)
-
-
 @router.get("/leads")
 async def get_leads(
     status: Optional[str] = None,
@@ -110,32 +68,32 @@ async def get_leads(
 ):
     """
     Retorna lista de leads
-    
+
     Query params:
     - status: Filtrar por status (pending, approved, sent, rejected)
     - segment: Filtrar por segmento (estetica, barbearia, generico)
     - limit: Limite de resultados (default: 50)
     - offset: Offset para paginação
     """
-    leads = _load_leads()
-    
-    # Filtros
+    ensure_supabase()
+
+    filters = {}
     if status:
-        leads = [l for l in leads if l.get("status") == status]
-    
+        filters["status"] = status
     if segment:
-        leads = [l for l in leads if l.get("segment") == segment]
-    
-    # Ordenar por data (mais recente primeiro)
-    leads.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    
-    # Paginação
-    total = len(leads)
-    leads = leads[offset:offset + limit]
-    
+        filters["segment"] = segment
+
+    leads = await select(
+        LEADS_TABLE,
+        filters=filters if filters else None,
+        order="created_at.desc",
+        limit=limit,
+        offset=offset,
+    )
+
     return {
-        "leads": leads,
-        "total": total,
+        "leads": leads or [],
+        "total": len(leads) if leads else 0,
         "limit": limit,
         "offset": offset
     }
@@ -144,141 +102,159 @@ async def get_leads(
 @router.get("/leads/{lead_id}")
 async def get_lead(lead_id: str):
     """Retorna um lead específico"""
-    leads = _load_leads()
-    
-    for lead in leads:
-        if lead.get("id") == lead_id:
-            return lead
-    
-    raise HTTPException(status_code=404, detail="Lead não encontrado")
+    ensure_supabase()
+
+    rows = await select(LEADS_TABLE, filters={"id": lead_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+    return rows[0]
 
 
 @router.post("/leads/{lead_id}/approve")
 async def approve_lead(lead_id: str):
     """Aprova um lead para envio"""
-    leads = _load_leads()
-    
-    for i, lead in enumerate(leads):
-        if lead.get("id") == lead_id:
-            leads[i]["status"] = "approved"
-            leads[i]["updated_at"] = __import__("datetime").datetime.now().isoformat()
-            _save_leads(leads)
-            
-            return {"status": "approved", "lead": leads[i]}
-    
-    raise HTTPException(status_code=404, detail="Lead não encontrado")
+    ensure_supabase()
+
+    now = datetime.utcnow().isoformat()
+    result = await update(
+        LEADS_TABLE,
+        filters={"id": lead_id},
+        data={"status": "approved", "updated_at": now},
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+
+    return {"status": "approved", "lead": result[0] if result else None}
 
 
 @router.post("/leads/{lead_id}/reject")
 async def reject_lead(lead_id: str, reason: str = ""):
     """Rejeita um lead"""
-    leads = _load_leads()
-    
-    for i, lead in enumerate(leads):
-        if lead.get("id") == lead_id:
-            leads[i]["status"] = "rejected"
-            leads[i]["reject_reason"] = reason
-            leads[i]["updated_at"] = __import__("datetime").datetime.now().isoformat()
-            _save_leads(leads)
-            
-            return {"status": "rejected", "lead": leads[i]}
-    
-    raise HTTPException(status_code=404, detail="Lead não encontrado")
+    ensure_supabase()
+
+    now = datetime.utcnow().isoformat()
+    result = await update(
+        LEADS_TABLE,
+        filters={"id": lead_id},
+        data={"status": "rejected", "reject_reason": reason, "updated_at": now},
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+
+    return {"status": "rejected", "lead": result[0] if result else None}
 
 
 @router.post("/leads/{lead_id}/send")
 async def send_lead(lead_id: str):
     """Envia mensagem para o lead via WhatsApp"""
-    leads = _load_leads()
-    
-    for i, lead in enumerate(leads):
-        if lead.get("id") == lead_id:
-            # Marcar como enviado
-            leads[i]["status"] = "sent"
-            leads[i]["sent_at"] = __import__("datetime").datetime.now().isoformat()
-            leads[i]["updated_at"] = leads[i]["sent_at"]
-            _save_leads(leads)
-            
-            # TODO: Enviar via Evolution API
-            # Por enquanto, apenas marcar como enviado
-            
-            return {"status": "sent", "lead": leads[i]}
-    
-    raise HTTPException(status_code=404, detail="Lead não encontrado")
+    ensure_supabase()
+
+    now = datetime.utcnow().isoformat()
+    result = await update(
+        LEADS_TABLE,
+        filters={"id": lead_id},
+        data={"status": "sent", "sent_at": now, "updated_at": now},
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+
+    # TODO: Enviar via Evolution API
+
+    return {"status": "sent", "lead": result[0] if result else None}
 
 
 @router.get("/agent/status")
 async def get_agent_status():
     """Retorna status do agente de vendas"""
-    status = _load_agent_status()
-    
-    # Contar leads de hoje
-    leads = _load_leads()
-    from datetime import datetime
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    leads_today = [l for l in leads if l.get("created_at", "").startswith(today)]
-    approved_today = [l for l in leads_today if l.get("status") == "approved"]
-    sent_today = [l for l in leads if l.get("sent_at", "").startswith(today)]
-    rejected_today = [l for l in leads_today if l.get("status") == "rejected"]
-    
+    ensure_supabase()
+
+    rows = await select(AGENT_STATUS_TABLE, limit=1)
+    status = rows[0] if rows else {"paused": False}
+
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+
+    today_leads = await select(
+        LEADS_TABLE,
+        filters={"created_at": {"like": f"{today}%"}},
+        limit=1000,
+    )
+
+    leads_today = len(today_leads) if today_leads else 0
+    approved_today = sum(1 for l in (today_leads or []) if l.get("status") == "approved")
+    rejected_today = sum(1 for l in (today_leads or []) if l.get("status") == "rejected")
+
+    sent_leads = await select(
+        LEADS_TABLE,
+        filters={"sent_at": {"like": f"{today}%"}},
+        limit=1000,
+    )
+    sent_today = len(sent_leads) if sent_leads else 0
+
     return {
         "paused": status.get("paused", False),
-        "leads_today": len(leads_today),
-        "approved_today": len(approved_today),
-        "sent_today": len(sent_today),
-        "rejected_today": len(rejected_today)
+        "leads_today": leads_today,
+        "approved_today": approved_today,
+        "sent_today": sent_today,
+        "rejected_today": rejected_today
     }
 
 
 @router.post("/agent/pause")
 async def pause_agent():
     """Pausa o agente de vendas"""
-    status = _load_agent_status()
-    status["paused"] = True
-    _save_agent_status(status)
-    
+    ensure_supabase()
+
+    rows = await select(AGENT_STATUS_TABLE, limit=1)
+    if rows:
+        await update(AGENT_STATUS_TABLE, filters={"id": rows[0]["id"]}, data={"paused": True})
+    else:
+        await insert(AGENT_STATUS_TABLE, {"paused": True})
+
     return {"status": "paused", "message": "Agente pausado"}
 
 
 @router.post("/agent/resume")
 async def resume_agent():
     """Retoma o agente de vendas"""
-    status = _load_agent_status()
-    status["paused"] = False
-    _save_agent_status(status)
-    
+    ensure_supabase()
+
+    rows = await select(AGENT_STATUS_TABLE, limit=1)
+    if rows:
+        await update(AGENT_STATUS_TABLE, filters={"id": rows[0]["id"]}, data={"paused": False})
+    else:
+        await insert(AGENT_STATUS_TABLE, {"paused": False})
+
     return {"status": "resumed", "message": "Agente retomado"}
 
 
 @router.get("/stats")
 async def get_stats():
     """Retorna estatísticas gerais"""
-    leads = _load_leads()
-    
-    from datetime import datetime
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    # Stats gerais
+    ensure_supabase()
+
+    all_leads = await select(LEADS_TABLE, limit=10000)
+    leads = all_leads or []
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+
     total = len(leads)
     pending = sum(1 for l in leads if l.get("status") == "pending")
     approved = sum(1 for l in leads if l.get("status") == "approved")
     sent = sum(1 for l in leads if l.get("status") == "sent")
     rejected = sum(1 for l in leads if l.get("status") == "rejected")
-    
-    # Stats de hoje
+
     leads_today = [l for l in leads if l.get("created_at", "").startswith(today)]
-    
-    # Por segmento
+
     segments = {}
     for l in leads:
         seg = l.get("segment", "unknown")
         segments[seg] = segments.get(seg, 0) + 1
-    
-    # Score médio
+
     scores = [l.get("score", 0) for l in leads if l.get("score")]
     avg_score = sum(scores) / len(scores) if scores else 0
-    
+
     return {
         "total": total,
         "pending": pending,

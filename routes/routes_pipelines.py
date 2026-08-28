@@ -9,7 +9,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from services.database import select, insert, update, delete, get_client
+from services.database import select, insert, update, delete, ensure_supabase
 
 logger = logging.getLogger("bridge")
 
@@ -18,13 +18,6 @@ router = APIRouter(prefix="/crm", tags=["crm"])
 PIPELINES_TABLE = "bcomm_inbox.pipelines"
 STAGES_TABLE = "bcomm_inbox.stages"
 DEALS_TABLE = "bcomm_inbox.deals"
-
-
-def _ensure_supabase():
-    if get_client() is None:
-        from config import settings
-        from services.database import get_supabase
-        get_supabase(settings.supabase_url, settings.supabase_service_key)
 
 
 # ── Models ──────────────────────────────────────────────────────

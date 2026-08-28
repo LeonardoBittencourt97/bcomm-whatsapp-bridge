@@ -40,6 +40,13 @@ def get_client() -> Optional[Client]:
     return _supabase_client
 
 
+def ensure_supabase():
+    """Garante que o cliente Supabase está inicializado. Levanta HTTPException 503 se não."""
+    from fastapi import HTTPException
+    if get_client() is None:
+        raise HTTPException(status_code=503, detail="Database not configured")
+
+
 def _parse_table(table: str) -> tuple[str, str]:
     """
     Parse schema-qualified table name.

@@ -4,18 +4,10 @@ from typing import Optional
 from datetime import datetime
 import logging
 
-from services.database import select, insert, update, delete, get_client
+from services.database import select, insert, update, delete, ensure_supabase
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
-
-
-def _ensure_supabase():
-    """Ensure Supabase client is available"""
-    client = get_client()
-    if not client:
-        raise HTTPException(status_code=503, detail="Database not configured")
-    return client
 
 
 # GET /crm/deals - List deals with filters
@@ -100,7 +92,7 @@ async def create_deal(data: dict):
         if "status" not in data:
             data["status"] = "open"
         
-        result = insert(
+        result = await insert(
             table="deals",
             data=data,
             
@@ -129,7 +121,7 @@ async def update_deal(deal_id: str, data: dict):
         # Remove id from data if present
         data.pop("id", None)
         
-        result = update(
+        result = await update(
             table="deals",
             filters={"id": deal_id},
             data=data,
@@ -157,7 +149,7 @@ async def update_deal_stage(deal_id: str, data: dict):
         if not stage_id:
             raise HTTPException(status_code=400, detail="stage_id is required")
         
-        result = update(
+        result = await update(
             table="deals",
             filters={"id": deal_id},
             data={
@@ -186,7 +178,7 @@ async def win_deal(deal_id: str):
     try:
         _ensure_supabase()
         
-        result = update(
+        result = await update(
             table="deals",
             filters={"id": deal_id},
             data={
@@ -217,7 +209,7 @@ async def lose_deal(deal_id: str, data: dict):
         
         lost_reason = data.get("lost_reason", "")
         
-        result = update(
+        result = await update(
             table="deals",
             filters={"id": deal_id},
             data={
@@ -246,7 +238,7 @@ async def delete_deal(deal_id: str):
     try:
         _ensure_supabase()
         
-        result = delete(
+        result = await delete(
             table="deals",
             filters={"id": deal_id},
             
