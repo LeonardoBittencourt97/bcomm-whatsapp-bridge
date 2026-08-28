@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     paused_clients: str = Field(default="", description="Clientes pausados (separados por vírgula)")
     paused_contacts: str = Field(default="", description="Contatos pausados no formato cliente:numero (separados por vírgula)")
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()
