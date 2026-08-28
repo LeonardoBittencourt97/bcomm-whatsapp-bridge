@@ -7,3 +7,7 @@ python-dotenv==1.1.*
 cryptography>=41.0
 pytest==8.4.*
 pytest-asyncio==1.0.*
+supabase==2.15.*
+PyJWT==2.10.*
+passlib[bcrypt]==1.7.*
+bcrypt==4.2.*
