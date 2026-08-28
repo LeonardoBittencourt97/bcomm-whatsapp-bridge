@@ -14,14 +14,14 @@
 
         /* ── Layout ── */
         .app{display:flex;height:100vh}
-        .sidebar{width:var(--menu-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0}
+        .sidebar{width:var(--menu-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
         .sidebar:hover{width:var(--menu-expanded)}
         .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
-        .sidebar-logo .logo{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
         .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s}
         .sidebar:hover .logo-text{opacity:1}
         .nav-items{flex:1;padding:8px 0;overflow-y:auto}
-        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
         .nav-item:hover{color:var(--text);background:var(--card)}
         .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,158,255,.08)}
         .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
@@ -33,7 +33,7 @@
         .nav-sub .nav-item .label{font-size:12px}
 
         /* ── Main ── */
-        .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+        .main{flex:1;display:flex;flex-direction:column;overflow:hidden;margin-left:var(--menu-w)}
         .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
         .search-trigger{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;min-width:300px}
         .search-trigger:hover{border-color:var(--accent);color:var(--text2)}
@@ -233,36 +233,37 @@
     <!-- ── Sidebar Menu ── -->
     <nav class="sidebar">
         <div class="sidebar-logo">
-            <div class="logo">B</div>
-            <span class="logo-text">BCOMM</span>
+            <a href="/dashboard" class="logo" style="text-decoration:none;color:inherit">
+                <div class="logo-icon">B</div>
+                <span class="logo-text">BCOMM</span>
+            </a>
         </div>
         <div class="nav-items">
-            <div class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
+            <a href="/dashboard" class="nav-item" data-page="dashboard">
                 <span class="icon">📊</span><span class="label">Dashboard</span>
-            </div>
-            <div class="nav-item" onclick="navigate('conversations')" data-page="conversations">
+            </a>
+            <a href="/crm" class="nav-item active" data-page="conversations">
                 <span class="icon">💬</span><span class="label">Atendimento</span>
-            </div>
-            <div class="nav-item" onclick="navigate('contacts')" data-page="contacts">
+            </a>
+            <a href="/crm?tab=contacts" class="nav-item" data-page="contacts">
                 <span class="icon">📇</span><span class="label">Contatos</span>
-            </div>
-            <div class="nav-item" onclick="navigate('organizations')" data-page="organizations">
+            </a>
+            <a href="/organizations" class="nav-item" data-page="organizations">
                 <span class="icon">🏢</span><span class="label">Organizações</span>
-            </div>
-            <div class="nav-item" onclick="navigate('deals')" data-page="deals">
+            </a>
+            <a href="/pipelines" class="nav-item" data-page="deals">
                 <span class="icon">💰</span><span class="label">Negócios</span>
-            </div>
-            <div class="nav-item" onclick="navigate('activities')" data-page="activities">
+            </a>
+            <a href="/crm?tab=activities" class="nav-item" data-page="activities">
                 <span class="icon">📋</span><span class="label">Atividades</span>
-            </div>
-            
-            <div class="nav-item" onclick="navigate('outreach')" data-page="outreach">
+            </a>
+            <a href="/outreach" class="nav-item" data-page="outreach">
                 <span class="icon">📤</span><span class="label">Outreach</span>
-            </div>
-<div class="nav-divider"></div>
-            <div class="nav-item" onclick="navigate('settings')" data-page="settings">
+            </a>
+            <div class="nav-divider"></div>
+            <a href="/config" class="nav-item" data-page="settings">
                 <span class="icon">⚙️</span><span class="label">Configurações</span>
-            </div>
+            </a>
         </div>
     </nav>
 
@@ -527,13 +528,19 @@ async function doSearch(q){
 }
 
 // ── Navigation ──
+const TAB_MAP={contacts:'contacts',activities:'activities',deals:'deals',conversations:'conversations',organizations:'organizations',settings:'settings',outreach:'outreach'};
 function navigate(page){
     currentPage=page;
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.getElementById('page-'+page).classList.add('active');
+    const el=document.getElementById('page-'+page);
+    if(el)el.classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     const nav=document.querySelector(`[data-page="${page}"]`);
     if(nav)nav.classList.add('active');
+    const url=new URL(window.location);
+    if(page==='conversations'){url.searchParams.delete('tab')}
+    else{url.searchParams.set('tab',page)}
+    history.replaceState(null,'',url);
     loadPage(page);
 }
 function loadPage(page){
@@ -548,6 +555,12 @@ function loadPage(page){
         case'outreach':loadOutreach();break;
     }
 }
+document.addEventListener('DOMContentLoaded',()=>{
+    const params=new URLSearchParams(window.location.search);
+    const tab=params.get('tab');
+    if(tab&&TAB_MAP[tab]){navigate(tab)}
+    else{navigate('conversations')}
+});
 
 // ── Dashboard ──
 async function loadDashboard(){
