@@ -176,11 +176,8 @@ async def lifespan(app: FastAPI):
     get_supabase(settings.supabase_url, settings.supabase_service_key)
 
     # Validate JWT secret
-    if not settings.jwt_secret and not settings.debug:
-        logger.critical("⚠️  JWT_SECRET não configurada! Defina a variável de ambiente JWT_SECRET.")
-        raise RuntimeError("JWT_SECRET é obrigatória em produção")
-    elif not settings.jwt_secret:
-        logger.warning("⚠️  JWT_SECRET não configurada — usando modo debug (NÃO use em produção)")
+    if not settings.jwt_secret:
+        logger.warning("⚠️  JWT_SECRET não configurada — usando fallback (gere um secret para produção)")
 
     # Load settings from Supabase
     await load_test_mode()
