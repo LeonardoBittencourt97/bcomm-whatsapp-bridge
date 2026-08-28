@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM - Configurações</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-primary:#0b0b0c; --bg-surface:#0b0e14; --bg-card:#13161a; --bg-elevated:#1a1d21; --border:#292d30; --border-hover:#464a4d; --text-primary:#fff; --text-secondary:#a1a4a5; --text-muted:#6e727a; --accent:#3b9eff; --accent-hover:#5aadff; --success:#34c759; --danger:#ff453a; --warning:#ffd60a; --radius:12px; --radius-lg:16px; }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
+        .header{position:sticky;top:0;z-index:100;background:rgba(11,11,12,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
+        .header-inner{max-width:100%;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+        .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;text-decoration:none;color:inherit}
+        .logo:hover{opacity:.8}
+        .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .nav-tabs{display:flex;gap:4px;background:var(--bg-surface);padding:4px;border-radius:10px}
+        .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-muted);border:none;background:transparent;text-decoration:none;transition:all .15s}
+        .nav-tab:hover{color:var(--text-secondary);background:var(--bg-card)}
+        .nav-tab.active{background:var(--bg-card);color:var(--text-primary)}
+        .status-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;font-size:13px;color:var(--text-secondary)}
+        .status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+        .status-dot.offline{background:var(--danger);animation:none}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        .main{max-width:900px;margin:0 auto;padding:32px 24px}
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--text-muted);margin-bottom:32px}
+        .section{margin-bottom:32px}
+        .section-title{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px}
+        .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+        .card-title{font-size:15px;font-weight:600}
+        .config-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+        .config-row:last-child{border-bottom:none}
+        .config-label{font-size:14px;color:var(--text-secondary)}
+        .config-input{width:80px;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;text-align:center}
+        .config-input:focus{outline:none;border-color:var(--accent)}
+        .toggle{position:relative;width:48px;height:26px;background:var(--bg-surface);border-radius:13px;cursor:pointer;border:1px solid var(--border)}
+        .toggle.active{background:var(--accent);border-color:var(--accent)}
+        .toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:2px;transition:all .2s}
+        .toggle.active::after{left:24px}
+        .input{width:100%;padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;font-family:inherit}
+        .input:focus{outline:none;border-color:var(--accent)}
+        .input::placeholder{color:var(--text-muted)}
+        .input-label{display:block;font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:8px}
+        .input-group{margin-bottom:16px}
+        .btn{padding:10px 20px;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s}
+        .btn-primary{background:var(--accent);color:#fff}
+        .btn-primary:hover{background:var(--accent-hover)}
+        .btn-secondary{background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border)}
+        .btn-danger{background:var(--danger);color:#fff}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-sm{padding:6px 12px;font-size:12px}
+        .btn-group{display:flex;gap:10px;flex-wrap:wrap}
+        .log-container{background:var(--bg-surface);border-radius:var(--radius);padding:16px;font-family:monospace;font-size:12px;max-height:300px;overflow-y:auto;color:var(--text-muted)}
+        .log-entry{margin-bottom:4px}
+        .log-entry.info{color:var(--accent)}
+        .log-entry.error{color:var(--danger)}
+        .log-entry.success{color:var(--success)}
+        .paused-list{display:flex;flex-direction:column;gap:8px}
+        .paused-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-surface);border-radius:var(--radius)}
+        .paused-info{display:flex;align-items:center;gap:12px}
+        .paused-avatar{width:36px;height:36px;background:var(--danger);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
+        .paused-name{font-size:14px;font-weight:500}
+        .empty-state{text-align:center;padding:32px;color:var(--text-muted);font-size:14px}
+        .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;display:none;z-index:1000}
+        .toast.success{border-color:var(--success)}
+        .toast.error{border-color:var(--danger)}
+        @media(max-width:768px){.nav-tabs{display:none}}
+    
+        /* ── Sidebar ── */
+        :root{--menu-w:60px;--menu-expanded:220px}
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar:hover{width:var(--menu-expanded)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s}
+        .sidebar:hover .logo-text{opacity:1}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text,#fff);background:var(--card,#13161a)}
+        .nav-item.active{color:var(--accent,#3b9eff);border-left-color:var(--accent,#3b9eff);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;opacity:0;transition:opacity .2s}
+        .sidebar:hover .nav-item .label{opacity:1}
+        .nav-divider{height:1px;background:var(--border,#292d30);margin:8px 16px}
+        .main{margin-left:var(--menu-w);flex:1;display:flex;flex-direction:column;overflow:hidden}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
+
+    </style>
+</head>
+<body>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/crm" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
+        </div>
+        <div class="nav-items">
+            <a href="/crm" class="nav-item " data-page="dashboard">
+                <span class="icon">📊</span><span class="label">Dashboard</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="conversations">
+                <span class="icon">💬</span><span class="label">Conversas</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="contacts">
+                <span class="icon">📇</span><span class="label">Contatos</span>
+            </a>
+            <a href="/organizations" class="nav-item " data-page="organizations">
+                <span class="icon">🏢</span><span class="label">Organizações</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="deals">
+                <span class="icon">💰</span><span class="label">Negócios</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="activities">
+                <span class="icon">📋</span><span class="label">Atividades</span>
+            </a>
+            <a href="/outreach" class="nav-item " data-page="outreach">
+                <span class="icon">📤</span><span class="label">Outreach</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="/crm" class="nav-item active" data-page="settings">
+                <span class="icon">⚙️</span><span class="label">Configurações</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main">
+    
+
+    <main class="main">
+        <h1 class="page-title">Configurações</h1>
+        <p class="page-subtitle">Gerencie o comportamento do sistema</p>
+
+        <!-- Geral -->
+        <div class="section">
+            <div class="section-title">⚙️ Geral</div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">⏱️ Rate Limiting</span></div>
+                <div class="config-row"><span class="config-label">Limite/min por telefone</span><input type="number" class="config-input" id="config-rate" value="20"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">⌨️ Digitação Humanizada</span></div>
+                <div class="config-row"><span class="config-label">Ativar delay</span><div id="toggle-delay" class="toggle active" onclick="toggleDelay()"></div></div>
+                <div class="config-row"><span class="config-label">Mínimo (s)</span><input type="number" class="config-input" id="config-delay-min" value="4" step="0.5"></div>
+                <div class="config-row"><span class="config-label">Máximo (s)</span><input type="number" class="config-input" id="config-delay-max" value="15" step="0.5"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">📦 Processamento em Lote</span></div>
+                <div class="config-row"><span class="config-label">Espera por msgs (s)</span><input type="number" class="config-input" id="config-batch" value="10"></div>
+                <div class="config-row"><span class="config-label">Máximo espera (s)</span><input type="number" class="config-input" id="config-batch-max" value="150"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">📝 Log</span></div>
+                <div class="config-row"><span class="config-label">Nível</span><select class="config-input" id="config-log" style="width:120px"><option value="DEBUG">DEBUG</option><option value="INFO" selected>INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option></select></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveConfig()">Salvar Configurações</button>
+        </div>
+
+        <!-- Clientes -->
+        <div class="section">
+            <div class="section-title">👥 Clientes</div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">⏸️ Pausar/Retomar Cliente</span></div>
+                <div class="input-group"><label class="input-label">Nome do Cliente</label><input type="text" class="input" id="client-name" value="BCOMM"></div>
+                <div class="btn-group"><button class="btn btn-danger" onclick="pauseClient()">Pausar</button><button class="btn btn-success" onclick="resumeClient()">Retomar</button></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">📱 Pausar/Retomar Contato</span></div>
+                <div class="input-group"><label class="input-label">Número</label><input type="text" class="input" id="contact-phone" placeholder="554197054071"></div>
+                <div class="btn-group"><button class="btn btn-danger" onclick="pauseContact()">Pausar</button><button class="btn btn-success" onclick="resumeContact()">Retomar</button></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">⏸️ Clientes Pausados</span></div>
+                <div id="paused-clients" class="paused-list"><div class="empty-state">Carregando...</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">📱 Contatos Pausados</span></div>
+                <div id="paused-contacts" class="paused-list"><div class="empty-state">Carregando...</div></div>
+            </div>
+        </div>
+
+        <!-- Sessões -->
+        <div class="section">
+            <div class="section-title">🔗 Sessões</div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">💬 Sessões Ativas</span><button class="btn btn-secondary btn-sm" onclick="refreshSessions()">Atualizar</button></div>
+                <div id="sessions-list" class="paused-list"><div class="empty-state">Carregando...</div></div>
+                <div style="margin-top:16px"><button class="btn btn-danger btn-sm" onclick="clearSessions()">Limpar Todas</button></div>
+            </div>
+        </div>
+
+        <!-- Teste -->
+        <div class="section">
+            <div class="section-title">🧪 Modo Teste</div>
+            <div class="card">
+                <div class="config-row"><span class="config-label">Ativar modo teste</span><div id="toggle-test" class="toggle" onclick="toggleTestMode()"></div></div>
+                <div class="input-group" style="margin-top:16px"><label class="input-label">Números Permitidos (separados por vírgula)</label><input type="text" class="input" id="test-numbers" placeholder="554197054071,554199999999"></div>
+                <button class="btn btn-primary" onclick="saveTestMode()">Salvar</button>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="section">
+            <div class="section-title">📋 Logs</div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">Atividade do Sistema</span><button class="btn btn-secondary btn-sm" onclick="refreshLogs()">Atualizar</button></div>
+                <div id="log-container" class="log-container"><div class="empty-state">Carregando...</div></div>
+            </div>
+        </div>
+
+        <!-- Sobre -->
+        <div class="section">
+            <div class="section-title">ℹ️ Sobre</div>
+            <div class="card">
+                <div class="config-row"><span class="config-label">Versão</span><span style="color:var(--text-primary)">1.0.0</span></div>
+                <div class="config-row"><span class="config-label">Uptime</span><span id="uptime" style="color:var(--text-primary)">-</span></div>
+                <div class="config-row"><span class="config-label">Evolution API</span><span id="evo-status" style="color:var(--text-primary)">-</span></div>
+                <div class="config-row"><span class="config-label">LLM</span><span id="llm-status" style="color:var(--text-primary)">-</span></div>
+                <div class="config-row"><span class="config-label">STT</span><span id="stt-status" style="color:var(--text-primary)">-</span></div>
+            </div>
+        </div>
+    </main>
+    </div>
+</div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'success');e.style.display='block';setTimeout(()=>{e.style.display='none'},3000)}
+        async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);try{const r=await fetch(u,o);return await r.json()}catch(e){console.error(e);return null}}
+
+        // Status
+        async function updateStatus(){
+            const h=await api('/health');
+            document.getElementById('status-dot').className=h?'status-dot':'status-dot offline';
+            document.getElementById('status-text').textContent=h?'Online':'Offline';
+            if(h){
+                document.getElementById('uptime').textContent=Math.floor(h.uptime_seconds/60)+'min';
+                document.getElementById('evo-status').textContent=h.evolution_api==='ok'?'✅ Conectado':'❌ Indisponível';
+            }
+        }
+
+        // Config
+        async function loadConfig(){
+            const c=await api('/admin/config');
+            if(!c)return;
+            document.getElementById('config-rate').value=c.rate_limit_per_minute;
+            document.getElementById('config-delay-min').value=c.human_delay_min;
+            document.getElementById('config-delay-max').value=c.human_delay_max;
+            document.getElementById('config-batch').value=c.batch_wait_seconds;
+            document.getElementById('config-batch-max').value=c.batch_max_wait;
+            document.getElementById('config-log').value=c.log_level;
+            window._delayEnabled=c.human_delay_enabled;
+            document.getElementById('toggle-delay').className='toggle '+(c.human_delay_enabled?'active':'');
+        }
+
+        let _delayEnabled=true;
+        function toggleDelay(){_delayEnabled=!_delayEnabled;document.getElementById('toggle-delay').className='toggle '+(_delayEnabled?'active':'')}
+
+        async function saveConfig(){
+            const p=new URLSearchParams({rate_limit_per_minute:document.getElementById('config-rate').value,human_delay_enabled:_delayEnabled,human_delay_min:document.getElementById('config-delay-min').value,human_delay_max:document.getElementById('config-delay-max').value,batch_wait_seconds:document.getElementById('config-batch').value,batch_max_wait:document.getElementById('config-batch-max').value,log_level:document.getElementById('config-log').value});
+            await api('/admin/config?'+p,'POST');
+            showToast('Configurações salvas!');
+        }
+
+        // Clientes
+        async function pauseClient(){const c=document.getElementById('client-name').value;if(!c)return showToast('Informe cliente','error');await api('/admin/pause?client='+c,'POST');showToast('Cliente pausado');loadPaused()}
+        async function resumeClient(){const c=document.getElementById('client-name').value;if(!c)return showToast('Informe cliente','error');await api('/admin/resume?client='+c,'POST');showToast('Cliente retomado');loadPaused()}
+        async function pauseContact(){const c=document.getElementById('client-name').value,p=document.getElementById('contact-phone').value;if(!c||!p)return showToast('Preencha tudo','error');await api('/admin/pause-contact?client='+c+'&phone='+p,'POST');showToast('Contato pausado');loadPaused()}
+        async function resumeContact(){const c=document.getElementById('client-name').value,p=document.getElementById('contact-phone').value;if(!c||!p)return showToast('Preencha tudo','error');await api('/admin/resume-contact?client='+c+'&phone='+p,'POST');showToast('Contato retomado');loadPaused()}
+
+        async function loadPaused(){
+            const pc=await api('/admin/pause');
+            const el=document.getElementById('paused-clients');
+            if(!pc||!pc.paused.length){el.innerHTML='<div class="empty-state">Nenhum</div>';return}
+            el.innerHTML=pc.paused.map(c=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar">'+c[0]+'</div><div><div class="paused-name">'+c+'</div></div></div><button class="btn btn-success btn-sm" onclick="resumeClient2(\''+c+'\')">Retomar</button></div>').join('');
+
+            const pt=await api('/admin/pause-contact');
+            const el2=document.getElementById('paused-contacts');
+            if(!pt||!pt.paused.length){el2.innerHTML='<div class="empty-state">Nenhum</div>';return}
+            el2.innerHTML=pt.paused.map(c=>{const p=c.split(':');return'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--warning);color:#000">'+(p[1]||'?')[0]+'</div><div><div class="paused-name">'+(p[1]||c)+'</div><div class="paused-detail">'+(p[0]||'')+'</div></div></div><button class="btn btn-success btn-sm" onclick="resumeContact2(\''+p[0]+'\',\''+p[1]+'\')">Retomar</button></div>'}).join('');
+        }
+
+        async function resumeClient2(c){await api('/admin/resume?client='+c,'POST');showToast('Retomado');loadPaused()}
+        async function resumeContact2(c,p){await api('/admin/resume-contact?client='+c+'&phone='+p,'POST');showToast('Retomado');loadPaused()}
+
+        // Sessões
+        async function refreshSessions(){
+            const d=await api('/admin/sessions');
+            const el=document.getElementById('sessions-list');
+            if(!d||!d.sessions||!d.sessions.length){el.innerHTML='<div class="empty-state">Nenhuma sessão</div>';return}
+            el.innerHTML=d.sessions.map(s=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+(s.phone||'?')[0]+'</div><div><div class="paused-name">'+s.phone+'</div><div class="paused-detail">'+s.session_id+'</div></div></div></div>').join('');
+        }
+
+        async function clearSessions(){if(!confirm('Limpar todas as sessões?'))return;await api('/admin/clear-sessions','POST');showToast('Sessões limpas');refreshSessions()}
+
+        // Teste
+        let _testMode=false;
+        async function loadTestMode(){const t=await api('/admin/test-mode');if(t){_testMode=t.test_mode;document.getElementById('toggle-test').className='toggle '+(_testMode?'active':'');document.getElementById('test-numbers').value=(t.test_numbers||[]).join(',')}}
+        function toggleTestMode(){_testMode=!_testMode;document.getElementById('toggle-test').className='toggle '+(_testMode?'active':'')}
+        async function saveTestMode(){const n=document.getElementById('test-numbers').value;await api('/admin/test-mode?enabled='+_testMode+'&numbers='+n,'POST');showToast('Modo teste atualizado')}
+
+        // Logs
+        async function refreshLogs(){
+            const el=document.getElementById('log-container');
+            const h=await api('/health');
+            const m=await api('/admin/metrics');
+            const logs=[];
+            if(h)logs.push({level:'success',msg:'Sistema online - Uptime: '+Math.floor(h.uptime_seconds/60)+'min'});
+            if(m){logs.push({level:'info',msg:'Clientes pausados: '+m.paused_clients});logs.push({level:'info',msg:'Contatos pausados: '+m.paused_contacts});logs.push({level:'info',msg:'Modo teste: '+(m.test_mode?'Ativado':'Desativado')})}
+            el.innerHTML=logs.map(l=>'<div class="log-entry '+l.level+'">['+new Date().toLocaleTimeString()+'] '+l.msg+'</div>').join('');
+        }
+
+        // Init
+        updateStatus();loadConfig();loadPaused();refreshSessions();loadTestMode();refreshLogs();
+        setInterval(updateStatus,30000);
+    </script>
+    </div>
+</div>
+</body>
+</html>

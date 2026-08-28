@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BCOMM CRM — Entrar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0b0b0c;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .brand-logo {
+      width: 56px;
+      height: 56px;
+      background: #3b9eff;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .brand-name {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #fff;
+    }
+
+    .card {
+      background: #13161a;
+      border: 1px solid #292d30;
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #a1a4a5;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: #fff;
+      background: #0b0e14;
+      border: 1px solid #292d30;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-input::placeholder { color: #555; }
+
+    .form-input:focus {
+      border-color: #3b9eff;
+      box-shadow: 0 0 0 3px rgba(59, 158, 255, 0.15);
+    }
+
+    .form-input.error {
+      border-color: #ff4d4f;
+      box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.15);
+    }
+
+    .error-message {
+      display: none;
+      font-size: 13px;
+      color: #ff4d4f;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .error-message.visible { display: block; }
+
+    .forgot-password {
+      display: block;
+      text-align: right;
+      font-size: 13px;
+      color: #a1a4a5;
+      text-decoration: none;
+      margin-top: 8px;
+      transition: color 0.2s ease;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+    }
+
+    .forgot-password:hover { color: #3b9eff; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      margin-top: 24px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #3b9eff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease, opacity 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-submit:hover:not(:disabled) { background: #2d8ae6; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-submit .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin: 0 auto;
+    }
+
+    .btn-submit.loading .btn-text { display: none; }
+    .btn-submit.loading .spinner { display: inline-block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+      background: #13161a;
+      border: 1px solid #292d30;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .modal-title { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    .modal-desc { font-size: 13px; color: #a1a4a5; margin-bottom: 20px; line-height: 1.5; }
+    .modal-error { display: none; font-size: 13px; color: #ff4d4f; margin-bottom: 12px; }
+    .modal-error.visible { display: block; }
+    .modal-success { display: none; font-size: 13px; color: #52c41a; margin-bottom: 12px; }
+    .modal-success.visible { display: block; }
+    .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+
+    .btn-cancel {
+      flex: 1; padding: 10px; font-family: 'Inter', sans-serif; font-size: 14px;
+      font-weight: 500; color: #a1a4a5; background: transparent;
+      border: 1px solid #292d30; border-radius: 10px; cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+    .btn-cancel:hover { border-color: #a1a4a5; }
+
+    .btn-send {
+      flex: 1; padding: 10px; font-family: 'Inter', sans-serif; font-size: 14px;
+      font-weight: 600; color: #fff; background: #3b9eff;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .btn-send:hover:not(:disabled) { background: #2d8ae6; }
+    .btn-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    @media (max-width: 480px) {
+      body { padding: 16px; }
+      .card { padding: 24px; }
+      .brand-logo { width: 48px; height: 48px; font-size: 22px; border-radius: 12px; }
+      .brand-name { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="brand">
+      <div class="brand-logo">B</div>
+      <div class="brand-name">BCOMM</div>
+    </div>
+
+    <div class="card">
+      <h1 class="card-title">Entrar no CRM</h1>
+
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">E-mail</label>
+          <input class="form-input" type="email" id="email" name="email" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Senha</label>
+          <input class="form-input" type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="button" class="forgot-password" id="forgotBtn">Esqueceu a senha?</button>
+
+        <div class="error-message" id="loginError"></div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="btn-text">Entrar</span>
+          <span class="spinner"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2 class="modal-title">Redefinir senha</h2>
+      <p class="modal-desc">Informe o e-mail associado à sua conta. Você receberá um link para redefinir sua senha.</p>
+      <div class="form-group">
+        <label class="form-label" for="resetEmail">E-mail</label>
+        <input class="form-input" type="email" id="resetEmail" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="modal-error" id="resetError"></div>
+      <div class="modal-success" id="resetSuccess">E-mail de redefinição enviado. Verifique sua caixa de entrada.</div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelBtn">Cancelar</button>
+        <button class="btn-send" id="sendResetBtn">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var loginForm = document.getElementById('loginForm');
+      var emailInput = document.getElementById('email');
+      var passwordInput = document.getElementById('password');
+      var submitBtn = document.getElementById('submitBtn');
+      var loginError = document.getElementById('loginError');
+
+      loginForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        var email = emailInput.value.trim();
+        var password = passwordInput.value;
+
+        if (!email || !password) {
+          showError(loginError, 'Preencha todos os campos.');
+          return;
+        }
+
+        setLoading(submitBtn, true);
+        hideError(loginError);
+
+        try {
+          var resp = await fetch('/crm/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, password: password }),
+          });
+
+          var data = await resp.json();
+
+          if (!resp.ok) {
+            var msg = 'Credenciais invalidas. Verifique seu e-mail e senha.';
+            if (data.detail) {
+              if (data.detail.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';
+              else if (data.detail.includes('Email not confirmed')) msg = 'E-mail nao confirmado.';
+              else msg = data.detail;
+            }
+            showError(loginError, msg);
+            setLoading(submitBtn, false);
+            return;
+          }
+
+          window.location.href = "/dashboard";
+        } catch (err) {
+          showError(loginError, 'Erro de conexao. Tente novamente.');
+          setLoading(submitBtn, false);
+        }
+      });
+
+      var forgotBtn = document.getElementById('forgotBtn');
+      var modalOverlay = document.getElementById('modalOverlay');
+      var cancelBtn = document.getElementById('cancelBtn');
+      var sendResetBtn = document.getElementById('sendResetBtn');
+      var resetEmail = document.getElementById('resetEmail');
+      var resetError = document.getElementById('resetError');
+      var resetSuccess = document.getElementById('resetSuccess');
+
+      forgotBtn.addEventListener('click', function () {
+        resetEmail.value = emailInput.value.trim();
+        hideError(resetError);
+        resetSuccess.classList.remove('visible');
+        sendResetBtn.disabled = false;
+        modalOverlay.classList.add('visible');
+        resetEmail.focus();
+      });
+
+      cancelBtn.addEventListener('click', function () {
+        modalOverlay.classList.remove('visible');
+      });
+
+      modalOverlay.addEventListener('click', function (e) {
+        if (e.target === modalOverlay) modalOverlay.classList.remove('visible');
+      });
+
+      sendResetBtn.addEventListener('click', async function () {
+        var email = resetEmail.value.trim();
+        if (!email) {
+          resetError.textContent = 'Informe seu e-mail.';
+          resetError.classList.add('visible');
+          resetSuccess.classList.remove('visible');
+          return;
+        }
+        sendResetBtn.disabled = true;
+        hideError(resetError);
+        resetSuccess.classList.remove('visible');
+        try {
+          await fetch('https://supabase.agent-bcomm.space/auth/v1/recover', {
+            method: 'POST',
+            headers: {
+              'apikey': 'eyJ0eX...e95E',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: email }),
+          });
+          resetSuccess.classList.add('visible');
+        } catch (err) {
+          resetError.textContent = 'Erro de conexao. Tente novamente.';
+          resetError.classList.add('visible');
+          sendResetBtn.disabled = false;
+        }
+      });
+
+      function showError(el, msg) { el.textContent = msg; el.classList.add('visible'); }
+      function hideError(el) { el.classList.remove('visible'); }
+      function setLoading(btn, loading) {
+        if (loading) { btn.classList.add('loading'); btn.disabled = true; }
+        else { btn.classList.remove('loading'); btn.disabled = false; }
+      }
+    })();
+  </script>
+</body>
+</html>

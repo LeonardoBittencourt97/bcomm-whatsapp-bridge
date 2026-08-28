@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM - Pipelines</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-primary:#0b0b0c; --bg-surface:#0b0e14; --bg-card:#13161a; --bg-elevated:#1a1d21; --border:#292d30; --text-primary:#fff; --text-secondary:#a1a4a5; --text-muted:#6e727a; --accent:#3b9eff; --accent-hover:#5aadff; --success:#34c759; --danger:#ff453a; --warning:#ffd60a; --radius:12px; }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+        .header{position:sticky;top:0;z-index:100;background:rgba(11,11,12,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;flex-shrink:0}
+        .header-inner{max-width:100%;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+        .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;text-decoration:none;color:inherit}
+        .logo:hover{opacity:.8}
+        .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .nav-tabs{display:flex;gap:4px;background:var(--bg-surface);padding:4px;border-radius:10px}
+        .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-muted);border:none;background:transparent;text-decoration:none;transition:all .15s}
+        .nav-tab:hover{color:var(--text-secondary);background:var(--bg-card)}
+        .nav-tab.active{background:var(--bg-card);color:var(--text-primary)}
+        .status-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;font-size:13px;color:var(--text-secondary)}
+        .status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+        /* Toolbar */
+        .toolbar{padding:16px 24px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+        .toolbar-left{display:flex;align-items:center;gap:16px}
+        .toolbar-title{font-size:20px;font-weight:600}
+        .stats-bar{display:flex;gap:16px;font-size:13px;color:var(--text-secondary)}
+        .stat-item{display:flex;align-items:center;gap:4px}
+        .stat-value{font-weight:600;color:var(--accent)}
+
+        /* Kanban */
+        .kanban{display:flex;gap:16px;padding:24px;flex:1;overflow-x:auto;overflow-y:hidden}
+        .column{min-width:280px;max-width:320px;flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;max-height:calc(100vh - 180px)}
+        .column-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+        .column-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+        .column-count{background:var(--bg-surface);padding:2px 8px;border-radius:10px;font-size:12px;color:var(--text-muted)}
+        .column-value{font-size:12px;color:var(--accent);font-weight:600}
+        .column-cards{flex:1;overflow-y:auto;padding:8px}
+        .column-cards.drag-over{background:rgba(59,158,255,.05);border:2px dashed var(--accent);border-radius:8px;margin:4px}
+
+        /* Cards */
+        .deal-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;cursor:grab;transition:all .15s}
+        .deal-card:hover{border-color:var(--border-hover);transform:translateY(-1px)}
+        .deal-card.dragging{opacity:.5;cursor:grabbing}
+        .deal-title{font-size:14px;font-weight:500;margin-bottom:8px}
+        .deal-meta{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-muted)}
+        .deal-phone{display:flex;align-items:center;gap:4px}
+        .deal-value{font-weight:600;color:var(--accent)}
+        .deal-tags{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+        .deal-tag{padding:2px 8px;background:var(--bg-elevated);border-radius:6px;font-size:11px;color:var(--text-secondary)}
+        .deal-time{font-size:11px;color:var(--text-muted);margin-top:6px}
+
+        /* Buttons */
+        .btn{padding:10px 20px;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s}
+        .btn-primary{background:var(--accent);color:#fff}
+        .btn-primary:hover{background:var(--accent-hover)}
+        .btn-secondary{background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border)}
+        .btn-danger{background:var(--danger);color:#fff}
+        .btn-sm{padding:6px 12px;font-size:12px}
+
+        /* Modal */
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center}
+        .modal-overlay.active{display:flex}
+        .modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;width:480px;max-width:90vw;max-height:90vh;overflow-y:auto}
+        .modal-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .modal-title{font-size:18px;font-weight:600}
+        .modal-close{background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;padding:4px 8px;border-radius:8px}
+        .modal-close:hover{background:var(--bg-elevated);color:var(--text-primary)}
+        .modal-body{padding:20px}
+        .modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+        .input{width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:inherit}
+        .input:focus{outline:none;border-color:var(--accent)}
+        .input::placeholder{color:var(--text-muted)}
+        .input-label{display:block;font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:6px}
+        .input-group{margin-bottom:14px}
+        select.input{appearance:auto}
+
+        .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;display:none;z-index:300}
+        .toast.success{border-color:var(--success)}
+        .toast.error{border-color:var(--danger)}
+
+        ::-webkit-scrollbar{width:6px;height:6px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+        @media(max-width:768px){.nav-tabs{display:none}.column{min-width:260px}}
+    
+        /* ── Sidebar ── */
+        :root{--menu-w:60px;--menu-expanded:220px}
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar:hover{width:var(--menu-expanded)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s}
+        .sidebar:hover .logo-text{opacity:1}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text,#fff);background:var(--card,#13161a)}
+        .nav-item.active{color:var(--accent,#3b9eff);border-left-color:var(--accent,#3b9eff);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;opacity:0;transition:opacity .2s}
+        .sidebar:hover .nav-item .label{opacity:1}
+        .nav-divider{height:1px;background:var(--border,#292d30);margin:8px 16px}
+        .main{margin-left:var(--menu-w);flex:1;display:flex;flex-direction:column;overflow:hidden}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
+
+    </style>
+</head>
+<body>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/crm" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
+        </div>
+        <div class="nav-items">
+            <a href="/crm" class="nav-item " data-page="dashboard">
+                <span class="icon">📊</span><span class="label">Dashboard</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="conversations">
+                <span class="icon">💬</span><span class="label">Conversas</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="contacts">
+                <span class="icon">📇</span><span class="label">Contatos</span>
+            </a>
+            <a href="/organizations" class="nav-item " data-page="organizations">
+                <span class="icon">🏢</span><span class="label">Organizações</span>
+            </a>
+            <a href="/crm" class="nav-item active" data-page="deals">
+                <span class="icon">💰</span><span class="label">Negócios</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="activities">
+                <span class="icon">📋</span><span class="label">Atividades</span>
+            </a>
+            <a href="/outreach" class="nav-item " data-page="outreach">
+                <span class="icon">📤</span><span class="label">Outreach</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="/crm" class="nav-item " data-page="settings">
+                <span class="icon">⚙️</span><span class="label">Configurações</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main">
+    
+
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="stats-bar">
+                <div class="stat-item">Deals: <span class="stat-value" id="total-deals">0</span></div>
+                <div class="stat-item">Valor: <span class="stat-value" id="total-value">R$ 0</span></div>
+                <div class="stat-item">Taxa: <span class="stat-value" id="win-rate">0%</span></div>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="openNewDealModal()">+ Novo Deal</button>
+    </div>
+
+    <div class="kanban" id="kanban"></div>
+
+    <!-- Modal Novo/Editar Deal -->
+    <div class="modal-overlay" id="deal-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modal-title">Novo Deal</span>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deal-id">
+                <div class="input-group"><label class="input-label">Título *</label><input type="text" class="input" id="deal-title" placeholder="Ex: Consultoria BCOMM"></div>
+                <div class="input-group"><label class="input-label">Telefone</label><input type="text" class="input" id="deal-phone" placeholder="554197054071"></div>
+                <div class="input-group"><label class="input-label">Nome do Contato</label><input type="text" class="input" id="deal-contact" placeholder="João Silva"></div>
+                <div class="input-group"><label class="input-label">Valor (R$)</label><input type="number" class="input" id="deal-value" placeholder="0.00" step="0.01"></div>
+                <div class="input-group"><label class="input-label">Estágio</label><select class="input" id="deal-stage"></select></div>
+                <div class="input-group"><label class="input-label">Tags (separadas por vírgula)</label><input type="text" class="input" id="deal-tags" placeholder="quente, estética"></div>
+                <div class="input-group"><label class="input-label">Notas</label><textarea class="input" id="deal-notes" rows="3" placeholder="Observações..."></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-danger btn-sm" id="btn-delete-deal" onclick="deleteDeal()" style="display:none">Excluir</button>
+                <button class="btn btn-primary" onclick="saveDeal()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let stages=[];
+        let deals=[];
+        let draggedDeal=null;
+
+        function showToast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'success');e.style.display='block';setTimeout(()=>{e.style.display='none'},3000)}
+        async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);try{const r=await fetch(u,o);return await r.json()}catch(e){console.error(e);return null}}
+
+        // Load data
+        async function loadPipeline(){
+            const [s,d]=await Promise.all([api('/crm/pipeline/stages'),api('/crm/pipelines/deals')]);
+            if(s)stages=s.stages||s;
+            if(d)deals=d.deals||d||[];
+            renderKanban();
+            updateStats();
+        }
+
+        function renderKanban(){
+            const k=document.getElementById('kanban');
+            k.innerHTML=stages.map(s=>{
+                const stageDeals=deals.filter(d=>d.stage===s.id);
+                const stageValue=stageDeals.reduce((sum,d)=>sum+parseFloat(d.value||0),0);
+                return`<div class="column" ondragover="handleDragOver(event)" ondrop="handleDrop(event,'${s.id}')" ondragleave="handleDragLeave(event)">
+                    <div class="column-header">
+                        <div class="column-title"><span style="color:${s.color}">●</span>${s.name}<span class="column-count">${stageDeals.length}</span></div>
+                        <div class="column-value">R$ ${stageValue.toLocaleString('pt-BR')}</div>
+                    </div>
+                    <div class="column-cards" data-stage="${s.id}">
+                        ${stageDeals.map(d=>`<div class="deal-card" draggable="true" ondragstart="handleDragStart(event,'${d.id}')" ondragend="handleDragEnd(event)" onclick="openEditDealModal('${d.id}')">
+                            <div class="deal-title">${d.title}</div>
+                            <div class="deal-meta">
+                                <div class="deal-phone">📱 ${d.phone||'Sem telefone'}</div>
+                                <div class="deal-value">R$ ${(parseFloat(d.value)||0).toLocaleString('pt-BR')}</div>
+                            </div>
+                            ${d.contact_name?`<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">👤 ${d.contact_name}</div>`:''}
+                            ${d.tags&&d.tags.length?`<div class="deal-tags">${(Array.isArray(d.tags)?d.tags:[]).map(t=>`<span class="deal-tag">${t}</span>`).join('')}</div>`:''}
+                            <div class="deal-time">⏰ ${timeAgo(d.created_at)}</div>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function updateStats(){
+            document.getElementById('total-deals').textContent=deals.length;
+            const totalValue=deals.reduce((s,d)=>s+parseFloat(d.value||0),0);
+            document.getElementById('total-value').textContent='R$ '+totalValue.toLocaleString('pt-BR');
+            const won=deals.filter(d=>d.stage==='closed_won').length;
+            const total=deals.length;
+            document.getElementById('win-rate').textContent=total?Math.round(won/total*100)+'%':'0%';
+        }
+
+        // Drag and drop
+        function handleDragStart(e,dealId){draggedDeal=dealId;e.target.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
+        function handleDragEnd(e){e.target.classList.remove('dragging');document.querySelectorAll('.column-cards').forEach(c=>c.classList.remove('drag-over'))}
+        function handleDragOver(e){e.preventDefault();e.currentTarget.querySelector('.column-cards').classList.add('drag-over')}
+        function handleDragLeave(e){e.currentTarget.querySelector('.column-cards').classList.remove('drag-over')}
+        async function handleDragOver(e){e.preventDefault()}
+        async function handleDrop(e,newStage){
+            e.preventDefault();
+            e.currentTarget.querySelector('.column-cards').classList.remove('drag-over');
+            if(!draggedDeal)return;
+            const deal=deals.find(d=>d.id===draggedDeal);
+            if(deal&&deal.stage!==newStage){
+                deal.stage=newStage;
+                await api(`/crm/pipelines/deals/${draggedDeal}`,'PUT',{stage:newStage});
+                renderKanban();updateStats();
+                showToast('Deal movido!');
+            }
+            draggedDeal=null;
+        }
+
+        // Modals
+        function openNewDealModal(){
+            document.getElementById('modal-title').textContent='Novo Deal';
+            document.getElementById('deal-id').value='';
+            document.getElementById('deal-title').value='';
+            document.getElementById('deal-phone').value='';
+            document.getElementById('deal-contact').value='';
+            document.getElementById('deal-value').value='';
+            document.getElementById('deal-tags').value='';
+            document.getElementById('deal-notes').value='';
+            document.getElementById('btn-delete-deal').style.display='none';
+            populateStageSelect('lead');
+            document.getElementById('deal-modal').classList.add('active');
+        }
+
+        function openEditDealModal(dealId){
+            const deal=deals.find(d=>d.id===dealId);
+            if(!deal)return;
+            document.getElementById('modal-title').textContent='Editar Deal';
+            document.getElementById('deal-id').value=deal.id;
+            document.getElementById('deal-title').value=deal.title;
+            document.getElementById('deal-phone').value=deal.phone||'';
+            document.getElementById('deal-contact').value=deal.contact_name||'';
+            document.getElementById('deal-value').value=deal.value||'';
+            document.getElementById('deal-tags').value=(Array.isArray(deal.tags)?deal.tags:[]).join(', ');
+            document.getElementById('deal-notes').value=deal.notes||'';
+            document.getElementById('btn-delete-deal').style.display='inline-flex';
+            populateStageSelect(deal.stage);
+            document.getElementById('deal-modal').classList.add('active');
+        }
+
+        function populateStageSelect(selected){
+            const sel=document.getElementById('deal-stage');
+            sel.innerHTML=stages.map(s=>`<option value="${s.id}"${s.id===selected?' selected':''}>${s.name}</option>`).join('');
+        }
+
+        function closeModal(){document.getElementById('deal-modal').classList.remove('active')}
+
+        async function saveDeal(){
+            const id=document.getElementById('deal-id').value;
+            const data={
+                title:document.getElementById('deal-title').value,
+                phone:document.getElementById('deal-phone').value,
+                contact_name:document.getElementById('deal-contact').value,
+                value:parseFloat(document.getElementById('deal-value').value)||0,
+                stage:document.getElementById('deal-stage').value,
+                tags:document.getElementById('deal-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+                notes:document.getElementById('deal-notes').value
+            };
+            if(!data.title)return showToast('Informe o título','error');
+            if(id){await api(`/crm/pipelines/deals/${id}`,'PUT',data)}
+            else{await api('/crm/pipelines/deals','POST',data)}
+            closeModal();loadPipeline();showToast(id?'Deal atualizado!':'Deal criado!');
+        }
+
+        async function deleteDeal(){
+            const id=document.getElementById('deal-id').value;
+            if(!id||!confirm('Excluir este deal?'))return;
+            await api(`/crm/pipelines/deals/${id}`,'DELETE');
+            closeModal();loadPipeline();showToast('Deal excluído');
+        }
+
+        function timeAgo(ts){
+            if(!ts)return'';
+            const d=new Date(ts),n=new Date(),diff=n-d;
+            if(diff<60000)return'Agora';
+            if(diff<3600000)return Math.floor(diff/60000)+'min';
+            if(diff<86400000)return Math.floor(diff/3600000)+'h';
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        loadPipeline();
+    </script>
+    </div>
+</div>
+</body>
+</html>

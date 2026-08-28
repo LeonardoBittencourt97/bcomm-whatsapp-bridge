@@ -1,0 +1,125 @@
+"""
+Notes routes — CRM bcomm_inbox
+CRUD for notes attached to any entity (deal, contact, organization, etc.)
+"""
+import logging
+from typing import Optional, List
+from datetime import datetime
+
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
+
+from services.database import select, insert, update, delete, get_client
+
+logger = logging.getLogger("bridge")
+
+router = APIRouter(prefix="/crm", tags=["crm"])
+
+TABLE = "bcomm_inbox.notes"
+
+
+def _ensure_supabase():
+    if get_client() is None:
+        from config import settings
+        from services.database import get_supabase
+        get_supabase(settings.supabase_url, settings.supabase_service_key)
+
+
+# ── Models ──────────────────────────────────────────────────────
+
+class NoteCreate(BaseModel):
+    content: str
+    entity_type: str  # deal, contact, organization, conversation
+    entity_id: str
+    user_id: Optional[str] = None
+
+
+class NoteUpdate(BaseModel):
+    content: Optional[str] = None
+
+
+# ── Routes ──────────────────────────────────────────────────────
+
+@router.get("/notes")
+async def list_notes(
+    entity_type: Optional[str] = None,
+    entity_id: Optional[str] = None,
+    limit: int = Query(default=50, le=200),
+    offset: int = Query(default=0, ge=0),
+):
+    """Lista notas com filtros opcionais por entidade."""
+    _ensure_supabase()
+
+    filters = {}
+    if entity_type:
+        filters["entity_type"] = entity_type
+    if entity_id:
+        filters["entity_id"] = entity_id
+
+    rows = await select(
+        TABLE,
+        filters=filters if filters else None,
+        order="created_at.desc",
+    )
+
+    total = len(rows)
+    notes = rows[offset:offset + limit]
+
+    return {
+        "notes": notes,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.post("/notes", status_code=201)
+async def create_note(note: NoteCreate):
+    """Cria uma nova nota."""
+    _ensure_supabase()
+
+    data = note.model_dump()
+    now = datetime.now().isoformat()
+    data["created_at"] = now
+    data["updated_at"] = now
+
+    result = await insert(TABLE, data)
+    created = result[0] if isinstance(result, list) else result
+
+    logger.info(f"Nota criada: {created.get('id')}")
+    return created
+
+
+@router.put("/notes/{note_id}")
+async def update_note(note_id: str, note: NoteUpdate):
+    """Atualiza uma nota existente."""
+    _ensure_supabase()
+
+    rows = await select(TABLE, filters={"id": note_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Nota não encontrada")
+
+    data = {k: v for k, v in note.model_dump().items() if v is not None}
+    if not data:
+        raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+
+    data["updated_at"] = datetime.now().isoformat()
+    await update(TABLE, data, filters={"id": note_id})
+
+    updated = await select(TABLE, filters={"id": note_id})
+    logger.info(f"Nota atualizada: {note_id}")
+    return updated[0]
+
+
+@router.delete("/notes/{note_id}")
+async def delete_note(note_id: str):
+    """Deleta uma nota."""
+    _ensure_supabase()
+
+    rows = await select(TABLE, filters={"id": note_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Nota não encontrada")
+
+    await delete(TABLE, filters={"id": note_id})
+    logger.info(f"Nota deletada: {note_id}")
+    return {"deleted": True, "id": note_id}

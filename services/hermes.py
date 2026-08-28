@@ -1,37 +1,73 @@
 """
 Cliente para o Hermes CLI via Docker exec.
 Usa sessões nativas do Hermes para memória de conversação.
+Sessões persistidas via Supabase (tabela bcomm_inbox.sessions).
 """
 import asyncio
-import json
 import logging
 import os
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 from config import settings
+from services.database import get_supabase, select, insert, update, delete
 
 logger = logging.getLogger(__name__)
 
-HERMES_CONTAINER = os.getenv("HERMES_CONTAINER", "hermes-vtj5nm6l778wrezwf46uevmj")
-SESSION_FILE = "/app/data/hermes_sessions.json"
+HERMES_CONTAINER = os.getenv("HERMES_CONTAINER", "bridge-q6o907l7ab6zbjvh4dvwuop6-213407219925")
+SESSIONS_TABLE = "bcomm_inbox.sessions"
 
 
-def _load_sessions() -> Dict[str, str]:
-    """Carrega session IDs do disco."""
+def _ensure_supabase():
+    """Inicializa Supabase se ainda não estiver conectado."""
+    from services.database import get_client
+    if get_client() is None:
+        get_supabase(settings.supabase_url, settings.supabase_service_key)
+
+
+async def _load_sessions() -> Dict[str, str]:
+    """Carrega session IDs do Supabase."""
+    _ensure_supabase()
     try:
-        if os.path.exists(SESSION_FILE):
-            with open(SESSION_FILE, "r") as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return {}
+        rows = await select(
+            SESSIONS_TABLE,
+            columns="phone,session_id",
+        )
+        return {row["phone"]: row["session_id"] for row in rows}
+    except Exception as e:
+        logger.error(f"Erro ao carregar sessões do Supabase: {e}")
+        return {}
 
 
-def _save_sessions(sessions: Dict[str, str]):
-    """Salva session IDs no disco."""
-    os.makedirs(os.path.dirname(SESSION_FILE), exist_ok=True)
-    with open(SESSION_FILE, "w") as f:
-        json.dump(sessions, f)
+async def _save_session(phone: str, session_id: str, client_name: str = "BCOMM"):
+    """Salva/atualiza uma sessão no Supabase."""
+    _ensure_supabase()
+    try:
+        # Check if session exists, then insert or update
+        existing = await select(SESSIONS_TABLE, filters={"phone": phone})
+        if existing:
+            await update(SESSIONS_TABLE, {
+                "session_id": session_id,
+                "client_name": client_name,
+            }, filters={"phone": phone})
+        else:
+            await insert(SESSIONS_TABLE, {
+                "phone": phone,
+                "session_id": session_id,
+                "client_name": client_name,
+            })
+        logger.info(f"Sessão salva no Supabase: {phone} -> {session_id}")
+    except Exception as e:
+        logger.error(f"Erro ao salvar sessão no Supabase: {e}")
+
+
+async def _delete_session(phone: str):
+    """Remove uma sessão do Supabase."""
+    _ensure_supabase()
+    try:
+        await delete(SESSIONS_TABLE, filters={"phone": phone})
+        logger.info(f"Sessão removida do Supabase: {phone}")
+    except Exception as e:
+        logger.error(f"Erro ao remover sessão do Supabase: {e}")
 
 
 class HermesClient:
@@ -39,27 +75,35 @@ class HermesClient:
 
     def __init__(self):
         self.profile = settings.hermes_profile
-        self.sessions = _load_sessions()
+        self._sessions_cache: Optional[Dict[str, str]] = None
+        self._processing_status: Dict[str, dict] = {}  # phone -> {status, started_at}
 
-    async def chat(self, message: str, phone: str = "unknown", timeout: int = 120, force_new_session: bool = False) -> Optional[str]:
+    async def _get_sessions(self) -> Dict[str, str]:
+        """Retorna sessões (com cache lazy)."""
+        if self._sessions_cache is None:
+            self._sessions_cache = await _load_sessions()
+        return self._sessions_cache
+
+    async def chat(self, message: str, phone: str = "unknown", timeout: int = 120, force_new_session: bool = False, message_id: str = "", skip_user_tracking: bool = False) -> Optional[str]:
         """
         Envia mensagem ao Hermes. Se já existe sessão para o phone, retoma.
         Se force_new_session=True, ignora sessão anterior e cria nova.
         """
         cmd = ["docker", "exec", HERMES_CONTAINER, "/opt/hermes/.venv/bin/hermes", "chat"]
 
+        sessions = await self._get_sessions()
         session_id = None
 
         # Se force_new_session, limpar sessão anterior
         if force_new_session:
-            old_session = self.sessions.pop(phone, None)
+            old_session = sessions.pop(phone, None)
             if old_session:
-                _save_sessions(self.sessions)
+                await _delete_session(phone)
                 logger.info(f"Sessão anterior {old_session} removida (force_new_session) para {phone}")
             logger.info(f"Forçando nova sessão para {phone} (outreach)")
         else:
             # Se já tem sessão, retomar
-            session_id = self.sessions.get(phone)
+            session_id = sessions.get(phone)
             if session_id:
                 cmd.extend(["--resume", session_id])
                 logger.info(f"Retomando sessão {session_id} para {phone}")
@@ -73,7 +117,10 @@ class HermesClient:
         ])
 
         logger.info(f"Hermes (phone={phone}): {message[:80]}...")
-        await self._track_message(phone, "user", message)
+        self._processing_status[phone] = {"status": "processing", "started_at": __import__("time").time()}
+        # Skip user message tracking if caller handles it (e.g. audio messages saved as [audioMessage])
+        if not skip_user_tracking:
+            await self._track_message(phone, "user", message, message_id=message_id)
 
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -95,8 +142,8 @@ class HermesClient:
                 if "Session:" in line:
                     new_session = line.split("Session:")[-1].strip()
                     if new_session != session_id:
-                        self.sessions[phone] = new_session
-                        _save_sessions(self.sessions)
+                        sessions[phone] = new_session
+                        await _save_session(phone, new_session)
                         logger.info(f"Nova sessão salva: {new_session} para {phone}")
                     break
 
@@ -116,48 +163,59 @@ class HermesClient:
             response = response.replace("╰─", "").strip()
 
             logger.info(f"Hermes respondeu ({len(response)} chars)")
-            await self._track_message(phone, "agent", response, model_used or "")
+            self._processing_status.pop(phone, None)
+            await self._track_message(phone, "agent", response)
             return response
 
         except asyncio.TimeoutError:
             logger.error(f"Hermes timeout após {timeout}s")
+            self._processing_status.pop(phone, None)
             if proc:
                 proc.kill()
             return None
         except Exception as e:
             logger.error(f"Erro Hermes: {e}")
+            self._processing_status.pop(phone, None)
             return None
 
-
-
-    async def _track_message(self, phone: str, sender: str, content: str, model: str = ""):
+    async def _track_message(self, phone: str, sender: str, content: str, model: str = "", message_id: str = ""):
         """Registra mensagem no CRM"""
         try:
             import httpx
-            
+
             if sender == "user":
                 endpoint = f"http://localhost:8000/crm/conversations/{phone}/receive"
             else:
                 endpoint = f"http://localhost:8000/crm/conversations/{phone}/agent-response"
-            
+
+            payload = {"content": content}
+            if message_id:
+                payload["message_id"] = message_id
+
             async with httpx.AsyncClient() as client:
-                await client.post(endpoint, json={"content": content}, params={"model": model})
+                await client.post(endpoint, json=payload, params={"model": model})
         except Exception as e:
             logger.error(f"Erro ao rastrear mensagem: {e}")
 
-    def get_active_sessions(self) -> list:
-        """Retorna sessões ativas do arquivo de sessões."""
+    async def get_active_sessions(self) -> List[dict]:
+        """Retorna sessões ativas do Supabase."""
         try:
-            if os.path.exists(SESSION_FILE):
-                with open(SESSION_FILE, "r") as f:
-                    sessions = json.load(f)
-                return [
-                    {"phone": phone, "session_id": session_id}
-                    for phone, session_id in sessions.items()
-                ]
+            sessions = await _load_sessions()
+            return [
+                {"phone": phone, "session_id": session_id}
+                for phone, session_id in sessions.items()
+            ]
         except Exception as e:
             logger.error(f"Erro ao ler sessões: {e}")
         return []
+
+    def get_processing_status(self, phone: str) -> dict:
+        """Retorna status de processamento de um phone."""
+        status = self._processing_status.get(phone)
+        if status:
+            elapsed = __import__("time").time() - status["started_at"]
+            return {"status": status["status"], "elapsed_seconds": round(elapsed, 1)}
+        return {"status": "idle"}
 
     async def is_available(self) -> bool:
         try:

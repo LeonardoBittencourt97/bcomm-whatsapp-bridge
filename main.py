@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -29,6 +30,19 @@ from services.evolution import EvolutionClient
 from services.hermes import HermesClient
 from services.llm import LLMClient
 from services.stt import STTClient
+from services.database import get_supabase, get_client, select, upsert, insert
+# ── Auth helpers ──────────────────────────────────────────────
+from routes.routes_auth import COOKIE_NAME, _verify_supabase_token
+
+
+# ── Supabase tables ─────────────────────────────────────────────
+CONVERSATIONS_TABLE = "bcomm_inbox.conversations"
+MESSAGES_TABLE = "bcomm_inbox.messages"
+
+def _ensure_supabase():
+    """Inicializa Supabase se ainda não estiver conectado."""
+    if get_client() is None:
+        get_supabase(settings.supabase_url, settings.supabase_service_key)
 
 # ── Logging ─────────────────────────────────────────────────────────
 
@@ -50,6 +64,99 @@ hermes_client = HermesClient()
 llm_client = LLMClient()
 stt_client = STTClient()
 
+TABLE_SETTINGS = "settings"
+
+
+# ── Settings helpers (Supabase) ─────────────────────────────────────
+
+async def _load_setting(key: str, default=None):
+    """Carrega um setting do Supabase."""
+    try:
+        rows = await select(TABLE_SETTINGS, filters={"key": key})
+        if rows:
+            return rows[0]["value"]
+    except Exception as e:
+        logger.error(f"Erro ao carregar setting '{key}': {e}")
+    return default
+
+
+async def _save_setting(key: str, value):
+    """Salva um setting no Supabase."""
+    try:
+        from datetime import datetime
+        await upsert(TABLE_SETTINGS, {
+            "key": key,
+            "value": value,
+            "updated_at": datetime.now().isoformat(),
+        }, on_conflict="key")
+    except Exception as e:
+        logger.error(f"Erro ao salvar setting '{key}': {e}")
+
+
+async def load_test_mode():
+    """Carrega modo teste do Supabase."""
+    data = await _load_setting("test_mode", {"test_mode": False, "test_numbers": ""})
+    settings.test_mode = data.get("test_mode", False)
+    settings.test_numbers = data.get("test_numbers", "")
+    logger.info(f"Modo teste carregado: {settings.test_mode}, números: {settings.test_numbers}")
+
+
+async def save_test_mode():
+    """Salva modo teste no Supabase."""
+    await _save_setting("test_mode", {
+        "test_mode": settings.test_mode,
+        "test_numbers": settings.test_numbers,
+    })
+    logger.info(f"Modo teste salvo: {settings.test_mode}")
+
+
+async def load_paused_clients():
+    """Carrega clientes pausados do Supabase."""
+    data = await _load_setting("paused_clients", {"paused": []})
+    paused = data.get("paused", [])
+    settings.paused_clients = ",".join(paused)
+    logger.info(f"Clientes pausados carregados: {settings.paused_clients}")
+
+
+async def save_paused_clients():
+    """Salva clientes pausados no Supabase."""
+    paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
+    await _save_setting("paused_clients", {"paused": paused})
+    logger.info(f"Clientes pausados salvos: {paused}")
+
+
+async def load_paused_contacts():
+    """Carrega contatos pausados do Supabase."""
+    data = await _load_setting("paused_contacts", {"paused": []})
+    paused = data.get("paused", [])
+    settings.paused_contacts = ",".join(paused)
+    logger.info(f"Contatos pausados carregados: {settings.paused_contacts}")
+
+
+async def save_paused_contacts():
+    """Salva contatos pausados no Supabase."""
+    paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
+    await _save_setting("paused_contacts", {"paused": paused})
+    logger.info(f"Contatos pausados salvos: {paused}")
+
+
+def is_client_paused(client_name: str) -> bool:
+    """Verifica se um cliente está pausado."""
+    if not settings.paused_clients:
+        return False
+    paused = [c.strip().lower() for c in settings.paused_clients.split(",")]
+    return client_name.lower() in paused
+
+
+def is_contact_paused(client: str, phone: str) -> bool:
+    """Verifica se um contato específico está pausado."""
+    if not settings.paused_contacts:
+        return False
+    paused = [c.strip().lower() for c in settings.paused_contacts.split(",")]
+    # Formato: "client:phone" ou apenas "phone"
+    contact_key = f"{client}:{phone}".lower()
+    return contact_key in paused or phone.lower() in paused
+
 
 # ── Lifespan ────────────────────────────────────────────────────────
 
@@ -63,6 +170,15 @@ async def lifespan(app: FastAPI):
     logger.info(f"   LLM model:     {settings.opencode_model}")
     logger.info(f"   STT model:     {settings.stt_model}")
     logger.info(f"   Porta:         {settings.port}")
+
+    # Initialize Supabase
+    logger.info("📦 Conectando ao Supabase...")
+    get_supabase(settings.supabase_url, settings.supabase_service_key)
+
+    # Load settings from Supabase
+    await load_test_mode()
+    await load_paused_clients()
+    await load_paused_contacts()
 
     yield
 
@@ -89,6 +205,52 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Auth Middleware ────────────────────────────────────────────
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Protege rotas /crm/* que não são de auth."""
+    from fastapi.responses import JSONResponse, RedirectResponse
+    path = request.url.path
+
+    # Rotas públicas (não precisam de auth)
+    public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/"}
+    public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc")
+    crm_auth_exact = {"/crm/auth/login"}
+
+    # Checar se é pública
+    if path in public_exact or path in crm_auth_exact:
+        return await call_next(request)
+
+    for prefix in public_prefixes:
+        if path.startswith(prefix):
+            return await call_next(request)
+
+    # Proteger /crm/* (exceto arquivos estáticos e áudio)
+    if path.startswith("/crm"):
+        # Pular proteção para áudio, profile-picture, e arquivos .html
+        skip_auth = any(x in path for x in ["/audio/", "/profile-picture/", ".html"])
+        if not skip_auth:
+            token = request.cookies.get(COOKIE_NAME)
+            if not token:
+                auth_header = request.headers.get("authorization", "")
+                if auth_header.startswith("Bearer "):
+                    token = auth_header[7:]
+
+            if not token:
+                # API call → 401; page → redirect
+                if request.headers.get("accept", "").find("json") >= 0 or request.url.path.startswith("/crm/") and not any(x in path for x in [".html", "/audio/", "/profile-picture/"]):
+                    return JSONResponse(status_code=401, content={"detail": "Não autenticado"})
+                return RedirectResponse(url="/login", status_code=302)
+
+            payload = await _verify_supabase_token(token)
+            if not payload:
+                if request.headers.get("accept", "").find("json") >= 0 or request.url.path.startswith("/crm/") and not any(x in path for x in [".html", "/audio/", "/profile-picture/"]):
+                    return JSONResponse(status_code=401, content={"detail": "Sessão expirada"})
+                return RedirectResponse(url="/login", status_code=302)
+
+    return await call_next(request)
+
+
 
 # ── Endpoints ───────────────────────────────────────────────────────
 
@@ -107,6 +269,54 @@ async def health_check():
         evolution_api="ok" if evo_ok else "unavailable",
         uptime_seconds=round(time.time() - _start_time, 1),
     )
+
+
+async def _save_audio_for_disabled(message, msg_id: str):
+    """Download, decrypt, transcribe and save audio file when agent is disabled."""
+    import os
+    try:
+        if not message.media_cdn_url:
+            return
+
+        client = await evolution_client._get_client()
+        resp = await client.get(message.media_cdn_url)
+        resp.raise_for_status()
+        encrypted_data = resp.content
+        logger.info(f"[disabled] Áudio encriptado baixado: {len(encrypted_data)} bytes")
+
+        import ast
+        mk_dict = ast.literal_eval(message.media_url)
+        media_key = bytes(mk_dict.values())
+
+        from services.whatsapp_crypto import decrypt_whatsapp_audio
+        audio_bytes = decrypt_whatsapp_audio(encrypted_data, media_key)
+        logger.info(f"[disabled] Áudio desencriptado: {len(audio_bytes)} bytes")
+
+        audio_dir = "/app/data/audio"
+        os.makedirs(audio_dir, exist_ok=True)
+
+        # Save audio file
+        audio_path = os.path.join(audio_dir, f"{msg_id}.ogg")
+        with open(audio_path, "wb") as f:
+            f.write(audio_bytes)
+        logger.info(f"[disabled] Áudio salvo em {audio_path}")
+
+        # Transcribe and save transcription
+        stt = STTClient()
+        try:
+            transcription = await stt.transcribe(audio_bytes=audio_bytes, filename="audio.ogg", language="pt")
+            if transcription:
+                txt_path = os.path.join(audio_dir, f"{msg_id}.txt")
+                with open(txt_path, "w", encoding="utf-8") as f:
+                    f.write(transcription)
+                logger.info(f"[disabled] Transcrição salva: {txt_path} ({len(transcription)} chars)")
+        except Exception as e:
+            logger.error(f"[disabled] Erro ao transcrever: {e}")
+        finally:
+            await stt.close()
+
+    except Exception as e:
+        logger.error(f"[disabled] Erro ao salvar áudio: {e}")
 
 
 @app.post("/webhook/evolution")
@@ -158,8 +368,59 @@ async def webhook_evolution(request: Request):
         logger.info(f"Mensagem ignorada (contato pausado): {message.from_number}")
         return {"status": "ignored_contact_paused", "phone": message.from_number}
 
+    # Verificar se o agente está desabilitado para esta conversa
+    try:
+        _ensure_supabase()
+        conv_rows = await select(CONVERSATIONS_TABLE, filters={"phone": message.from_number})
+        if conv_rows and not conv_rows[0].get("agent_enabled", True):
+            logger.info(f"Mensagem ignorada (agente desabilitado): {message.from_number}")
+            # Still register the message in Supabase for the inbox
+            conv_id = conv_rows[0]["id"]
+            from datetime import datetime as _dt
+            # Use [audioMessage] for audio type so UI shows player
+            content = "[audioMessage]" if message.message_type == "audio" else message.content
+            msg_id = message.message_id if message.message_id else None
+            await insert(MESSAGES_TABLE, {
+                "conversation_id": conv_id,
+                "sender": "user",
+                "content": content,
+                "message_id": msg_id,
+                "responded": False,
+                "created_at": _dt.now().isoformat(),
+            })
+            # Process audio file even when agent is disabled (for UI playback)
+            if message.message_type == "audio" and msg_id:
+                asyncio.create_task(_save_audio_for_disabled(message, msg_id))
+            return {"status": "ignored_agent_disabled", "phone": message.from_number}
+    except Exception as e:
+        logger.error(f"Erro ao verificar agente_enabled: {e}")
+
+    # ── SAVE USER MESSAGE IMMEDIATELY (for real-time inbox) ──
+    try:
+        from datetime import datetime as _dt_now
+        _ensure_supabase()
+        if get_client() is not None:
+            conv_rows_imm = await select(CONVERSATIONS_TABLE, filters={"phone": message.from_number})
+            if conv_rows_imm:
+                _cid = conv_rows_imm[0]["id"]
+                _mid = message.message_id if message.message_id else None
+                if _mid:
+                    _existing = await select(MESSAGES_TABLE, filters={"message_id": _mid})
+                    if not _existing:
+                        _ct = "[audioMessage]" if message.message_type == "audio" else (message.content or "")
+                        await insert(MESSAGES_TABLE, {
+                            "conversation_id": _cid,
+                            "sender": "user",
+                            "content": _ct,
+                            "message_id": _mid,
+                            "responded": False,
+                            "created_at": _dt_now.now().isoformat(),
+                        })
+                        logger.info(f"IMMEDIATE SAVE: User msg saved for {message.from_number} msg_id={_mid}")
+    except Exception as e:
+        logger.error(f"Immediate save FAILED: {type(e).__name__}: {e}")
+
     # Processar em background (batch aguarda mensagens adicionais)
-    # Não usa await — retorna imediatamente
     asyncio.create_task(process_incoming_message(
         message=message,
         evolution=evolution_client,
@@ -246,38 +507,12 @@ async def reload_clients():
 
 # ── Test Mode ──────────────────────────────────────────────────────
 
-TEST_MODE_FILE = "/app/data/test_mode.json"
-
-def load_test_mode():
-    """Carrega modo teste de arquivo."""
-    if os.path.exists(TEST_MODE_FILE):
-        try:
-            with open(TEST_MODE_FILE, "r") as f:
-                data = json.load(f)
-                settings.test_mode = data.get("test_mode", False)
-                settings.test_numbers = data.get("test_numbers", "")
-                logger.info(f"Modo teste carregado: {settings.test_mode}, números: {settings.test_numbers}")
-        except Exception as e:
-            logger.error(f"Erro ao carregar modo teste: {e}")
-
-def save_test_mode():
-    """Salva modo teste em arquivo."""
-    try:
-        with open(TEST_MODE_FILE, "w") as f:
-            json.dump({
-                "test_mode": settings.test_mode,
-                "test_numbers": settings.test_numbers,
-            }, f)
-        logger.info(f"Modo teste salvo: {settings.test_mode}")
-    except Exception as e:
-        logger.error(f"Erro ao salvar modo teste: {e}")
-
 @app.post("/admin/test-mode")
 async def set_test_mode(enabled: bool, numbers: str = ""):
     """Habilita/desabilita modo teste."""
     settings.test_mode = enabled
     settings.test_numbers = numbers
-    save_test_mode()
+    await save_test_mode()
     return {
         "test_mode": settings.test_mode,
         "test_numbers": settings.test_numbers.split(",") if settings.test_numbers else [],
@@ -292,38 +527,7 @@ async def get_test_mode():
     }
 
 
-
 # ── Pause/Resume ──────────────────────────────────────────────────
-
-PAUSE_FILE = "/app/data/paused_clients.json"
-
-def load_paused_clients():
-    """Carrega clientes pausados de arquivo."""
-    if os.path.exists(PAUSE_FILE):
-        try:
-            with open(PAUSE_FILE, "r") as f:
-                data = json.load(f)
-                settings.paused_clients = ",".join(data.get("paused", []))
-                logger.info(f"Clientes pausados carregados: {settings.paused_clients}")
-        except Exception as e:
-            logger.error(f"Erro ao carregar clientes pausados: {e}")
-
-def save_paused_clients():
-    """Salva clientes pausados em arquivo."""
-    try:
-        paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
-        with open(PAUSE_FILE, "w") as f:
-            json.dump({"paused": paused}, f)
-        logger.info(f"Clientes pausados salvos: {paused}")
-    except Exception as e:
-        logger.error(f"Erro ao salvar clientes pausados: {e}")
-
-def is_client_paused(client_name: str) -> bool:
-    """Verifica se um cliente está pausado."""
-    if not settings.paused_clients:
-        return False
-    paused = [c.strip().lower() for c in settings.paused_clients.split(",")]
-    return client_name.lower() in paused
 
 @app.post("/admin/pause")
 async def pause_client(client: str):
@@ -332,7 +536,7 @@ async def pause_client(client: str):
     if client not in paused:
         paused.append(client)
     settings.paused_clients = ",".join(paused)
-    save_paused_clients()
+    await save_paused_clients()
     return {"paused": paused, "message": f"Cliente {client} pausado"}
 
 @app.post("/admin/resume")
@@ -342,7 +546,7 @@ async def resume_client(client: str):
     if client in paused:
         paused.remove(client)
     settings.paused_clients = ",".join(paused)
-    save_paused_clients()
+    await save_paused_clients()
     return {"paused": paused, "message": f"Cliente {client} retomado"}
 
 @app.get("/admin/pause")
@@ -352,40 +556,7 @@ async def get_paused_clients():
     return {"paused": paused}
 
 
-
 # ── Contact Pause/Resume ──────────────────────────────────────────
-
-CONTACT_PAUSE_FILE = "/app/data/paused_contacts.json"
-
-def load_paused_contacts():
-    """Carrega contatos pausados de arquivo."""
-    if os.path.exists(CONTACT_PAUSE_FILE):
-        try:
-            with open(CONTACT_PAUSE_FILE, "r") as f:
-                data = json.load(f)
-                settings.paused_contacts = ",".join(data.get("paused", []))
-                logger.info(f"Contatos pausados carregados: {settings.paused_contacts}")
-        except Exception as e:
-            logger.error(f"Erro ao carregar contatos pausados: {e}")
-
-def save_paused_contacts():
-    """Salva contatos pausados em arquivo."""
-    try:
-        paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
-        with open(CONTACT_PAUSE_FILE, "w") as f:
-            json.dump({"paused": paused}, f)
-        logger.info(f"Contatos pausados salvos: {paused}")
-    except Exception as e:
-        logger.error(f"Erro ao salvar contatos pausados: {e}")
-
-def is_contact_paused(client: str, phone: str) -> bool:
-    """Verifica se um contato específico está pausado."""
-    if not settings.paused_contacts:
-        return False
-    paused = [c.strip().lower() for c in settings.paused_contacts.split(",")]
-    # Formato: "client:phone" ou apenas "phone"
-    contact_key = f"{client}:{phone}".lower()
-    return contact_key in paused or phone.lower() in paused
 
 @app.post("/admin/pause-contact")
 async def pause_contact(client: str, phone: str):
@@ -395,7 +566,7 @@ async def pause_contact(client: str, phone: str):
     if contact_key not in paused:
         paused.append(contact_key)
     settings.paused_contacts = ",".join(paused)
-    save_paused_contacts()
+    await save_paused_contacts()
     return {"paused": paused, "message": f"Contato {phone} pausado para {client}"}
 
 @app.post("/admin/resume-contact")
@@ -406,7 +577,7 @@ async def resume_contact(client: str, phone: str):
     if contact_key in paused:
         paused.remove(contact_key)
     settings.paused_contacts = ",".join(paused)
-    save_paused_contacts()
+    await save_paused_contacts()
     return {"paused": paused, "message": f"Contato {phone} retomado para {client}"}
 
 @app.get("/admin/pause-contact")
@@ -423,7 +594,7 @@ async def transfer_to_human(client: str, phone: str, reason: str = ""):
     if contact_key not in paused:
         paused.append(contact_key)
     settings.paused_contacts = ",".join(paused)
-    save_paused_contacts()
+    await save_paused_contacts()
     
     # Enviar mensagem de transferência
     try:
@@ -436,8 +607,6 @@ async def transfer_to_human(client: str, phone: str, reason: str = ""):
         logger.error(f"Erro ao enviar mensagem de transferência: {e}")
     
     return {"paused": paused, "message": f"Contato {phone} transferido para humano"}
-
-
 
 
 @app.post("/admin/send")
@@ -527,6 +696,64 @@ async def dashboard():
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Dashboard não encontrado</h1>", status_code=404)
 
+
+
+@app.get("/organizations")
+async def organizations_page():
+    """Pagina de gestao de organizacoes."""
+    from fastapi.responses import HTMLResponse
+    org_path = os.path.join(os.path.dirname(__file__), "static", "organizations.html")
+    if os.path.exists(org_path):
+        with open(org_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Pagina nao encontrada</h1>", status_code=404)
+
+# ── Login Page ────────────────────────────────────────────────
+@app.get("/login")
+async def login_page():
+    """Página de login."""
+    login_path = os.path.join(os.path.dirname(__file__), "static", "login.html")
+    if os.path.exists(login_path):
+        with open(login_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página de login não encontrada</h1>", status_code=404)
+
+
+@app.get("/setup-master")
+async def setup_master():
+    """Cria usuário master inicial se não existir."""
+    from datetime import datetime, timezone
+    from routes.routes_auth import _hash_password
+
+    _ensure_supabase()
+
+    # Verificar se já existe master
+    rows = await select("bcomm_inbox.users", filters={"role": "master"})
+    if rows:
+        return {"status": "exists", "message": "Usuário master já existe", "email": rows[0].get("email")}
+
+    # Criar master
+    now = datetime.now(timezone.utc).isoformat()
+    master = {
+        "email": "admin@bcomm.com",
+        "name": "Admin Master",
+        "password_hash": _hash_password("Bcomm@2024"),
+        "role": "master",
+        "is_active": True,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    result = await insert("bcomm_inbox.users", master)
+    logger.info("Usuário master criado: admin@bcomm.com")
+
+    return {
+        "status": "created",
+        "email": "admin@bcomm.com",
+        "password": "Bcomm@2024",
+        "message": "Usuário master criado. Altere a senha após o primeiro login."
+    }
+
 if __name__ == "__main__":
     import uvicorn
 
@@ -537,6 +764,22 @@ if __name__ == "__main__":
         reload=settings.debug,
         log_level=settings.log_level.lower(),
     )
+
+# ── CRM Routes ─────────────────────────────────────────────
+from crm_routes import router as crm_router
+app.include_router(crm_router)
+
+
+@app.get("/crm")
+async def crm_page():
+    """Página CRM completa."""
+    from fastapi.responses import HTMLResponse
+    crm_path = os.path.join(os.path.dirname(__file__), "static", "crm.html")
+    if os.path.exists(crm_path):
+        with open(crm_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>CRM não encontrado</h1>", status_code=404)
+
 
 # ── Outreach Routes ─────────────────────────────────────────────
 from outreach import router as outreach_router
@@ -554,6 +797,62 @@ async def outreach_page():
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
 
+
+@app.get("/config")
+async def config_page():
+    """Página de configurações"""
+    from fastapi.responses import HTMLResponse
+    config_path = os.path.join(os.path.dirname(__file__), "static", "config.html")
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Config não encontrado</h1>", status_code=404)
+
+@app.get("/pipelines")
+async def pipelines_page():
+    """Página de pipelines"""
+    from fastapi.responses import HTMLResponse
+    pipelines_path = os.path.join(os.path.dirname(__file__), "static", "pipelines.html")
+    if os.path.exists(pipelines_path):
+        with open(pipelines_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Pipelines não encontrado</h1>", status_code=404)
+
 # ── Sales Routes ─────────────────────────────────────────────
 from sales_routes import router as sales_router
 app.include_router(sales_router)
+
+# ── Novos módulos CRM ─────────────────────────────────────────
+from routes.routes_auth import router as auth_router
+app.include_router(auth_router)
+
+from routes.routes_users import router as users_router
+app.include_router(users_router)
+
+from routes.routes_contacts import router as contacts_router
+app.include_router(contacts_router)
+
+from routes.routes_orgs import router as orgs_router
+app.include_router(orgs_router)
+
+from routes.routes_deals import router as deals_router
+app.include_router(deals_router)
+
+from routes.routes_activities import router as activities_router
+app.include_router(activities_router)
+
+from routes.routes_notes import router as notes_router
+app.include_router(notes_router)
+
+from routes.routes_tags import router as tags_router
+app.include_router(tags_router)
+
+from routes.routes_pipelines import router as pipelines_router
+app.include_router(pipelines_router)
+
+from routes.routes_search import router as search_router
+from routes.routes_whatsapp import router as whatsapp_router
+
+app.include_router(search_router)
+app.include_router(whatsapp_router)
+

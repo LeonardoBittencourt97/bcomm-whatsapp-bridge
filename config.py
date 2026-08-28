@@ -40,6 +40,18 @@ class Settings(BaseSettings):
     # Multi-tenant
     clients_dir: str = Field(default="/opt/data/clients", description="Diretório de clientes")
 
+    # Supabase
+    supabase_url: str = Field(default="http://supabase.agent-bcomm.space", description="URL do Supabase")
+    supabase_service_key: str = Field(default="", description="Service Role Key do Supabase")
+    supabase_anon_key: str = Field(default="", description="Anon Key do Supabase")
+
+    # Auth / JWT
+    jwt_secret: str = Field(default="bcomm-crm-jwt-secret-change-in-production-2024", description="Secret para assinatura JWT")
+    jwt_algorithm: str = Field(default="HS256", description="Algoritmo JWT")
+    jwt_expire_hours: int = Field(default=24, description="Expiração do token JWT em horas")
+    cookie_domain: str = Field(default="", description="Domínio do cookie (vazio = auto)")
+    cookie_secure: bool = Field(default=True, description="Cookie apenas HTTPS")
+
     # Human delay
     human_delay_enabled: bool = Field(default=True, description="Ativar delay humanizado")
     human_delay_min: float = Field(default=4.0, description="Delay mínimo em segundos")

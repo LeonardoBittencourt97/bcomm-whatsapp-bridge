@@ -6,14 +6,21 @@
     <title>BCOMM - Outreach</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root{--bg-primary:#0b0b0c;--bg-surface:#0b0e14;--bg-card:#13161a;--bg-elevated:#1a1d21;--border:#292d30;--text-primary:#ffffff;--text-secondary:#a1a4a5;--text-muted:#6e727a;--accent:#3b9eff;--success:#34c759;--danger:#ff453a;--warning:#ffd60a;--radius:12px}
+        :root{--bg-primary:#0b0b0c;--bg-surface:#0b0e14;--bg-card:#13161a;--bg-elevated:#1a1d21;--border:#292d30;--text-primary:#ffffff;--text-secondary:#a1a4a5;--text-muted:#6e727a;--accent:#3b9eff;--accent-hover:#5aadff;--success:#34c759;--danger:#ff453a;--warning:#ffd60a;--radius:12px}
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
-        .header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:16px 24px}
-        .header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-        .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600}
-        .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
-        .back-btn{color:var(--text-secondary);text-decoration:none;font-size:14px}
+        .header{position:sticky;top:0;z-index:100;background:rgba(11,11,12,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
+        .header-inner{max-width:100%;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+        .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;text-decoration:none;color:inherit}
+        .logo:hover{opacity:.8}
+        .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .nav-tabs{display:flex;gap:4px;background:var(--bg-surface);padding:4px;border-radius:10px}
+        .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-muted);border:none;background:transparent;text-decoration:none;transition:all .15s}
+        .nav-tab:hover{color:var(--text-secondary);background:var(--bg-card)}
+        .nav-tab.active{background:var(--bg-card);color:var(--text-primary)}
+        .status-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;font-size:13px;color:var(--text-secondary)}
+        .status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
         .main{max-width:1400px;margin:0 auto;padding:32px 24px}
         .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
         .page-subtitle{font-size:15px;color:var(--text-muted);margin-bottom:32px}
@@ -28,6 +35,7 @@
         textarea.form-input{min-height:100px;resize:vertical}
         .btn{padding:10px 20px;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
         .btn-primary{background:var(--accent);color:white}
+        .btn-primary:hover{background:var(--accent-hover)}
         .btn-success{background:var(--success);color:white}
         .btn-danger{background:var(--danger);color:white}
         .btn-warning{background:var(--warning);color:#000}
@@ -56,16 +64,67 @@
         .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;display:none;z-index:1000}
         .toast.success{border-color:var(--success)}
         .toast.error{border-color:var(--danger)}
-        @media(max-width:900px){.grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:900px){.grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}.nav-tabs{display:none}}
+    
+        /* ── Sidebar ── */
+        :root{--menu-w:60px;--menu-expanded:220px}
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar:hover{width:var(--menu-expanded)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s}
+        .sidebar:hover .logo-text{opacity:1}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text,#fff);background:var(--card,#13161a)}
+        .nav-item.active{color:var(--accent,#3b9eff);border-left-color:var(--accent,#3b9eff);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;opacity:0;transition:opacity .2s}
+        .sidebar:hover .nav-item .label{opacity:1}
+        .nav-divider{height:1px;background:var(--border,#292d30);margin:8px 16px}
+        .main{margin-left:var(--menu-w);flex:1;display:flex;flex-direction:column;overflow:hidden}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
+
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="header-inner">
-            <div class="logo"><div class="logo-icon">B</div><span>Outreach</span></div>
-            <a href="/dashboard" class="back-btn">← Voltar</a>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/crm" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
         </div>
-    </header>
+        <div class="nav-items">
+            <a href="/crm" class="nav-item " data-page="dashboard">
+                <span class="icon">📊</span><span class="label">Dashboard</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="conversations">
+                <span class="icon">💬</span><span class="label">Conversas</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="contacts">
+                <span class="icon">📇</span><span class="label">Contatos</span>
+            </a>
+            <a href="/organizations" class="nav-item " data-page="organizations">
+                <span class="icon">🏢</span><span class="label">Organizações</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="deals">
+                <span class="icon">💰</span><span class="label">Negócios</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="activities">
+                <span class="icon">📋</span><span class="label">Atividades</span>
+            </a>
+            <a href="/outreach" class="nav-item active" data-page="outreach">
+                <span class="icon">📤</span><span class="label">Outreach</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="/crm" class="nav-item " data-page="settings">
+                <span class="icon">⚙️</span><span class="label">Configurações</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main">
+    
     <main class="main">
         <h1 class="page-title">Cold Outreach</h1>
         <p class="page-subtitle">Inicie e gerencie contatos com leads</p>
@@ -78,24 +137,27 @@
         </div>
         <div class="grid">
             <div class="card">
-                <div class="card-title">🚀 Novo Contato</div>
-                <div class="form-group"><label class="form-label">📱 Número *</label><input type="text" class="form-input" id="phone" placeholder="5541997054071"></div>
-                <div class="form-group"><label class="form-label">👤 Nome</label><input type="text" class="form-input" id="name" placeholder="João da Silva"></div>
-                <div class="form-group"><label class="form-label">🏢 Empresa</label><input type="text" class="form-input" id="company" placeholder="Empresa XYZ"></div>
-                <div class="form-group"><label class="form-label">📝 Instruções *</label><textarea class="form-input" id="instructions" placeholder="Descreva o perfil do lead, problema, solução, abordagem..."></textarea></div>
-                <div class="form-group"><label class="form-label">💬 Mensagem Inicial *</label><textarea class="form-input" id="initial-message" placeholder="Olá! Sou da BCOMM..."></textarea></div>
-                <button class="btn btn-primary" onclick="startOutreach()" style="width:100%">🚀 Iniciar Contato</button>
+                <div class="card-title">📝 Novo Contato</div>
+                <div class="form-group"><label class="form-label">Telefone *</label><input type="text" class="form-input" id="phone" placeholder="554199999999"></div>
+                <div class="form-group"><label class="form-label">Nome</label><input type="text" class="form-input" id="name" placeholder="João Silva"></div>
+                <div class="form-group"><label class="form-label">Empresa</label><input type="text" class="form-input" id="company" placeholder="Empresa ABC"></div>
+                <div class="form-group"><label class="form-label">Instruções *</label><textarea class="form-input" id="instructions" placeholder="Agendar reunião, enviar proposta..."></textarea></div>
+                <div class="form-group"><label class="form-label">Mensagem Inicial *</label><textarea class="form-input" id="initial-message" placeholder="Oi! Sou a Ana, da BCOMM..."></textarea></div>
+                <button class="btn btn-primary" onclick="startOutreach()">🚀 Iniciar Contato</button>
             </div>
             <div class="card">
-                <div class="card-title">📋 Contatos</div>
-                <div id="task-list" class="task-list"><div class="empty-state">Nenhum contato</div></div>
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                    <div class="card-title" style="margin-bottom:0">📋 Contatos</div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadTasks();loadStats()">🔄 Atualizar</button>
+                </div>
+                <div id="task-list" class="task-list"><div class="empty-state">Carregando...</div></div>
             </div>
         </div>
     </main>
+    </div>
+</div>
     <div id="toast" class="toast"></div>
     <script>
-        var API = '';
-
         function showToast(msg, type) {
             var t = document.getElementById('toast');
             t.textContent = msg;
@@ -103,128 +165,47 @@
             t.style.display = 'block';
             setTimeout(function() { t.style.display = 'none'; }, 3000);
         }
-
         function api(url, method, body) {
             var opts = { method: method || 'GET', headers: {'Content-Type': 'application/json'} };
             if (body) opts.body = JSON.stringify(body);
-            return fetch(API + url, opts).then(function(r) { return r.json(); });
+            return fetch(url, opts).then(function(r) { return r.json(); });
         }
-
         function startOutreach() {
             var phone = document.getElementById('phone').value;
             var name = document.getElementById('name').value;
             var company = document.getElementById('company').value;
             var instructions = document.getElementById('instructions').value;
             var message = document.getElementById('initial-message').value;
-
-            if (!phone || !instructions || !message) {
-                showToast('Preencha número, instruções e mensagem', 'error');
-                return;
-            }
-
-            var data = {
-                phone: phone,
-                name: name,
-                company: company,
-                instructions: instructions,
-                initial_message: message,
-                client_id: 'BCOMM'
-            };
-
-            api('/outreach/start', 'POST', data).then(function(r) {
-                if (r.status === 'active' || r.status === 'sending') {
-                    showToast('Mensagem enviada com sucesso!');
-                } else if (r.status === 'failed') {
-                    showToast('Falha ao enviar: ' + (r.message || 'Erro desconhecido'), 'error');
-                } else {
-                    showToast('Contato iniciado!');
-                }
-                loadStats();
-                loadTasks();
-                document.getElementById('phone').value = '';
-                document.getElementById('name').value = '';
-                document.getElementById('company').value = '';
-                document.getElementById('instructions').value = '';
-                document.getElementById('initial-message').value = '';
-            }).catch(function(e) {
-                showToast('Erro de conexão', 'error');
-            });
+            if (!phone || !instructions || !message) { showToast('Preencha número, instruções e mensagem', 'error'); return; }
+            api('/outreach/start', 'POST', { phone: phone, name: name, company: company, instructions: instructions, initial_message: message, client_id: 'BCOMM' }).then(function(r) {
+                if (r.status === 'active' || r.status === 'sending') { showToast('Mensagem enviada com sucesso!'); }
+                else if (r.status === 'failed') { showToast('Falha ao enviar: ' + (r.message || 'Erro'), 'error'); }
+                else { showToast('Contato iniciado!'); }
+                loadStats(); loadTasks();
+                document.getElementById('phone').value = ''; document.getElementById('name').value = ''; document.getElementById('company').value = '';
+                document.getElementById('instructions').value = ''; document.getElementById('initial-message').value = '';
+            }).catch(function(e) { showToast('Erro de conexão', 'error'); });
         }
-
-        function stopTask(id) {
-            var reason = prompt('Motivo para parar (opcional):');
-            if (reason === null) return;
-            api('/outreach/' + id + '/stop?reason=' + encodeURIComponent(reason), 'POST').then(function() {
-                showToast('Contato parado');
-                loadStats();
-                loadTasks();
-            });
-        }
-
-        function pauseTask(id) {
-            api('/outreach/' + id + '/pause', 'POST').then(function() {
-                showToast('Contato pausado');
-                loadStats();
-                loadTasks();
-            });
-        }
-
-        function resumeTask(id) {
-            api('/outreach/' + id + '/resume', 'POST').then(function() {
-                showToast('Contato retomado');
-                loadStats();
-                loadTasks();
-            });
-        }
-
-        function sendCommand(id) {
-            var input = document.getElementById('cmd-' + id);
-            if (!input || !input.value) return;
-            api('/outreach/' + id + '/command?command=' + encodeURIComponent(input.value), 'POST').then(function() {
-                showToast('Comando enviado');
-                input.value = '';
-            });
-        }
-
-        function loadStats() {
-            api('/outreach/stats/summary').then(function(s) {
-                document.getElementById('stat-total').textContent = s.total || 0;
-                document.getElementById('stat-active').textContent = s.active || 0;
-                document.getElementById('stat-paused').textContent = s.paused || 0;
-                document.getElementById('stat-failed').textContent = s.failed || 0;
-                document.getElementById('stat-cancelled').textContent = (s.cancelled || 0);
-            });
-        }
-
+        function stopTask(id) { var reason = prompt('Motivo para parar (opcional):'); if (reason === null) return; api('/outreach/' + id + '/stop?reason=' + encodeURIComponent(reason), 'POST').then(function() { showToast('Contato parado'); loadStats(); loadTasks(); }); }
+        function pauseTask(id) { api('/outreach/' + id + '/pause', 'POST').then(function() { showToast('Contato pausado'); loadStats(); loadTasks(); }); }
+        function resumeTask(id) { api('/outreach/' + id + '/resume', 'POST').then(function() { showToast('Contato retomado'); loadStats(); loadTasks(); }); }
+        function sendCommand(id) { var input = document.getElementById('cmd-' + id); if (!input || !input.value) return; api('/outreach/' + id + '/command?command=' + encodeURIComponent(input.value), 'POST').then(function() { showToast('Comando enviado'); input.value = ''; }); }
+        function loadStats() { api('/outreach/stats/summary').then(function(s) { document.getElementById('stat-total').textContent = s.total || 0; document.getElementById('stat-active').textContent = s.active || 0; document.getElementById('stat-paused').textContent = s.paused || 0; document.getElementById('stat-failed').textContent = s.failed || 0; document.getElementById('stat-cancelled').textContent = (s.cancelled || 0); }); }
         function loadTasks() {
             api('/outreach/list').then(function(d) {
                 var el = document.getElementById('task-list');
-                if (!d.tasks || !d.tasks.length) {
-                    el.innerHTML = '<div class="empty-state">Nenhum contato iniciado</div>';
-                    return;
-                }
+                if (!d.tasks || !d.tasks.length) { el.innerHTML = '<div class="empty-state">Nenhum contato iniciado</div>'; return; }
                 el.innerHTML = d.tasks.map(function(t) {
                     var actions = '';
-                    if (t.status === 'active') {
-                        actions = '<button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button>' +
-                                  '<button class="btn btn-warning btn-sm" onclick="pauseTask(\'' + t.id + '\')">⏸ Pausar</button>';
-                    } else if (t.status === 'paused') {
-                        actions = '<button class="btn btn-success btn-sm" onclick="resumeTask(\'' + t.id + '\')">▶ Retomar</button>' +
-                                  '<button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button>';
-                    }
-                    return '<div class="task-item">' +
-                        '<div class="task-header"><div><div class="task-name">' + (t.contact_name || 'Sem nome') + '</div><div class="task-phone">' + t.contact_phone + '</div></div><span class="status-badge status-' + t.status + '">' + t.status + '</span></div>' +
-                        '<div class="task-instructions">' + (t.instructions || '').substring(0, 100) + '...</div>' +
-                        '<div class="task-actions">' + actions + '</div>' +
-                        '<div class="command-input"><input type="text" class="form-input" id="cmd-' + t.id + '" placeholder="Comando para o agente..."><button class="btn btn-primary btn-sm" onclick="sendCommand(\'' + t.id + '\')">Enviar</button></div>' +
-                    '</div>';
+                    if (t.status === 'active') { actions = '<button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button><button class="btn btn-warning btn-sm" onclick="pauseTask(\'' + t.id + '\')">⏸ Pausar</button>'; }
+                    else if (t.status === 'paused') { actions = '<button class="btn btn-success btn-sm" onclick="resumeTask(\'' + t.id + '\')">▶ Retomar</button><button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button>'; }
+                    return '<div class="task-item"><div class="task-header"><div><div class="task-name">' + (t.contact_name || 'Sem nome') + '</div><div class="task-phone">' + t.contact_phone + '</div></div><span class="status-badge status-' + t.status + '">' + t.status + '</span></div><div class="task-instructions">' + (t.instructions || '').substring(0, 100) + '...</div><div class="task-actions">' + actions + '</div><div class="command-input"><input type="text" class="form-input" id="cmd-' + t.id + '" placeholder="Comando para o agente..."><button class="btn btn-primary btn-sm" onclick="sendCommand(\'' + t.id + '\')">Enviar</button></div></div>';
                 }).join('');
             });
         }
-
-        loadStats();
-        loadTasks();
-        setInterval(loadStats, 30000);
+        loadStats(); loadTasks(); setInterval(loadStats, 30000);
     </script>
+    </div>
+</div>
 </body>
 </html>

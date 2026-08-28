@@ -3,895 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BCOMM Dashboard</title>
+    <title>BCOMM - Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-primary: #0b0b0c;
-            --bg-surface: #0b0e14;
-            --bg-card: #13161a;
-            --bg-elevated: #1a1d21;
-            --border: #292d30;
-            --border-hover: #464a4d;
-            --text-primary: #ffffff;
-            --text-secondary: #a1a4a5;
-            --text-muted: #6e727a;
-            --accent: #3b9eff;
-            --accent-hover: #5aadff;
-            --success: #34c759;
-            --danger: #ff453a;
-            --warning: #ffd60a;
-            --radius: 12px;
-            --radius-lg: 16px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
-        .header { position: sticky; top: 0; z-index: 100; background: rgba(11,11,12,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 0 24px; }
-        .header-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
-        .logo { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; }
-        .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-        .nav-tabs { display: flex; gap: 4px; background: var(--bg-surface); padding: 4px; border-radius: 10px; }
-        .nav-tab { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted); border: none; background: transparent; }
-        .nav-tab:hover { color: var(--text-secondary); }
-        .nav-tab.active { background: var(--bg-card); color: var(--text-primary); }
-        .status-badge { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; color: var(--text-secondary); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
-        .status-dot.offline { background: var(--danger); animation: none; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        .main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
-        .page-title { font-size: 28px; font-weight: 600; margin-bottom: 8px; }
-        .page-subtitle { font-size: 15px; color: var(--text-muted); margin-bottom: 32px; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; }
-        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .card-title { font-size: 15px; font-weight: 600; }
-        .card-icon { width: 36px; height: 36px; background: var(--bg-elevated); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-        .stat { text-align: center; padding: 16px; background: var(--bg-surface); border-radius: var(--radius); }
-        .stat-value { font-size: 28px; font-weight: 700; color: var(--accent); }
-        .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; }
-        .paused-list { display: flex; flex-direction: column; gap: 8px; }
-        .paused-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-surface); border-radius: var(--radius); }
-        .paused-info { display: flex; align-items: center; gap: 12px; }
-        .paused-avatar { width: 36px; height: 36px; background: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
-        .paused-name { font-size: 14px; font-weight: 500; }
-        .paused-detail { font-size: 12px; color: var(--text-muted); }
-        .empty-state { text-align: center; padding: 32px; color: var(--text-muted); font-size: 14px; }
-        .input-group { margin-bottom: 16px; }
-        .input-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; }
-        .input { width: 100%; padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 14px; font-family: inherit; }
-        .input:focus { outline: none; border-color: var(--accent); }
-        .input::placeholder { color: var(--text-muted); }
-        textarea.input { min-height: 100px; resize: vertical; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn { padding: 10px 20px; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); }
-        .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-warning { background: var(--warning); color: #000; }
-        .btn-sm { padding: 6px 12px; font-size: 12px; }
-        .toggle { position: relative; width: 48px; height: 26px; background: var(--bg-surface); border-radius: 13px; cursor: pointer; border: 1px solid var(--border); }
-        .toggle.active { background: var(--accent); border-color: var(--accent); }
-        .toggle::after { content: ''; position: absolute; width: 20px; height: 20px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: all 0.2s; }
-        .toggle.active::after { left: 24px; }
-        .config-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .config-row:last-child { border-bottom: none; }
-        .config-label { font-size: 14px; color: var(--text-secondary); }
-        .config-input { width: 80px; padding: 8px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 14px; text-align: center; }
-        .log-container { background: var(--bg-surface); border-radius: var(--radius); padding: 16px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; color: var(--text-muted); }
-        .log-entry { margin-bottom: 4px; }
-        .log-entry.info { color: var(--accent); }
-        .log-entry.error { color: var(--danger); }
-        .log-entry.success { color: var(--success); }
-        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 14px; display: none; z-index: 1000; }
-        .toast.success { border-color: var(--success); }
-        .toast.error { border-color: var(--danger); }
-        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, 1fr); } }
+        :root{--bg-primary:#0b0b0c;--bg-surface:#0b0e14;--bg-card:#13161a;--bg-elevated:#1a1d21;--border:#292d30;--text-primary:#fff;--text-secondary:#a1a4a5;--text-muted:#6e727a;--accent:#3b9eff;--accent-hover:#5aadff;--success:#34c759;--danger:#ff453a;--warning:#ffd60a;--radius:12px;--radius-lg:16px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
+        .header{position:sticky;top:0;z-index:100;background:rgba(11,11,12,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
+        .header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+        .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;text-decoration:none;color:inherit}
+        .logo:hover{opacity:.8}
+        .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+        .nav-tabs{display:flex;gap:4px;background:var(--bg-surface);padding:4px;border-radius:10px}
+        .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-muted);border:none;background:transparent;text-decoration:none;transition:all .15s}
+        .nav-tab:hover{color:var(--text-secondary);background:var(--bg-card)}
+        .nav-tab.active{background:var(--bg-card);color:var(--text-primary)}
+        .status-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;font-size:13px;color:var(--text-secondary)}
+        .status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+        .status-dot.offline{background:var(--danger);animation:none}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        .main{max-width:1400px;margin:0 auto;padding:32px 24px}
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--text-muted);margin-bottom:32px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
+        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px}
+        .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+        .card-title{font-size:15px;font-weight:600}
+        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .stat{text-align:center;padding:16px;background:var(--bg-surface);border-radius:var(--radius)}
+        .stat-value{font-size:28px;font-weight:700;color:var(--accent)}
+        .stat-label{font-size:12px;color:var(--text-muted);margin-top:4px;text-transform:uppercase}
+        .paused-list{display:flex;flex-direction:column;gap:8px}
+        .paused-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-surface);border-radius:var(--radius)}
+        .paused-info{display:flex;align-items:center;gap:12px}
+        .paused-avatar{width:36px;height:36px;background:var(--danger);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
+        .paused-name{font-size:14px;font-weight:500}
+        .empty-state{text-align:center;padding:32px;color:var(--text-muted);font-size:14px}
+        .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;display:none;z-index:1000}
+        .toast.success{border-color:var(--success)}
+        .toast.error{border-color:var(--danger)}
+        @media(max-width:768px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.nav-tabs{display:none}}
+    
+        /* ── Sidebar ── */
+        :root{--menu-w:60px;--menu-expanded:220px}
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar:hover{width:var(--menu-expanded)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s}
+        .sidebar:hover .logo-text{opacity:1}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text,#fff);background:var(--card,#13161a)}
+        .nav-item.active{color:var(--accent,#3b9eff);border-left-color:var(--accent,#3b9eff);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;opacity:0;transition:opacity .2s}
+        .sidebar:hover .nav-item .label{opacity:1}
+        .nav-divider{height:1px;background:var(--border,#292d30);margin:8px 16px}
+        .main{margin-left:var(--menu-w);flex:1;display:flex;flex-direction:column;overflow:hidden}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
+
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="header-inner">
-            <div class="logo">
-                <div class="logo-icon">B</div>
-                <span>BCOMM Dashboard</span>
-            </div>
-            <div class="nav-tabs">
-                <button class="nav-tab active" onclick="switchTab('overview', this)">Visão Geral</button>
-                <button class="nav-tab" onclick="switchTab('clients', this)">Clientes</button>
-                <button class="nav-tab" onclick="switchTab('sessions', this)">Sessões</button>
-                <button class="nav-tab" onclick="switchTab('config', this)">Configurações</button>
-                <button class="nav-tab" onclick="switchTab('logs', this)">Logs</button>
-                <button class="nav-tab" onclick="switchTab('outreach', this)">Outreach</button>
-                <button class="nav-tab" onclick="switchTab('vendas', this)">Vendas</button>
-                <button class="nav-tab" onclick="switchTab('crm', this)">CRM</button>
-            </div>
-            <div class="status-badge">
-                <div id="status-dot" class="status-dot"></div>
-                <span id="status-text">Verificando...</span>
-            </div>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/crm" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
         </div>
-    </header>
+        <div class="nav-items">
+            <a href="/crm" class="nav-item active" data-page="dashboard">
+                <span class="icon">📊</span><span class="label">Dashboard</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="conversations">
+                <span class="icon">💬</span><span class="label">Conversas</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="contacts">
+                <span class="icon">📇</span><span class="label">Contatos</span>
+            </a>
+            <a href="/organizations" class="nav-item " data-page="organizations">
+                <span class="icon">🏢</span><span class="label">Organizações</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="deals">
+                <span class="icon">💰</span><span class="label">Negócios</span>
+            </a>
+            <a href="/crm" class="nav-item " data-page="activities">
+                <span class="icon">📋</span><span class="label">Atividades</span>
+            </a>
+            <a href="/outreach" class="nav-item " data-page="outreach">
+                <span class="icon">📤</span><span class="label">Outreach</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="/crm" class="nav-item " data-page="settings">
+                <span class="icon">⚙️</span><span class="label">Configurações</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main">
+    
 
     <main class="main">
-        <!-- Tab: Visão Geral -->
-        <div id="tab-overview" class="tab-content active">
-            <h1 class="page-title">Visão Geral</h1>
-            <p class="page-subtitle">Monitoramento em tempo real</p>
-            <div class="card" style="margin-bottom: 20px;">
-                <div class="stats">
-                    <div class="stat"><div class="stat-value" id="stat-uptime">-</div><div class="stat-label">Uptime</div></div>
-                    <div class="stat"><div class="stat-value" id="stat-clients">-</div><div class="stat-label">Clientes</div></div>
-                    <div class="stat"><div class="stat-value" id="stat-paused">-</div><div class="stat-label">Pausados</div></div>
-                    <div class="stat"><div class="stat-value" id="stat-contacts">-</div><div class="stat-label">Contatos P.</div></div>
-                </div>
-            </div>
-            <div class="grid">
-                <div class="card"><div class="card-header"><span class="card-title">⏸️ Clientes Pausados</span></div><div id="paused-clients" class="paused-list"><div class="empty-state">Nenhum</div></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">📱 Contatos Pausados</span></div><div id="paused-contacts" class="paused-list"><div class="empty-state">Nenhum</div></div></div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Visão geral do sistema em tempo real</p>
+
+        <div class="card" style="margin-bottom:24px">
+            <div class="stats">
+                <div class="stat"><div class="stat-value" id="stat-uptime">-</div><div class="stat-label">Uptime</div></div>
+                <div class="stat"><div class="stat-value" id="stat-conversations">-</div><div class="stat-label">Conversas</div></div>
+                <div class="stat"><div class="stat-value" id="stat-deals">-</div><div class="stat-label">Deals</div></div>
+                <div class="stat"><div class="stat-value" id="stat-outreach">-</div><div class="stat-label">Outreach</div></div>
             </div>
         </div>
 
-        <!-- Tab: Clientes -->
-        <div id="tab-clients" class="tab-content">
-            <h1 class="page-title">Gerenciar Clientes</h1>
-            <p class="page-subtitle">Pausa, transferência e envio</p>
-            <div class="grid">
-                <div class="card"><div class="card-header"><span class="card-title">⏸️ Pausar/Retomar Cliente</span></div><div class="input-group"><label class="input-label">Cliente</label><input type="text" class="input" id="client-name" value="BCOMM"></div><div class="btn-group"><button class="btn btn-danger" onclick="pauseClient()">Pausar</button><button class="btn btn-success" onclick="resumeClient()">Retomar</button></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">📱 Pausar/Retomar Contato</span></div><div class="input-group"><label class="input-label">Número</label><input type="text" class="input" id="contact-phone" placeholder="554197054071"></div><div class="btn-group"><button class="btn btn-danger" onclick="pauseContact()">Pausar</button><button class="btn btn-success" onclick="resumeContact()">Retomar</button></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">👤 Transferir p/ Humano</span></div><div class="input-group"><label class="input-label">Número</label><input type="text" class="input" id="transfer-phone" placeholder="554197054071"></div><div class="input-group"><label class="input-label">Motivo</label><input type="text" class="input" id="transfer-reason" placeholder="Opcional"></div><div class="btn-group"><button class="btn btn-warning" onclick="transferToHuman()">Transferir</button></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">📤 Enviar Mensagem</span></div><div class="input-group"><label class="input-label">Número</label><input type="text" class="input" id="send-phone" placeholder="554197054071"></div><div class="input-group"><label class="input-label">Mensagem</label><textarea class="input" id="send-message" placeholder="Digite..."></textarea></div><div class="btn-group"><button class="btn btn-primary" onclick="sendMessage()">Enviar</button></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">🧹 Sessões</span></div><p style="color:var(--text-muted);font-size:14px;margin-bottom:16px">Limpa todas as sessões de conversa.</p><div class="btn-group"><button class="btn btn-danger" onclick="clearSessions()">Limpar Sessões</button><button class="btn btn-secondary" onclick="reloadConfigs()">Recarregar Configs</button></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">🧪 Modo Teste</span></div><div class="input-group"><label class="input-label">Números Permitidos</label><input type="text" class="input" id="test-numbers" placeholder="Separados por vírgula"></div><div class="btn-group"><button class="btn btn-primary" onclick="enableTestMode()">Ativar</button><button class="btn btn-secondary" onclick="disableTestMode()">Desativar</button></div></div>
-            </div>
-        </div>
-
-        <!-- Tab: Sessões -->
-        <div id="tab-sessions" class="tab-content">
-            <h1 class="page-title">Sessões Ativas</h1>
-            <p class="page-subtitle">Conversas em andamento</p>
-            <div class="card"><div class="card-header"><span class="card-title">💬 Sessões</span><button class="btn btn-secondary btn-sm" onclick="refreshSessions()">Atualizar</button></div><div id="sessions-list" class="paused-list"><div class="empty-state">Carregando...</div></div></div>
-        </div>
-
-        <!-- Tab: Configurações -->
-        <div id="tab-config" class="tab-content">
-            <h1 class="page-title">Configurações</h1>
-            <p class="page-subtitle">Ajuste o comportamento</p>
-            <div class="grid">
-                <div class="card"><div class="card-header"><span class="card-title">⏱️ Rate Limiting</span></div><div class="config-row"><span class="config-label">Limite/min</span><input type="number" class="config-input" id="config-rate" value="20"></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">⌨️ Digitação</span></div><div class="config-row"><span class="config-label">Ativar</span><div id="toggle-delay" class="toggle active" onclick="toggleDelay()"></div></div><div class="config-row"><span class="config-label">Min (s)</span><input type="number" class="config-input" id="config-delay-min" value="4" step="0.5"></div><div class="config-row"><span class="config-label">Max (s)</span><input type="number" class="config-input" id="config-delay-max" value="15" step="0.5"></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">📦 Lote</span></div><div class="config-row"><span class="config-label">Espera (s)</span><input type="number" class="config-input" id="config-batch" value="10"></div><div class="config-row"><span class="config-label">Máx (s)</span><input type="number" class="config-input" id="config-batch-max" value="150"></div></div>
-                <div class="card"><div class="card-header"><span class="card-title">📝 Log</span></div><div class="config-row"><span class="config-label">Nível</span><select class="config-input" id="config-log" style="width:120px"><option value="DEBUG">DEBUG</option><option value="INFO" selected>INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option></select></div></div>
-            </div>
-            <div style="margin-top:20px"><button class="btn btn-primary" onclick="saveConfig()">Salvar</button></div>
-        </div>
-
-        <!-- Tab: Logs -->
-        
-        <div id="tab-crm" class="tab-content">
-            <div class="page-title">CRM - Atendimento</div>
-            <div class="page-subtitle">Gerencie conversas com seus clientes</div>
-            
-            <!-- Stats -->
-            <div class="stats" style="margin-bottom: 24px;">
-                <div class="stat">
-                    <div class="stat-value" id="crm-total">0</div>
-                    <div class="stat-label">Total</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="crm-open">0</div>
-                    <div class="stat-label">Abertas</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="crm-paused">0</div>
-                    <div class="stat-label">Pausadas</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="crm-messages">0</div>
-                    <div class="stat-label">Mensagens Hoje</div>
-                </div>
-            </div>
-            
-            <!-- Link para CRM completo -->
+        <div class="grid">
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title">💬 Abrir CRM Completo</div>
-                </div>
-                <div style="text-align: center; padding: 20px;">
-                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                        Para gerenciar conversas com interface completa tipo Chatwoot, abra o CRM em uma nova aba.
-                    </p>
-                    <a href="/crm" target="_blank" class="btn btn-primary">
-                        🚀 Abrir CRM
-                    </a>
-                </div>
+                <div class="card-header"><span class="card-title">⏸️ Clientes Pausados</span></div>
+                <div id="paused-clients" class="paused-list"><div class="empty-state">Nenhum</div></div>
             </div>
-            
-            <!-- Últimas Conversas -->
-            <div class="card" style="margin-top: 24px;">
-                <div class="card-header">
-                    <div class="card-title">📋 Últimas Conversas</div>
-                    <button class="btn btn-secondary btn-sm" onclick="loadCrmRecent()">🔄 Atualizar</button>
-                </div>
-                <div id="crm-recent-list">
-                    <div class="empty-state">Carregando...</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-logs" class="tab-content">
-            <h1 class="page-title">Logs</h1>
-            <p class="page-subtitle">Últimas entradas</p>
-            <div class="card"><div class="card-header"><span class="card-title">📋 Logs</span><button class="btn btn-secondary btn-sm" onclick="refreshLogs()">Atualizar</button></div><div id="log-container" class="log-container"><div class="empty-state">Carregando...</div></div></div>
-        </div>
-    
-        
-        <div id="tab-outreach" class="tab-content">
-            <div class="page-title">Outreach</div>
-            <div class="page-subtitle">Gerencie conversas frias e prospecção</div>
-            
-            <!-- Stats -->
-            <div class="stats" style="margin-bottom: 24px;">
-                <div class="stat">
-                    <div class="stat-value" id="outreach-active">0</div>
-                    <div class="stat-label">Ativos</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="outreach-paused">0</div>
-                    <div class="stat-label">Pausados</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="outreach-completed">0</div>
-                    <div class="stat-label">Concluídos</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="outreach-failed">0</div>
-                    <div class="stat-label">Falhas</div>
-                </div>
-            </div>
-            
-            <!-- Formulário Nova Conversa -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="card-header">
-                    <div class="card-title">➕ Nova Conversa</div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="form-group">
-                        <label class="form-label">Telefone</label>
-                        <input type="text" class="form-input" id="outreach-phone" placeholder="(41) 99999-9999">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Nome do Contato</label>
-                        <input type="text" class="form-input" id="outreach-name" placeholder="Nome do lead">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Instruções (opcional)</label>
-                    <textarea class="form-input" id="outreach-instructions" placeholder="Ex: tentar vender site para clínica de estética"></textarea>
-                </div>
-                <button class="btn btn-primary" onclick="startOutreach()">🚀 Iniciar Conversa</button>
-            </div>
-            
-            <!-- Lista de Conversas -->
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title">📋 Conversas</div>
-                    <button class="btn btn-secondary btn-sm" onclick="loadOutreachTasks()">🔄 Atualizar</button>
-                </div>
-                <div id="outreach-list">
-                    <div class="empty-state">Carregando conversas...</div>
-                </div>
+                <div class="card-header"><span class="card-title">📱 Contatos Pausados</span></div>
+                <div id="paused-contacts" class="paused-list"><div class="empty-state">Nenhum</div></div>
             </div>
-        </div>
-
-        <div id="tab-vendas" class="tab-content">
-            <div class="page-title">Inbox de Vendas</div>
-            <div class="page-subtitle">Gerencie leads e aprovações do agente de vendas</div>
-            
-            <!-- Stats -->
-            <div class="stats" style="margin-bottom: 24px;">
-                <div class="stat">
-                    <div class="stat-value" id="sales-pending">0</div>
-                    <div class="stat-label">Pendentes</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="sales-approved">0</div>
-                    <div class="stat-label">Aprovados</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="sales-sent">0</div>
-                    <div class="stat-label">Enviados</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="sales-rejected">0</div>
-                    <div class="stat-label">Rejeitados</div>
-                </div>
-            </div>
-            
-            <!-- Agent Status -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="card-header">
-                    <div class="card-title">Status do Agente</div>
-                    <div class="btn-group">
-                        <button class="btn btn-success btn-sm" id="btn-resume" onclick="resumeAgent()" style="display:none;">▶ Retomar</button>
-                        <button class="btn btn-warning btn-sm" id="btn-pause" onclick="pauseAgent()">⏸ Pausar</button>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="status-dot" id="agent-status-dot"></div>
-                    <span id="agent-status-text" style="color: var(--text-secondary);">Ativo</span>
-                </div>
-            </div>
-            
-            <!-- Filters -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="card-header">
-                    <div class="card-title">Filtros</div>
-                </div>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <select class="input" style="width: auto;" id="filter-status" onchange="loadLeads()">
-                        <option value="">Todos os Status</option>
-                        <option value="pending">Pendentes</option>
-                        <option value="approved">Aprovados</option>
-                        <option value="sent">Enviados</option>
-                        <option value="rejected">Rejeitados</option>
-                    </select>
-                    <select class="input" style="width: auto;" id="filter-segment" onchange="loadLeads()">
-                        <option value="">Todos os Segmentos</option>
-                        <option value="estetica">Estética</option>
-                        <option value="barbearia">Barbearia</option>
-                        <option value="generico">Genérico</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Leads List -->
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Leads</div>
-                    <button class="btn btn-secondary btn-sm" onclick="loadLeads()">🔄 Atualizar</button>
-                </div>
-                <div id="leads-list">
-                    <div class="empty-state">Carregando leads...</div>
-                </div>
+                <div class="card-header"><span class="card-title">📊 Pipeline</span></div>
+                <div id="pipeline-stats" class="paused-list"><div class="empty-state">Carregando...</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">🔗 Sessões Ativas</span></div>
+                <div id="sessions-list" class="paused-list"><div class="empty-state">Carregando...</div></div>
             </div>
         </div>
-
     </main>
+    </div>
+</div>
 
     <div id="toast" class="toast"></div>
 
     <script>
-        function showToast(msg, type) {
-            var t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className = 'toast ' + (type || 'success');
-            t.style.display = 'block';
-            setTimeout(function() { t.style.display = 'none'; }, 3000);
-        }
+        function showToast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'success');e.style.display='block';setTimeout(()=>{e.style.display='none'},3000)}
+        async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);try{const r=await fetch(u,o);return await r.json()}catch(e){console.error(e);return null}}
 
-        function switchTab(tab, el) {
-            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
-            if (tab === 'vendas') { initSalesTab(); }
-            if (tab === 'outreach') { initOutreachTab(); }
-            if (tab === 'crm') { initCrmTab(); }
-            document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
-            document.getElementById('tab-' + tab).classList.add('active');
-            el.classList.add('active');
-            if (tab === 'sessions') refreshSessions();
-            if (tab === 'logs') refreshLogs();
-        }
+        async function updateStatus(){
+            const h=await api('/health');
+            document.getElementById('status-dot').className=h?'status-dot':'status-dot offline';
+            document.getElementById('status-text').textContent=h?'Online':'Offline';
+            if(h){document.getElementById('stat-uptime').textContent=Math.floor(h.uptime_seconds/60)+'min'}
 
-        function api(url, method) {
-            return fetch(url, { method: method || 'GET' }).then(function(r) { return r.json(); });
-        }
+            const m=await api('/admin/metrics');
+            if(m){
+                document.getElementById('stat-conversations').textContent=m.paused_contacts||0;
+            }
 
-        function updateStatus() {
-            api('/health').then(function(h) {
-                document.getElementById('status-dot').className = h ? 'status-dot' : 'status-dot offline';
-                document.getElementById('status-text').textContent = h ? 'Online' : 'Offline';
-            }).catch(function() {
-                document.getElementById('status-dot').className = 'status-dot offline';
-                document.getElementById('status-text').textContent = 'Offline';
-            });
+            const pc=await api('/admin/pause');
+            const el=document.getElementById('paused-clients');
+            if(pc&&pc.paused.length){
+                el.innerHTML=pc.paused.map(c=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar">'+c[0]+'</div><div><div class="paused-name">'+c+'</div></div></div></div>').join('');
+            }else{el.innerHTML='<div class="empty-state">Nenhum</div>'}
 
-            api('/admin/metrics').then(function(m) {
-                if (m) {
-                    document.getElementById('stat-uptime').textContent = m.uptime_human;
-                    document.getElementById('stat-paused').textContent = m.paused_clients;
-                    document.getElementById('stat-contacts').textContent = m.paused_contacts;
-                }
-            });
+            const pt=await api('/admin/pause-contact');
+            const el2=document.getElementById('paused-contacts');
+            if(pt&&pt.paused.length){
+                el2.innerHTML=pt.paused.map(c=>{const p=c.split(':');return'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--warning);color:#000">'+(p[1]||'?')[0]+'</div><div><div class="paused-name">'+(p[1]||c)+'</div></div></div></div>'}).join('');
+            }else{el2.innerHTML='<div class="empty-state">Nenhum</div>'}
 
-            api('/admin/pause').then(function(d) {
-                var el = document.getElementById('paused-clients');
-                if (!d.paused.length) { el.innerHTML = '<div class="empty-state">Nenhum</div>'; return; }
-                el.innerHTML = d.paused.map(function(c) {
-                    return '<div class="paused-item"><div class="paused-info"><div class="paused-avatar">' + c[0] + '</div><div><div class="paused-name">' + c + '</div></div></div><button class="btn btn-success btn-sm" onclick="doResumeClient(\'' + c + '\')">Retomar</button></div>';
-                }).join('');
-            });
+            const ps=await api('/crm/pipelines/stats');
+            const psEl=document.getElementById('pipeline-stats');
+            if(ps){
+                const total=ps.total_deals||0;
+                const value=ps.total_value||0;
+                psEl.innerHTML='<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+total+'</div><div><div class="paused-name">Deals</div><div class="paused-detail">R$ '+value.toLocaleString('pt-BR')+'</div></div></div></div>';
+            }
 
-            api('/admin/pause-contact').then(function(d) {
-                var el = document.getElementById('paused-contacts');
-                if (!d.paused.length) { el.innerHTML = '<div class="empty-state">Nenhum</div>'; return; }
-                el.innerHTML = d.paused.map(function(c) {
-                    var parts = c.split(':');
-                    return '<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--warning);color:#000">' + parts[1][0] + '</div><div><div class="paused-name">' + parts[1] + '</div><div class="paused-detail">' + parts[0] + '</div></div></div><button class="btn btn-success btn-sm" onclick="doResumeContact(\'' + parts[0] + '\',\'' + parts[1] + '\')">Retomar</button></div>';
-                }).join('');
-            });
-        }
-
-        function loadConfig() {
-            api('/admin/config').then(function(c) {
-                if (!c) return;
-                document.getElementById('config-rate').value = c.rate_limit_per_minute;
-                document.getElementById('config-delay-min').value = c.human_delay_min;
-                document.getElementById('config-delay-max').value = c.human_delay_max;
-                document.getElementById('config-batch').value = c.batch_wait_seconds;
-                document.getElementById('config-batch-max').value = c.batch_max_wait;
-                document.getElementById('config-log').value = c.log_level;
-                window._delayEnabled = c.human_delay_enabled;
-                document.getElementById('toggle-delay').className = 'toggle ' + (c.human_delay_enabled ? 'active' : '');
-            });
-        }
-
-        var _delayEnabled = true;
-        function toggleDelay() {
-            _delayEnabled = !_delayEnabled;
-            document.getElementById('toggle-delay').className = 'toggle ' + (_delayEnabled ? 'active' : '');
-        }
-
-        function saveConfig() {
-            var p = new URLSearchParams({
-                rate_limit_per_minute: document.getElementById('config-rate').value,
-                human_delay_enabled: _delayEnabled,
-                human_delay_min: document.getElementById('config-delay-min').value,
-                human_delay_max: document.getElementById('config-delay-max').value,
-                batch_wait_seconds: document.getElementById('config-batch').value,
-                batch_max_wait: document.getElementById('config-batch-max').value,
-                log_level: document.getElementById('config-log').value
-            });
-            api('/admin/config?' + p, 'POST').then(function() { showToast('Salvo'); });
-        }
-
-        function pauseClient() {
-            var c = document.getElementById('client-name').value;
-            if (!c) return showToast('Informe cliente', 'error');
-            api('/admin/pause?client=' + c, 'POST').then(function() { showToast('Cliente pausado'); updateStatus(); });
-        }
-
-        function resumeClient() {
-            var c = document.getElementById('client-name').value;
-            if (!c) return showToast('Informe cliente', 'error');
-            api('/admin/resume?client=' + c, 'POST').then(function() { showToast('Cliente retomado'); updateStatus(); });
-        }
-
-        function doResumeClient(c) {
-            api('/admin/resume?client=' + c, 'POST').then(function() { showToast('Retomado'); updateStatus(); });
-        }
-
-        function pauseContact() {
-            var c = document.getElementById('client-name').value, p = document.getElementById('contact-phone').value;
-            if (!c || !p) return showToast('Preencha tudo', 'error');
-            api('/admin/pause-contact?client=' + c + '&phone=' + p, 'POST').then(function() { showToast('Contato pausado'); updateStatus(); });
-        }
-
-        function resumeContact() {
-            var c = document.getElementById('client-name').value, p = document.getElementById('contact-phone').value;
-            if (!c || !p) return showToast('Preencha tudo', 'error');
-            api('/admin/resume-contact?client=' + c + '&phone=' + p, 'POST').then(function() { showToast('Retomado'); updateStatus(); });
-        }
-
-        function doResumeContact(c, p) {
-            api('/admin/resume-contact?client=' + c + '&phone=' + p, 'POST').then(function() { showToast('Retomado'); updateStatus(); });
-        }
-
-        function transferToHuman() {
-            var c = document.getElementById('client-name').value, p = document.getElementById('transfer-phone').value, r = document.getElementById('transfer-reason').value;
-            if (!c || !p) return showToast('Preencha tudo', 'error');
-            api('/admin/transfer-to-human?client=' + c + '&phone=' + p + '&reason=' + encodeURIComponent(r), 'POST').then(function() { showToast('Transferido'); updateStatus(); });
-        }
-
-        function sendMessage() {
-            var c = document.getElementById('client-name').value, p = document.getElementById('send-phone').value, m = document.getElementById('send-message').value;
-            if (!c || !p || !m) return showToast('Preencha tudo', 'error');
-            api('/admin/send?client=' + c + '&phone=' + p + '&message=' + encodeURIComponent(m), 'POST').then(function() { showToast('Enviado'); document.getElementById('send-message').value = ''; });
-        }
-
-        function clearSessions() {
-            if (!confirm('Limpar todas as sessões?')) return;
-            api('/admin/clear-sessions', 'POST').then(function() { showToast('Sessões limpas'); });
-        }
-
-        function reloadConfigs() {
-            api('/admin/reload', 'POST').then(function() { showToast('Configs recarregadas'); loadConfig(); });
-        }
-
-        function enableTestMode() {
-            var n = document.getElementById('test-numbers').value;
-            api('/admin/test-mode?enabled=true&numbers=' + n, 'POST').then(function() { showToast('Modo teste ativado'); });
-        }
-
-        function disableTestMode() {
-            api('/admin/test-mode?enabled=false', 'POST').then(function() { showToast('Modo teste desativado'); });
-        }
-
-        function refreshSessions() {
-            var el = document.getElementById('sessions-list');
-            el.innerHTML = '<div class="empty-state">Carregando...</div>';
-            api('/admin/sessions').then(function(d) {
-                if (!d.sessions || !d.sessions.length) { el.innerHTML = '<div class="empty-state">Nenhuma sessão</div>'; return; }
-                el.innerHTML = d.sessions.map(function(s) {
-                    return '<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">' + (s.phone ? s.phone[0] : '?') + '</div><div><div class="paused-name">' + (s.phone || '?') + '</div><div class="paused-detail">' + (s.client || '') + '</div></div></div></div>';
-                }).join('');
-            }).catch(function() { el.innerHTML = '<div class="empty-state">Erro ao carregar</div>'; });
-        }
-
-        function refreshLogs() {
-            var el = document.getElementById('log-container');
-            el.innerHTML = '<div class="empty-state">Carregando...</div>';
-            var logs = [];
-            api('/health').then(function(h) {
-                logs.push({level:'success', msg:'Sistema online - Uptime: ' + Math.floor(h.uptime_seconds/60) + 'min'});
-                return api('/admin/metrics');
-            }).then(function(m) {
-                if (m) {
-                    logs.push({level:'info', msg:'Clientes pausados: ' + m.paused_clients});
-                    logs.push({level:'info', msg:'Contatos pausados: ' + m.paused_contacts});
-                    logs.push({level:'info', msg:'Modo teste: ' + (m.test_mode ? 'Ativado' : 'Desativado')});
-                }
-                el.innerHTML = logs.map(function(l) {
-                    return '<div class="log-entry ' + l.level + '">[' + new Date().toLocaleTimeString() + '] ' + l.msg + '</div>';
-                }).join('');
-            }).catch(function() {
-                el.innerHTML = '<div class="log-entry error">Erro ao carregar logs</div>';
-            });
+            const s=await api('/admin/sessions');
+            const sEl=document.getElementById('sessions-list');
+            if(s&&s.sessions&&s.sessions.length){
+                sEl.innerHTML=s.sessions.slice(0,5).map(sess=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+(sess.phone||'?')[0]+'</div><div><div class="paused-name">'+sess.phone+'</div></div></div></div>').join('');
+            }else{sEl.innerHTML='<div class="empty-state">Nenhuma</div>'}
         }
 
         updateStatus();
-        loadConfig();
-        setInterval(updateStatus, 30000);
-    
-        // ── Sales Tab Functions ──────────────────────────────────────
-        async function loadLeads() {
-            const status = document.getElementById('filter-status').value;
-            const segment = document.getElementById('filter-segment').value;
-            
-            let url = '/sales/leads?limit=50';
-            if (status) url += '&status=' + status;
-            if (segment) url += '&segment=' + segment;
-            
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                const container = document.getElementById('leads-list');
-                
-                if (data.leads.length === 0) {
-                    container.innerHTML = '<div class="empty-state">Nenhum lead encontrado</div>';
-                    return;
-                }
-                
-                container.innerHTML = data.leads.map(lead => `
-                    <div class="paused-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                            <div class="paused-info">
-                                <div class="paused-avatar" style="background: ${getScoreColor(lead.score)}">${lead.score}</div>
-                                <div>
-                                    <div class="paused-name">${lead.nome}</div>
-                                    <div class="paused-detail">${lead.telefone} • ${lead.categoria || 'N/A'}</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                ${lead.status === 'pending' ? `
-                                    <button class="btn btn-success btn-sm" onclick="approveLead('${lead.id}')">✅ Aprovar</button>
-                                    <button class="btn btn-danger btn-sm" onclick="rejectLead('${lead.id}')">❌ Rejeitar</button>
-                                ` : `
-                                    <span class="status-badge">${getStatusLabel(lead.status)}</span>
-                                `}
-                            </div>
-                        </div>
-                        ${lead.message ? `
-                            <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-secondary); width: 100%;">
-                                <strong>Mensagem:</strong> ${lead.message}
-                            </div>
-                        ` : ''}
-                        <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);">
-                            <span>⭐ ${lead.avaliacao || 0} (${lead.qtd_avaliacoes || 0} av.)</span>
-                            <span>📷 ${lead.instagram || 'Sem IG'}</span>
-                            <span>${lead.segment || 'N/A'}</span>
-                        </div>
-                    </div>
-                `).join('');
-                
-            } catch (error) {
-                console.error('Erro ao carregar leads:', error);
-            }
-        }
-        
-        function getScoreColor(score) {
-            if (score >= 80) return 'var(--danger)';
-            if (score >= 60) return 'var(--success)';
-            if (score >= 40) return 'var(--warning)';
-            return 'var(--text-muted)';
-        }
-        
-        function getStatusLabel(status) {
-            const labels = {
-                'pending': '⏳ Pendente',
-                'approved': '✅ Aprovado',
-                'sent': '📤 Enviado',
-                'rejected': '❌ Rejeitado'
-            };
-            return labels[status] || status;
-        }
-        
-        async function approveLead(leadId) {
-            try {
-                const response = await fetch(`/sales/leads/${leadId}/approve`, { method: 'POST' });
-                if (response.ok) {
-                    showToast('Lead aprovado!', 'success');
-                    loadLeads();
-                    loadSalesStats();
-                }
-            } catch (error) {
-                showToast('Erro ao aprovar lead', 'error');
-            }
-        }
-        
-        async function rejectLead(leadId) {
-            try {
-                const response = await fetch(`/sales/leads/${leadId}/reject`, { method: 'POST' });
-                if (response.ok) {
-                    showToast('Lead rejeitado', 'success');
-                    loadLeads();
-                    loadSalesStats();
-                }
-            } catch (error) {
-                showToast('Erro ao rejeitar lead', 'error');
-            }
-        }
-        
-        async function loadSalesStats() {
-            try {
-                const response = await fetch('/sales/stats');
-                const stats = await response.json();
-                
-                document.getElementById('sales-pending').textContent = stats.pending;
-                document.getElementById('sales-approved').textContent = stats.approved;
-                document.getElementById('sales-sent').textContent = stats.sent;
-                document.getElementById('sales-rejected').textContent = stats.rejected;
-                
-                // Agent status
-                const agentResponse = await fetch('/sales/agent/status');
-                const agent = await agentResponse.json();
-                
-                const statusDot = document.getElementById('agent-status-dot');
-                const statusText = document.getElementById('agent-status-text');
-                const btnPause = document.getElementById('btn-pause');
-                const btnResume = document.getElementById('btn-resume');
-                
-                if (agent.paused) {
-                    statusDot.classList.add('offline');
-                    statusText.textContent = 'Pausado';
-                    btnPause.style.display = 'none';
-                    btnResume.style.display = 'inline-flex';
-                } else {
-                    statusDot.classList.remove('offline');
-                    statusText.textContent = 'Ativo';
-                    btnPause.style.display = 'inline-flex';
-                    btnResume.style.display = 'none';
-                }
-                
-            } catch (error) {
-                console.error('Erro ao carregar stats:', error);
-            }
-        }
-        
-        async function pauseAgent() {
-            try {
-                await fetch('/sales/agent/pause', { method: 'POST' });
-                showToast('Agente pausado', 'success');
-                loadSalesStats();
-            } catch (error) {
-                showToast('Erro ao pausar agente', 'error');
-            }
-        }
-        
-        async function resumeAgent() {
-            try {
-                await fetch('/sales/agent/resume', { method: 'POST' });
-                showToast('Agente retomado', 'success');
-                loadSalesStats();
-            } catch (error) {
-                showToast('Erro ao retomar agente', 'error');
-            }
-        }
-        
-        // Carregar dados de vendas quando a aba é acessada
-        
-        // ── Outreach Tab Functions ──────────────────────────────────────
-        async function loadOutreachTasks() {
-            try {
-                const response = await fetch('/outreach/tasks');
-                const data = await response.json();
-                
-                const container = document.getElementById('outreach-list');
-                
-                if (!data.tasks || data.tasks.length === 0) {
-                    container.innerHTML = '<div class="empty-state">Nenhuma conversa ativa</div>';
-                    return;
-                }
-                
-                container.innerHTML = data.tasks.map(task => `
-                    <div class="paused-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                            <div class="paused-info">
-                                <div class="paused-avatar" style="background: ${task.status === 'active' ? 'var(--success)' : task.status === 'paused' ? 'var(--warning)' : 'var(--text-muted)'}">
-                                    ${task.contact_name ? task.contact_name[0] : '?'}
-                                </div>
-                                <div>
-                                    <div class="paused-name">${task.contact_name || 'Sem nome'}</div>
-                                    <div class="paused-detail">${task.contact_phone} • ${task.status}</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                ${task.status === 'active' ? `
-                                    <button class="btn btn-warning btn-sm" onclick="pauseOutreach('${task.id}')">⏸ Pausar</button>
-                                ` : task.status === 'paused' ? `
-                                    <button class="btn btn-success btn-sm" onclick="resumeOutreach('${task.id}')">▶ Retomar</button>
-                                ` : ''}
-                                <button class="btn btn-danger btn-sm" onclick="cancelOutreach('${task.id}')">❌ Cancelar</button>
-                            </div>
-                        </div>
-                        ${task.instructions ? `
-                            <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-secondary); width: 100%;">
-                                <strong>Instruções:</strong> ${task.instructions}
-                            </div>
-                        ` : ''}
-                        <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);">
-                            <span>📱 ${task.messages_sent || 0} enviadas</span>
-                            <span>📩 ${task.messages_received || 0} recebidas</span>
-                            <span>📅 ${task.created_at ? new Date(task.created_at).toLocaleDateString() : 'N/A'}</span>
-                        </div>
-                    </div>
-                `).join('');
-                
-            } catch (error) {
-                console.error('Erro ao carregar conversas:', error);
-            }
-        }
-        
-        async function startOutreach() {
-            const phone = document.getElementById('outreach-phone').value;
-            const name = document.getElementById('outreach-name').value;
-            const instructions = document.getElementById('outreach-instructions').value;
-            
-            if (!phone) {
-                showToast('Informe o telefone', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/outreach/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, name, instructions })
-                });
-                
-                if (response.ok) {
-                    showToast('Conversa iniciada!', 'success');
-                    document.getElementById('outreach-phone').value = '';
-                    document.getElementById('outreach-name').value = '';
-                    document.getElementById('outreach-instructions').value = '';
-                    loadOutreachTasks();
-                } else {
-                    const error = await response.json();
-                    showToast(error.detail || 'Erro ao iniciar conversa', 'error');
-                }
-            } catch (error) {
-                showToast('Erro ao iniciar conversa', 'error');
-            }
-        }
-        
-        async function pauseOutreach(taskId) {
-            try {
-                await fetch(`/outreach/tasks/${taskId}/pause`, { method: 'POST' });
-                showToast('Conversa pausada', 'success');
-                loadOutreachTasks();
-            } catch (error) {
-                showToast('Erro ao pausar', 'error');
-            }
-        }
-        
-        async function resumeOutreach(taskId) {
-            try {
-                await fetch(`/outreach/tasks/${taskId}/resume`, { method: 'POST' });
-                showToast('Conversa retomada', 'success');
-                loadOutreachTasks();
-            } catch (error) {
-                showToast('Erro ao retomar', 'error');
-            }
-        }
-        
-        async function cancelOutreach(taskId) {
-            if (!confirm('Tem certeza que deseja cancelar esta conversa?')) return;
-            
-            try {
-                await fetch(`/outreach/tasks/${taskId}/cancel`, { method: 'POST' });
-                showToast('Conversa cancelada', 'success');
-                loadOutreachTasks();
-            } catch (error) {
-                showToast('Erro ao cancelar', 'error');
-            }
-        }
-        
-        function initOutreachTab() {
-            loadOutreachTasks();
-        }
-
-        
-        // ── CRM Tab Functions ──────────────────────────────────────
-        async function loadCrmStats() {
-            try {
-                const response = await fetch('/crm/stats');
-                const stats = await response.json();
-                
-                document.getElementById('crm-total').textContent = stats.total_conversations;
-                document.getElementById('crm-open').textContent = stats.open;
-                document.getElementById('crm-paused').textContent = stats.paused;
-                document.getElementById('crm-messages').textContent = stats.messages_today;
-            } catch (error) {
-                console.error('Erro ao carregar stats CRM:', error);
-            }
-        }
-        
-        async function loadCrmRecent() {
-            try {
-                const response = await fetch('/crm/conversations?limit=5');
-                const data = await response.json();
-                
-                const container = document.getElementById('crm-recent-list');
-                
-                if (!data.conversations || data.conversations.length === 0) {
-                    container.innerHTML = '<div class="empty-state">Nenhuma conversa</div>';
-                    return;
-                }
-                
-                container.innerHTML = data.conversations.map(conv => `
-                    <div class="paused-item">
-                        <div class="paused-info">
-                            <div class="paused-avatar" style="background: ${conv.status === 'open' ? 'var(--success)' : conv.status === 'paused' ? 'var(--warning)' : 'var(--text-muted)'}">
-                                ${conv.phone ? conv.phone.slice(-2) : '?'}
-                            </div>
-                            <div>
-                                <div class="paused-name">${conv.phone}</div>
-                                <div class="paused-detail">${conv.last_message || 'Sem mensagens'}</div>
-                            </div>
-                        </div>
-                        <span class="status-badge">${conv.status}</span>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Erro ao carregar conversas recentes:', error);
-            }
-        }
-        
-        function initCrmTab() {
-            loadCrmStats();
-            loadCrmRecent();
-        }
-
-        function initSalesTab() {
-            loadLeads();
-            loadSalesStats();
-        }
-
-        </script>
+        setInterval(updateStatus,30000);
+    </script>
+    </div>
+</div>
 </body>
 </html>

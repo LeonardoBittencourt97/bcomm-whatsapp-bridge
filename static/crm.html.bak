@@ -255,11 +255,7 @@
             <div class="nav-item" onclick="navigate('activities')" data-page="activities">
                 <span class="icon">📋</span><span class="label">Atividades</span>
             </div>
-            
-            <div class="nav-item" onclick="navigate('outreach')" data-page="outreach">
-                <span class="icon">📤</span><span class="label">Outreach</span>
-            </div>
-<div class="nav-divider"></div>
+            <div class="nav-divider"></div>
             <div class="nav-item" onclick="navigate('settings')" data-page="settings">
                 <span class="icon">⚙️</span><span class="label">Configurações</span>
             </div>
@@ -404,33 +400,6 @@
             </div>
 
             <!-- Settings -->
-            
-            <!-- Outreach -->
-            <div class="page" id="page-outreach">
-                <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
-                    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" id="out-total">0</div></div>
-                    <div class="stat-card"><div class="stat-label">Ativo</div><div class="stat-value" id="out-active">0</div></div>
-                    <div class="stat-card"><div class="stat-label">Pausado</div><div class="stat-value" id="out-paused">0</div></div>
-                    <div class="stat-card"><div class="stat-label">Falhou</div><div class="stat-value" id="out-failed">0</div></div>
-                    <div class="stat-card"><div class="stat-label">Cancelado</div><div class="stat-value" id="out-cancelled">0</div></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">📝 Novo Contato</span></div>
-                        <div class="form-group"><label class="form-label">Telefone *</label><input class="input" id="out-phone" placeholder="554199999999"></div>
-                        <div class="form-group"><label class="form-label">Nome</label><input class="input" id="out-name" placeholder="João Silva"></div>
-                        <div class="form-group"><label class="form-label">Empresa</label><input class="input" id="out-company" placeholder="Empresa ABC"></div>
-                        <div class="form-group"><label class="form-label">Instruções *</label><textarea class="input" id="out-instructions" placeholder="Agendar reunião, enviar proposta..."></textarea></div>
-                        <div class="form-group"><label class="form-label">Mensagem Inicial *</label><textarea class="input" id="out-message" placeholder="Oi! Sou a Ana, da BCOMM..."></textarea></div>
-                        <button class="btn btn-primary" onclick="startOutreach()">🚀 Iniciar Contato</button>
-                    </div>
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">📋 Contatos</span><button class="btn btn-secondary btn-sm" onclick="loadOutreach()">🔄 Atualizar</button></div>
-                        <div id="out-tasks"><div class="empty"><div class="empty-icon">📤</div><div class="empty-text">Nenhum contato ainda</div></div></div>
-                    </div>
-                </div>
-            </div>
-
             <div class="page" id="page-settings">
                 <div style="display:flex;gap:16px">
                     <div style="width:200px;flex-shrink:0">
@@ -545,7 +514,6 @@ function loadPage(page){
         case'deals':loadPipeline();break;
         case'activities':loadActivities();break;
         case'settings':loadSettings();break;
-        case'outreach':loadOutreach();break;
     }
 }
 
@@ -891,55 +859,6 @@ document.addEventListener('click',e=>{
 
 // ── Init ──
 loadDashboard();
-
-// ── Outreach ──
-async function loadOutreach(){
-    try{
-        const s=await api('/outreach/stats/summary');
-        if(s){
-            document.getElementById('out-total').textContent=s.total||0;
-            document.getElementById('out-active').textContent=s.active||0;
-            document.getElementById('out-paused').textContent=s.paused||0;
-            document.getElementById('out-failed').textContent=s.failed||0;
-            document.getElementById('out-cancelled').textContent=s.cancelled||0;
-        }
-        const d=await api('/outreach/list');
-        const el=document.getElementById('out-tasks');
-        if(!d||!d.tasks||!d.tasks.length){el.innerHTML='<div class="empty"><div class="empty-icon">📤</div><div class="empty-text">Nenhum contato ainda</div></div>';return}
-        el.innerHTML=d.tasks.map(t=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
-                <div>
-                    <div style="font-weight:500">${esc(t.phone||'')}</div>
-                    <div style="font-size:12px;color:var(--muted)">${esc(t.name||'')} ${t.company?'· '+esc(t.company):''}</div>
-                </div>
-                <div style="display:flex;gap:6px;align-items:center">
-                    <span class="badge badge-${t.status==='active'?'green':t.status==='paused'?'yellow':t.status==='failed'?'red':'muted'}">${t.status}</span>
-                    ${t.status==='active'?`<button class="btn btn-secondary btn-sm" onclick="outPause('${t.id}')">⏸</button>`:''}
-                    ${t.status==='paused'?`<button class="btn btn-success btn-sm" onclick="outResume('${t.id}')">▶</button>`:''}
-                    ${t.status!=='failed'?`<button class="btn btn-danger btn-sm" onclick="outStop('${t.id}')">✕</button>`:''}
-                </div>
-            </div>
-        `).join('');
-    }catch(e){console.error(e)}
-}
-async function startOutreach(){
-    const phone=document.getElementById('out-phone').value.trim();
-    const name=document.getElementById('out-name').value.trim();
-    const company=document.getElementById('out-company').value.trim();
-    const instructions=document.getElementById('out-instructions').value.trim();
-    const message=document.getElementById('out-message').value.trim();
-    if(!phone||!instructions||!message){toast('Preencha telefone, instruções e mensagem','error');return}
-    try{
-        await api('/outreach/start','POST',{phone,name,company,instructions,initial_message:message,client_id:'BCOMM'});
-        toast('Contato iniciado!');
-        ['out-phone','out-name','out-company','out-instructions','out-message'].forEach(id=>document.getElementById(id).value='');
-        loadOutreach();
-    }catch(e){toast(e.message,'error')}
-}
-async function outPause(id){try{await api('/outreach/'+id+'/pause','POST');toast('Pausado');loadOutreach()}catch(e){toast(e.message,'error')}}
-async function outResume(id){try{await api('/outreach/'+id+'/resume','POST');toast('Retomado');loadOutreach()}catch(e){toast(e.message,'error')}}
-async function outStop(id){try{await api('/outreach/'+id+'/stop','POST');toast('Parado');loadOutreach()}catch(e){toast(e.message,'error')}}
-
 </script>
 </body>
 </html>
