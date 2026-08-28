@@ -218,7 +218,9 @@ async def auth_middleware(request: Request, call_next):
     path = request.url.path
 
     # Rotas públicas (não precisam de auth)
-    public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/"}
+    public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/",
+                    "/dashboard", "/outreach", "/config", "/pipelines", "/organizations",
+                    "/setup-master", "/crm"}
     public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc")
     crm_auth_exact = {"/crm/auth/login"}
 
