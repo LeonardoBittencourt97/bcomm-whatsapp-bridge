@@ -9,7 +9,6 @@ from routes.deps import get_current_user
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
-    return rows[0]
 
 
 # GET /crm/organizations - List organizations
