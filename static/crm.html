@@ -929,16 +929,20 @@ loadDashboard();
 async function loadUserInfo(){
     try{
         const r=await fetch('/crm/auth/me',{headers:{'Accept':'application/json'}});
+        if(r.status===401){window.location.href='/login';return}
         const data=await r.json();
         if(r.ok&&data){
-            const initial=(data.name||data.email||'U')[0].toUpperCase();
+            const initial=(data.user.name||data.user.email||'U')[0].toUpperCase();
             document.getElementById('user-avatar').textContent=initial;
             const nameEl=document.getElementById('menu-user-name');
             const emailEl=document.getElementById('menu-user-email');
-            if(nameEl)nameEl.textContent=data.name||'Usuário';
-            if(emailEl)emailEl.textContent=data.email||'';
+            if(nameEl)nameEl.textContent=data.user.name||'Usuário';
+            if(emailEl)emailEl.textContent=data.user.email||'';
+            const role=data.user.role||'agent';
+            const usersNavItem=document.querySelector('[data-page="users"]');
+            if(usersNavItem&&role!=='master'&&role!=='admin_geral'){usersNavItem.style.display='none'}
         }
-    }catch(e){}
+    }catch(e){window.location.href='/login'}
 }
 function toggleUserMenu(){
     const m=document.getElementById('user-menu');
@@ -948,11 +952,13 @@ function toggleUserMenu(){
 }
 function showChangePasswordModal(){
     document.getElementById('user-menu').classList.remove('show');
+    const cp=prompt('Digite sua senha atual:');
+    if(!cp)return;
     const pw=prompt('Digite sua nova senha (mínimo 6 caracteres):');
     if(pw&&pw.length>=6){
-        fetch('/crm/auth/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_password:'',new_password:pw})})
+        fetch('/crm/auth/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_password:cp,new_password:pw})})
         .then(r=>r.json()).then(d=>{if(d.status==='ok')alert('Senha alterada com sucesso!');else alert('Erro: '+d.detail)}).catch(()=>alert('Erro ao alterar senha'));
-    }
+    }else if(pw){alert('A senha deve ter pelo menos 6 caracteres')}
 }
 async function logout(){
     try{await fetch('/crm/auth/logout',{method:'POST'})}catch(e){}

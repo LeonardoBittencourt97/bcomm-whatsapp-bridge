@@ -231,6 +231,7 @@ class RegisterRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     """Request para alteração de senha."""
+    current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=6)
 
 
@@ -476,8 +477,15 @@ async def invite_user(request: Request, body: InviteRequest):
     }
 
 
+class AcceptInviteRequest(BaseModel):
+    """Request para aceitar convite."""
+    token: str
+    password: str = Field(..., min_length=6)
+    name: Optional[str] = None
+
+
 @router.post("/auth/accept-invite")
-async def accept_invite(request: Request, token: str, password: str):
+async def accept_invite(request: Request, body: AcceptInviteRequest):
     """
     Aceita convite e cria usuário.
     """
@@ -486,7 +494,7 @@ async def accept_invite(request: Request, token: str, password: str):
     # Find invitation
     rows = await select(
         "bcomm_inbox.user_invitations",
-        filters={"token": token}
+        filters={"token": body.token}
     )
 
     if not rows:
@@ -516,7 +524,7 @@ async def accept_invite(request: Request, token: str, password: str):
                 },
                 json={
                     "email": invitation["email"],
-                    "password": password,
+                    "password": body.password,
                     "email_confirm": True,
                 },
                 timeout=10,
@@ -537,7 +545,7 @@ async def accept_invite(request: Request, token: str, password: str):
     now = datetime.now(timezone.utc)
     new_user = {
         "email": invitation["email"],
-        "name": invitation["email"].split("@")[0],
+        "name": body.name or invitation["email"].split("@")[0],
         "role": invitation.get("role", "agent"),
         "is_active": True,
         "supabase_user_id": supabase_user_id,
@@ -583,6 +591,26 @@ async def change_password(request: Request, body: ChangePasswordRequest):
 
     if not user.get("supabase_user_id"):
         raise HTTPException(status_code=400, detail="Conta sem vínculo Supabase Auth")
+
+    # Validate current password
+    try:
+        async with httpx.AsyncClient() as client:
+            verify_resp = await client.post(
+                f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+                headers={
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Content-Type": "application/json",
+                },
+                json={"email": user["email"], "password": body.current_password},
+                timeout=10,
+            )
+        if verify_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Senha atual incorreta")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao validar senha atual: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao validar senha")
 
     # Get current access token
     token = request.cookies.get(COOKIE_NAME)
