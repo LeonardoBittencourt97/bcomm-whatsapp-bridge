@@ -6,10 +6,11 @@ import logging
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, delete, ensure_supabase
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 logger = logging.getLogger("bridge")
 
@@ -52,6 +53,7 @@ class ActivityUpdate(BaseModel):
 
 @router.get("/activities")
 async def list_activities(
+    request: Request,
     type: Optional[str] = None,
     status: Optional[str] = None,
     deal_id: Optional[str] = None,
@@ -60,6 +62,7 @@ async def list_activities(
     offset: int = Query(default=0, ge=0),
 ):
     """Lista atividades com filtros opcionais."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     filters = {}
@@ -71,6 +74,7 @@ async def list_activities(
         filters["deal_id"] = deal_id
     if contact_id:
         filters["contact_id"] = contact_id
+    filters = await apply_org_filter(user, filters)
 
     rows = await select(
         TABLE,
@@ -90,11 +94,16 @@ async def list_activities(
 
 
 @router.post("/activities", status_code=201)
-async def create_activity(activity: ActivityCreate):
+async def create_activity(request: Request, activity: ActivityCreate):
     """Cria uma nova atividade."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     data = activity.model_dump()
+    if not is_unrestricted(user):
+        org_ids = await get_user_org_ids(user["id"])
+        if org_ids:
+            data["organization_id"] = data.get("organization_id") or list(org_ids)[0]
     data["created_at"] = datetime.now().isoformat()
 
     result = await insert(TABLE, data)

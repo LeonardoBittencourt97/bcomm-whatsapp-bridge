@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 
 from services.database import select, insert, update, delete, ensure_supabase
-from routes.deps import get_current_user
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ async def list_contacts(
             filters["organization_id"] = organization_id
         if lifecycle_stage:
             filters["lifecycle_stage"] = lifecycle_stage
+        filters = await apply_org_filter(user, filters)
             
         result = await select(
             table="contacts",
@@ -85,6 +86,11 @@ async def create_contact(request: Request, data: dict):
     user = await get_current_user(request)
     try:
         ensure_supabase()
+        
+        if not is_unrestricted(user):
+            org_ids = await get_user_org_ids(user["id"])
+            if org_ids:
+                data["organization_id"] = data.get("organization_id") or list(org_ids)[0]
         
         # Add timestamps
         data["created_at"] = datetime.utcnow().isoformat()

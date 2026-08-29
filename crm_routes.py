@@ -11,12 +11,13 @@ import logging
 import httpx
 from typing import Optional, List
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from config import settings
 from services.evolution import EvolutionClient
 from services.database import get_supabase, get_client, select, insert, update, upsert, delete
+from routes.deps import get_current_user, apply_org_filter
 
 logger = logging.getLogger(__name__)
 
@@ -392,6 +393,7 @@ class DealUpdate(BaseModel):
 
 @router.get("/conversations")
 async def get_conversations(
+    request: Request,
     status: Optional[str] = None,
     agent_enabled: Optional[bool] = None,
     limit: int = Query(default=50, le=200),
@@ -407,6 +409,7 @@ async def get_conversations(
     - offset: Offset para paginação
     """
     _ensure_supabase()
+    user = await get_current_user(request)
 
     # Buscar conversas com paginação
     filters = {}
@@ -414,6 +417,7 @@ async def get_conversations(
         filters["status"] = status
     if agent_enabled is not None:
         filters["agent_enabled"] = agent_enabled
+    filters = await apply_org_filter(user, filters)
 
     # Buscar total antes da paginação
     all_convs = await select(

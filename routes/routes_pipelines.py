@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, delete, ensure_supabase
-from routes.deps import get_current_user
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 logger = logging.getLogger("bridge")
 
@@ -54,7 +54,8 @@ async def list_pipelines(request: Request):
     user = await get_current_user(request)
     ensure_supabase()
 
-    pipelines = await select(PIPELINES_TABLE, order="created_at.asc")
+    filters = await apply_org_filter(user, {})
+    pipelines = await select(PIPELINES_TABLE, filters=filters if filters else None, order="created_at.asc")
     stages = await select(STAGES_TABLE, order="position.asc")
 
     # Group stages by pipeline_id
@@ -127,6 +128,10 @@ async def create_pipeline(request: Request, pipeline: PipelineCreate):
     ensure_supabase()
 
     data = pipeline.model_dump()
+    if not is_unrestricted(user):
+        org_ids = await get_user_org_ids(user["id"])
+        if org_ids:
+            data["organization_id"] = data.get("organization_id") or list(org_ids)[0]
     data["created_at"] = datetime.now().isoformat()
 
     result = await insert(PIPELINES_TABLE, data)
