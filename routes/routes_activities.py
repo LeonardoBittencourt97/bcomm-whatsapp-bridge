@@ -123,6 +123,13 @@ async def update_activity(request: Request, activity_id: str, activity: Activity
     if not rows:
         raise HTTPException(status_code=404, detail="Atividade não encontrada")
 
+    if not is_unrestricted(user):
+        record_org = rows[0].get("organization_id")
+        if record_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if record_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
     data = {k: v for k, v in activity.model_dump().items() if v is not None}
     if not data:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
@@ -144,6 +151,13 @@ async def complete_activity(request: Request, activity_id: str):
     if not rows:
         raise HTTPException(status_code=404, detail="Atividade não encontrada")
 
+    if not is_unrestricted(user):
+        record_org = rows[0].get("organization_id")
+        if record_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if record_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
     await update(
         TABLE,
         {"status": "completed", "completed_at": datetime.now().isoformat()},
@@ -164,6 +178,13 @@ async def delete_activity(request: Request, activity_id: str):
     rows = await select(TABLE, filters={"id": activity_id})
     if not rows:
         raise HTTPException(status_code=404, detail="Atividade não encontrada")
+
+    if not is_unrestricted(user):
+        record_org = rows[0].get("organization_id")
+        if record_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if record_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
 
     await delete(TABLE, filters={"id": activity_id})
     logger.info(f"Atividade deletada: {activity_id}")

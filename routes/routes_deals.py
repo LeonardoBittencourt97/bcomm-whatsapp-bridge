@@ -174,6 +174,17 @@ async def update_deal_stage(request: Request, deal_id: str, data: dict):
     try:
         ensure_supabase()
         
+        existing = await select(table="deals", filters={"id": deal_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Deal not found")
+
+        if not is_unrestricted(user):
+            deal_org = existing[0].get("organization_id")
+            if deal_org:
+                org_ids = await get_user_org_ids(user["id"])
+                if deal_org not in org_ids:
+                    raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
         stage_id = data.get("stage_id")
         if not stage_id:
             raise HTTPException(status_code=400, detail="stage_id is required")
@@ -207,7 +218,18 @@ async def win_deal(request: Request, deal_id: str):
     user = await get_current_user(request)
     try:
         ensure_supabase()
-        
+
+        existing = await select(table="deals", filters={"id": deal_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Deal not found")
+
+        if not is_unrestricted(user):
+            deal_org = existing[0].get("organization_id")
+            if deal_org:
+                org_ids = await get_user_org_ids(user["id"])
+                if deal_org not in org_ids:
+                    raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
         result = await update(
             table="deals",
             filters={"id": deal_id},
@@ -225,6 +247,8 @@ async def win_deal(request: Request, deal_id: str):
             "data": result,
             "message": "Deal marked as won"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error winning deal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -237,7 +261,18 @@ async def lose_deal(request: Request, deal_id: str, data: dict):
     user = await get_current_user(request)
     try:
         ensure_supabase()
-        
+
+        existing = await select(table="deals", filters={"id": deal_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Deal not found")
+
+        if not is_unrestricted(user):
+            deal_org = existing[0].get("organization_id")
+            if deal_org:
+                org_ids = await get_user_org_ids(user["id"])
+                if deal_org not in org_ids:
+                    raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
         lost_reason = data.get("lost_reason", "")
         
         result = await update(
@@ -257,6 +292,8 @@ async def lose_deal(request: Request, deal_id: str, data: dict):
             "data": result,
             "message": "Deal marked as lost"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error losing deal: {e}")
         raise HTTPException(status_code=500, detail=str(e))

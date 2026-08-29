@@ -102,6 +102,13 @@ async def update_note(request: Request, note_id: str, note: NoteUpdate):
     if not rows:
         raise HTTPException(status_code=404, detail="Nota não encontrada")
 
+    if not is_unrestricted(user):
+        record_org = rows[0].get("organization_id")
+        if record_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if record_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
     data = {k: v for k, v in note.model_dump().items() if v is not None}
     if not data:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
@@ -123,6 +130,13 @@ async def delete_note(request: Request, note_id: str):
     rows = await select(TABLE, filters={"id": note_id})
     if not rows:
         raise HTTPException(status_code=404, detail="Nota não encontrada")
+
+    if not is_unrestricted(user):
+        record_org = rows[0].get("organization_id")
+        if record_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if record_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
 
     await delete(TABLE, filters={"id": note_id})
     logger.info(f"Nota deletada: {note_id}")
