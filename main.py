@@ -220,8 +220,8 @@ async def auth_middleware(request: Request, call_next):
     # Rotas públicas (não precisam de auth)
     public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/",
                     "/dashboard", "/outreach", "/config", "/pipelines", "/organizations",
-                    "/setup-master", "/crm", "/contacts", "/activities"}
-    public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc")
+                    "/setup-master", "/crm", "/contacts", "/activities", "/users"}
+    public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc", "/invite/")
     crm_auth_exact = {"/crm/auth/login"}
 
     # Checar se é pública
@@ -811,6 +811,28 @@ async def activities_page():
     if os.path.exists(crm_path):
         with open(crm_path, "r") as f:
             return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
+
+
+@app.get("/users")
+async def users_page():
+    """Página de gestão de usuários."""
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(__file__), "static", "users.html")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
+
+
+@app.get("/invite/{token}")
+async def invite_page(token: str):
+    """Página de aceitação de convite."""
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(__file__), "static", "invite.html")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return HTMLResponse(content=f.read().replace("{{TOKEN}}", token))
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
 

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM - Usuários</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--elevated:#1a1d21;--border:#292d30;--border-hover:#464a4d;--text:#fff;--text2:#a1a4a5;--muted:#6e727a;--accent:#3b9eff;--accent2:#5aadff;--green:#34c759;--red:#ff453a;--yellow:#ffd60a;--orange:#ff9500;--r:12px;--rl:16px;--menu-w:60px;--menu-expanded:220px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar.collapsed{width:var(--menu-w)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;transition:opacity .2s}
+        .sidebar.collapsed .logo-text{opacity:0}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text);background:var(--card)}
+        .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;transition:opacity .2s}
+        .sidebar.collapsed .nav-item .label{opacity:0}
+        .nav-divider{height:1px;background:var(--border);margin:8px 16px}
+        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-top:1px solid var(--border);white-space:nowrap}
+        .sidebar-toggle:hover{color:var(--text);background:var(--card)}
+        .sidebar-toggle .label{font-size:13px;font-weight:500}
+        .sidebar.collapsed .sidebar-toggle .label{opacity:0}
+        .main{margin-left:var(--menu-expanded);flex:1;display:flex;flex-direction:column;overflow:hidden;transition:margin-left .2s}
+        .sidebar.collapsed~.main{margin-left:var(--menu-w)}
+        .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+        .search-trigger{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;min-width:300px}
+        .search-trigger:hover{border-color:var(--accent);color:var(--text2)}
+        .search-trigger .shortcut{margin-left:auto;font-size:11px;background:var(--elevated);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
+        .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+        .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer}
+        .content{flex:1;overflow-y:auto;padding:24px}
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--muted);margin-bottom:32px}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
+
+        .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+        .toolbar-left{display:flex;align-items:center;gap:12px;flex:1}
+        .search-input{flex:1;max-width:360px;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+        .search-input:focus{border-color:var(--accent)}
+        .filter-select{padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;outline:none;cursor:pointer}
+        .filter-select:focus{border-color:var(--accent)}
+        .btn{padding:10px 20px;border:none;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+        .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+        .btn-success{background:var(--green);color:#fff}.btn-success:hover{opacity:.9}
+        .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.9}
+        .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--text2)}
+        .btn-sm{padding:6px 12px;font-size:12px}
+
+        .users-table{width:100%;border-collapse:collapse}
+        .users-table th{text-align:left;padding:12px 16px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)}
+        .users-table td{padding:12px 16px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle}
+        .users-table tr:hover td{background:var(--card)}
+        .user-info{display:flex;align-items:center;gap:12px}
+        .user-avatar-sm{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0}
+        .user-name{font-weight:500}
+        .user-email{font-size:12px;color:var(--muted)}
+        .role-badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;text-transform:uppercase}
+        .role-master{background:rgba(255,69,58,.15);color:var(--red)}
+        .role-admin_geral{background:rgba(255,149,0,.15);color:var(--orange)}
+        .role-admin_contas{background:rgba(59,158,255,.15);color:var(--accent)}
+        .role-agent{background:rgba(52,199,89,.15);color:var(--green)}
+        .status-active{color:var(--green)}
+        .status-inactive{color:var(--red)}
+        .actions{display:flex;gap:8px}
+        .action-btn{width:32px;height:32px;border:none;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--surface);color:var(--muted)}
+        .action-btn:hover{background:var(--card);color:var(--text)}
+        .action-btn.danger:hover{background:rgba(255,69,58,.15);color:var(--red)}
+        .empty{text-align:center;padding:48px;color:var(--muted)}
+
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
+        .modal-overlay.show{display:flex}
+        .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);width:480px;max-height:80vh;overflow-y:auto}
+        .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .modal-title{font-size:18px;font-weight:600}
+        .modal-close{width:32px;height:32px;border:none;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--muted);font-size:18px}
+        .modal-close:hover{background:var(--surface);color:var(--text)}
+        .modal-body{padding:24px}
+        .form-group{margin-bottom:20px}
+        .form-label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px}
+        .form-input{width:100%;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+        .form-input:focus{border-color:var(--accent)}
+        .form-select{width:100%;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;outline:none;cursor:pointer}
+        .form-select:focus{border-color:var(--accent)}
+        .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+        .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--elevated);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;display:none;z-index:300}
+        .toast.success{border-color:var(--green)}
+        .toast.error{border-color:var(--red)}
+    </style>
+</head>
+<body>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/dashboard" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
+        </div>
+        <div class="nav-items">
+            <a href="/dashboard" class="nav-item" data-page="dashboard"><span class="icon">📊</span><span class="label">Dashboard</span></a>
+            <a href="/crm" class="nav-item" data-page="conversations"><span class="icon">💬</span><span class="label">Atendimento</span></a>
+            <a href="/contacts" class="nav-item" data-page="contacts"><span class="icon">📇</span><span class="label">Contatos</span></a>
+            <a href="/organizations" class="nav-item" data-page="organizations"><span class="icon">🏢</span><span class="label">Organizações</span></a>
+            <a href="/pipelines" class="nav-item" data-page="deals"><span class="icon">💰</span><span class="label">Negócios</span></a>
+            <a href="/activities" class="nav-item" data-page="activities"><span class="icon">📋</span><span class="label">Atividades</span></a>
+            <a href="/outreach" class="nav-item" data-page="outreach"><span class="icon">📤</span><span class="label">Outreach</span></a>
+            <div class="nav-divider"></div>
+            <a href="/users" class="nav-item active" data-page="users"><span class="icon">👥</span><span class="label">Usuários</span></a>
+            <a href="/config" class="nav-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Configurações</span></a>
+        </div>
+        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')"><span class="icon">☰</span><span class="label">Recolher</span></div>
+    </nav>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="search-trigger"><span>🔍</span><span>Buscar contatos, deals, mensagens...</span><span class="shortcut">Ctrl+K</span></div>
+            <div class="topbar-right"><div class="user-avatar" id="user-avatar">U</div></div>
+        </div>
+
+        <div class="content">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <h1 class="page-title" style="margin-bottom:0">Usuários</h1>
+                </div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-ghost" onclick="openInviteModal()">📧 Convidar</button>
+                    <button class="btn btn-primary" onclick="openCreateModal()">+ Novo Usuário</button>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <input type="text" class="search-input" placeholder="Buscar por nome ou email..." id="search-input" oninput="loadUsers()">
+                <select class="filter-select" id="filter-role" onchange="loadUsers()">
+                    <option value="">Todas as roles</option>
+                    <option value="master">Master</option>
+                    <option value="admin_geral">Admin Geral</option>
+                    <option value="admin_contas">Admin Contas</option>
+                    <option value="agent">Agent</option>
+                </select>
+                <select class="filter-select" id="filter-status" onchange="loadUsers()">
+                    <option value="">Todos</option>
+                    <option value="true">Ativos</option>
+                    <option value="false">Inativos</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <table class="users-table">
+                    <thead>
+                        <tr><th>Usuário</th><th>Role</th><th>Status</th><th>Último Login</th><th style="text-align:right">Ações</th></tr>
+                    </thead>
+                    <tbody id="users-tbody"><tr><td colspan="5" class="empty">Carregando...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Criar/Editar -->
+<div class="modal-overlay" id="modal-user">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="modal-user-title">Novo Usuário</span>
+            <button class="modal-close" onclick="closeModal('modal-user')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-user-id">
+            <div class="form-group"><label class="form-label">Nome</label><input type="text" class="form-input" id="input-name" placeholder="Nome completo"></div>
+            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="input-email" placeholder="email@exemplo.com"></div>
+            <div class="form-group" id="password-group"><label class="form-label">Senha</label><input type="password" class="form-input" id="input-password" placeholder="Mínimo 6 caracteres"></div>
+            <div class="form-group"><label class="form-label">Role</label>
+                <select class="form-select" id="input-role">
+                    <option value="agent">Agent</option>
+                    <option value="admin_contas">Admin Contas</option>
+                    <option value="admin_geral">Admin Geral</option>
+                    <option value="master">Master</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="input-active" checked> Ativo
+            </label></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('modal-user')">Cancelar</button>
+            <button class="btn btn-primary" id="btn-save-user" onclick="saveUser()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Convidar -->
+<div class="modal-overlay" id="modal-invite">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Convidar Usuário</span>
+            <button class="modal-close" onclick="closeModal('modal-invite')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="invite-email" placeholder="email@exemplo.com"></div>
+            <div class="form-group"><label class="form-label">Role</label>
+                <select class="form-select" id="invite-role">
+                    <option value="agent">Agent</option>
+                    <option value="admin_contas">Admin Contas</option>
+                    <option value="admin_geral">Admin Geral</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('modal-invite')">Cancelar</button>
+            <button class="btn btn-primary" onclick="sendInvite()">Enviar Convite</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Deletar -->
+<div class="modal-overlay" id="modal-confirm">
+    <div class="modal" style="width:400px">
+        <div class="modal-header">
+            <span class="modal-title">Confirmar</span>
+            <button class="modal-close" onclick="closeModal('modal-confirm')">&times;</button>
+        </div>
+        <div class="modal-body"><p id="confirm-text"></p></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Cancelar</button>
+            <button class="btn btn-danger" id="btn-confirm-action">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const ROLE_LABELS={master:'Master',admin_geral:'Admin Geral',admin_contas:'Admin Contas',agent:'Agent'};
+const ROLE_ICONS={master:'🔴',admin_geral:'🟠',admin_contas:'🔵',agent:'🟢'};
+
+function showToast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'success');e.style.display='block';setTimeout(()=>e.style.display='none',3000)}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function openModal(id){document.getElementById(id).classList.add('show')}
+
+async function api(u,m='GET',b=null){
+    const o={method:m,headers:{'Content-Type':'application/json'}};
+    if(b)o.body=JSON.stringify(b);
+    const r=await fetch(u,o);
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.detail||'Erro');
+    return data;
+}
+
+let allUsers=[];
+
+async function loadUsers(){
+    try{
+        const role=document.getElementById('filter-role').value;
+        const status=document.getElementById('filter-status').value;
+        const search=document.getElementById('search-input').value.trim();
+        let url='/crm/users?limit=200';
+        if(role)url+='&role='+role;
+        if(status)url+='&is_active='+status;
+        allUsers=await api(url);
+        if(search){const s=search.toLowerCase();allUsers=allUsers.filter(u=>(u.name||'').toLowerCase().includes(s)||(u.email||'').toLowerCase().includes(s))}
+        renderUsers();
+    }catch(e){showToast('Erro ao carregar: '+e.message,'error')}
+}
+
+function renderUsers(){
+    const tbody=document.getElementById('users-tbody');
+    if(!allUsers.length){tbody.innerHTML='<tr><td colspan="5" class="empty">Nenhum usuário encontrado</td></tr>';return}
+    tbody.innerHTML=allUsers.map(u=>{
+        const initial=(u.name||u.email||'?')[0].toUpperCase();
+        const role=u.role||'agent';
+        const active=u.is_active!==false;
+        const lastLogin=u.last_login_at?new Date(u.last_login_at).toLocaleString('pt-BR'):'Nunca';
+        return `<tr>
+            <td><div class="user-info"><div class="user-avatar-sm">${initial}</div><div><div class="user-name">${u.name||'Sem nome'}</div><div class="user-email">${u.email}</div></div></div></td>
+            <td><span class="role-badge role-${role}">${ROLE_ICONS[role]||''} ${ROLE_LABELS[role]||role}</span></td>
+            <td><span class="${active?'status-active':'status-inactive'}">● ${active?'Ativo':'Inativo'}</span></td>
+            <td style="font-size:13px;color:var(--muted)">${lastLogin}</td>
+            <td><div class="actions" style="justify-content:flex-end">
+                <button class="action-btn" onclick="openEditModal('${u.id}')" title="Editar">✏️</button>
+                <button class="action-btn" onclick="toggleActive('${u.id}',${active})" title="${active?'Desativar':'Ativar'}">${active?'⏸️':'▶️'}</button>
+                <button class="action-btn danger" onclick="confirmDelete('${u.id}','${(u.name||u.email).replace(/'/g,"\\'")}')" title="Deletar">🗑️</button>
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+function openCreateModal(){
+    document.getElementById('modal-user-title').textContent='Novo Usuário';
+    document.getElementById('edit-user-id').value='';
+    document.getElementById('input-name').value='';
+    document.getElementById('input-email').value='';
+    document.getElementById('input-password').value='';
+    document.getElementById('input-role').value='agent';
+    document.getElementById('input-active').checked=true;
+    document.getElementById('password-group').style.display='';
+    openModal('modal-user');
+}
+
+function openEditModal(id){
+    const u=allUsers.find(x=>x.id===id);if(!u)return;
+    document.getElementById('modal-user-title').textContent='Editar Usuário';
+    document.getElementById('edit-user-id').value=u.id;
+    document.getElementById('input-name').value=u.name||'';
+    document.getElementById('input-email').value=u.email||'';
+    document.getElementById('input-password').value='';
+    document.getElementById('input-role').value=u.role||'agent';
+    document.getElementById('input-active').checked=u.is_active!==false;
+    document.getElementById('password-group').style.display='none';
+    openModal('modal-user');
+}
+
+async function saveUser(){
+    const id=document.getElementById('edit-user-id').value;
+    const data={
+        name:document.getElementById('input-name').value.trim(),
+        email:document.getElementById('input-email').value.trim(),
+        role:document.getElementById('input-role').value,
+        is_active:document.getElementById('input-active').checked
+    };
+    if(!data.name||!data.email){showToast('Preencha nome e email','error');return}
+    try{
+        if(id){
+            await api('/crm/users/'+id,'PUT',data);
+            showToast('Usuário atualizado');
+        }else{
+            const pw=document.getElementById('input-password').value;
+            if(!pw||pw.length<6){showToast('Senha deve ter pelo menos 6 caracteres','error');return}
+            data.password=pw;
+            await api('/crm/users','POST',data);
+            showToast('Usuário criado');
+        }
+        closeModal('modal-user');
+        loadUsers();
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
+async function toggleActive(id,currentActive){
+    try{
+        await api('/crm/users/'+id,'PUT',{is_active:!currentActive});
+        showToast(currentActive?'Usuário desativado':'Usuário ativado');
+        loadUsers();
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
+function confirmDelete(id,name){
+    document.getElementById('confirm-text').textContent='Tem certeza que deseja deletar o usuário "'+name+'"? Esta ação não pode ser desfeita.';
+    document.getElementById('btn-confirm-action').onclick=async()=>{try{await api('/crm/users/'+id,'DELETE');showToast('Usuário deletado');closeModal('modal-confirm');loadUsers()}catch(e){showToast('Erro: '+e.message,'error')}};
+    openModal('modal-confirm');
+}
+
+function openInviteModal(){
+    document.getElementById('invite-email').value='';
+    document.getElementById('invite-role').value='agent';
+    openModal('modal-invite');
+}
+
+async function sendInvite(){
+    const email=document.getElementById('invite-email').value.trim();
+    const role=document.getElementById('invite-role').value;
+    if(!email){showToast('Preencha o email','error');return}
+    try{
+        const r=await api('/crm/auth/invite','POST',{email,role});
+        closeModal('modal-invite');
+        if(r.invite_url){navigator.clipboard.writeText(r.invite_url);showToast('Convite criado! Link copiado para a área de transferência.')}
+        else{showToast('Convite criado!')}
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
+loadUsers();
+</script>
+</body>
+</html>
