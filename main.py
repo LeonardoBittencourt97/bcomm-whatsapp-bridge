@@ -690,7 +690,7 @@ async def update_config(
 @app.get("/admin/sessions")
 async def get_sessions():
     """Retorna sessões ativas."""
-    sessions = hermes_client.get_active_sessions() if hasattr(hermes_client, 'get_active_sessions') else []
+    sessions = await hermes_client.get_active_sessions() if hasattr(hermes_client, 'get_active_sessions') else []
     return {"sessions": sessions}
 
 @app.get("/dashboard")
