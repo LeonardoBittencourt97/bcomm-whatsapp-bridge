@@ -30,7 +30,7 @@ class ActivityCreate(BaseModel):
     conversation_id: Optional[str] = None
     user_id: Optional[str] = None
     status: Optional[str] = "pending"  # pending, in_progress, completed
-    priority: Optional[str] = "normal"  # low, normal, high, urgent
+    priority: Optional[str] = "low"  # low, medium, high, urgent
     due_date: Optional[str] = None
 
 
