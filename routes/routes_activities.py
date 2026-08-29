@@ -74,7 +74,7 @@ async def list_activities(
         filters["deal_id"] = deal_id
     if contact_id:
         filters["contact_id"] = contact_id
-    filters = await apply_org_filter(user, filters)
+    filters = await apply_org_filter(user, filters, request)
 
     rows = await select(
         TABLE,

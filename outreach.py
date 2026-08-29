@@ -1,7 +1,7 @@
 """
 Endpoints de Outreach - Contato com Leads
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -10,6 +10,7 @@ import json
 import logging
 
 from services.database import get_supabase, select, upsert, update, insert
+from routes.deps import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,9 @@ class OutreachUpdateRequest(BaseModel):
 
 
 @router.post("/start")
-async def start_outreach(request: OutreachStartRequest):
+async def start_outreach(http_request: Request, request: OutreachStartRequest):
     """Inicia contato com um lead"""
+    user = await get_current_user(http_request)
     task_id = str(uuid.uuid4())
     phone = request.phone.replace("-", "").replace(" ", "").replace("+", "")
     if not phone.startswith("55"):
@@ -103,7 +105,8 @@ async def start_outreach(request: OutreachStartRequest):
 
 
 @router.get("/list")
-async def list_outreach_tasks(status: Optional[str] = None):
+async def list_outreach_tasks(http_request: Request, status: Optional[str] = None):
+    user = await get_current_user(http_request)
     if status:
         tasks = await select(TABLE_OUTREACH, filters={"status": status}, order="created_at.desc")
     else:
@@ -112,7 +115,8 @@ async def list_outreach_tasks(status: Optional[str] = None):
 
 
 @router.get("/stats/summary")
-async def get_outreach_stats():
+async def get_outreach_stats(http_request: Request):
+    user = await get_current_user(http_request)
     all_tasks = await select(TABLE_OUTREACH, columns="status")
     statuses = [t["status"] for t in all_tasks]
     return {
@@ -128,7 +132,8 @@ async def get_outreach_stats():
 
 
 @router.get("/{task_id}")
-async def get_outreach_task(task_id: str):
+async def get_outreach_task(http_request: Request, task_id: str):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -136,7 +141,8 @@ async def get_outreach_task(task_id: str):
 
 
 @router.put("/{task_id}")
-async def update_outreach_task(task_id: str, request: OutreachUpdateRequest):
+async def update_outreach_task(http_request: Request, task_id: str, request: OutreachUpdateRequest):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -152,7 +158,8 @@ async def update_outreach_task(task_id: str, request: OutreachUpdateRequest):
 
 
 @router.delete("/{task_id}")
-async def cancel_outreach_task(task_id: str):
+async def cancel_outreach_task(http_request: Request, task_id: str):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -166,7 +173,8 @@ async def cancel_outreach_task(task_id: str):
 
 
 @router.post("/{task_id}/stop")
-async def stop_outreach_task(task_id: str, reason: str = ""):
+async def stop_outreach_task(http_request: Request, task_id: str, reason: str = ""):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -203,7 +211,8 @@ async def stop_outreach_task(task_id: str, reason: str = ""):
 
 
 @router.post("/{task_id}/command")
-async def send_command_to_agent(task_id: str, command: str):
+async def send_command_to_agent(http_request: Request, task_id: str, command: str):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -219,7 +228,8 @@ async def send_command_to_agent(task_id: str, command: str):
 
 
 @router.put("/{task_id}/instructions")
-async def update_task_instructions(task_id: str, instructions: str):
+async def update_task_instructions(http_request: Request, task_id: str, instructions: str):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -234,7 +244,8 @@ async def update_task_instructions(task_id: str, instructions: str):
 
 
 @router.post("/{task_id}/pause")
-async def pause_outreach_task(task_id: str):
+async def pause_outreach_task(http_request: Request, task_id: str):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -267,7 +278,8 @@ async def pause_outreach_task(task_id: str):
 
 
 @router.post("/{task_id}/resume")
-async def resume_outreach_task(task_id: str):
+async def resume_outreach_task(http_request: Request, task_id: str):
+    user = await get_current_user(http_request)
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -300,8 +312,9 @@ async def resume_outreach_task(task_id: str):
 
 
 @router.post("/send")
-async def send_direct_message(phone: str, message: str, client_id: str = "BCOMM"):
+async def send_direct_message(http_request: Request, phone: str, message: str, client_id: str = "BCOMM"):
     """Envia mensagem direta"""
+    user = await get_current_user(http_request)
     phone = phone.replace("-", "").replace(" ", "").replace("+", "")
     if not phone.startswith("55"):
         phone = "55" + phone

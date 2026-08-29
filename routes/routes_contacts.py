@@ -31,7 +31,7 @@ async def list_contacts(
             filters["organization_id"] = organization_id
         if lifecycle_stage:
             filters["lifecycle_stage"] = lifecycle_stage
-        filters = await apply_org_filter(user, filters)
+        filters = await apply_org_filter(user, filters, request)
             
         result = await select(
             table="contacts",

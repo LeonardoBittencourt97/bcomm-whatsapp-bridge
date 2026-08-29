@@ -28,6 +28,7 @@ VALID_ROLES = {"master", "admin_geral", "admin_contas", "agent"}
 
 # ── Cookie name ──────────────────────────────────────────────────
 COOKIE_NAME = "bcomm_crm_token"
+ORG_COOKIE = "bcomm_org_id"
 
 # ── Supabase Auth URL ────────────────────────────────────────────
 SUPABASE_URL = "https://supabase.agent-bcomm.space"
@@ -83,7 +84,7 @@ def _set_auth_cookie(response: Response, access_token: str, refresh_token: str):
 
 def _clear_auth_cookies(response: Response):
     """Remove cookies de autenticação."""
-    for key in [COOKIE_NAME, "bcomm_refresh_token"]:
+    for key in [COOKIE_NAME, "bcomm_refresh_token", ORG_COOKIE]:
         kwargs = {
             "key": key,
             "value": "",
@@ -365,6 +366,7 @@ async def select_org(request: Request, response: Response, body: SelectOrgReques
         httponly=False,
         max_age=86400 * 30,
         samesite="lax",
+        path="/",
     )
     logger.info(f"Org selecionada: {body.organization_id or 'todas'} por {user['email']}")
     return {"status": "ok", "organization_id": body.organization_id}

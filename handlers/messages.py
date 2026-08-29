@@ -15,7 +15,7 @@ from services.evolution import EvolutionClient
 from services.hermes import HermesClient
 from services.llm import LLMClient
 from services.stt import STTClient
-from services.database import get_supabase, get_client, select
+from services.database import get_supabase, get_client, select, update
 
 logger = logging.getLogger(__name__)
 
@@ -316,7 +316,7 @@ async def _process_batch(
                 logger.warning("Falha na transcrição do áudio")
 
         # Verificar se há instruções de outreach para este contato
-    outreach_instructions = _get_outreach_instructions(phone)
+    outreach_instructions = await _get_outreach_instructions(phone)
 
     # ── Injetar contexto de histórico para sessões novas ──
     history_context = None

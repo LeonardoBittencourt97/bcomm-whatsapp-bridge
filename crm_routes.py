@@ -445,7 +445,7 @@ async def get_conversations(
         filters["status"] = status
     if agent_enabled is not None:
         filters["agent_enabled"] = agent_enabled
-    filters = await apply_org_filter(user, filters)
+    filters = await apply_org_filter(user, filters, request)
 
     # Buscar total antes da paginação
     all_convs = await select(
@@ -791,7 +791,7 @@ async def get_stats(http_request: Request):
     user = await get_current_user(http_request)
 
     # Buscar conversas com filtro de org
-    conv_filters = await apply_org_filter(user, {})
+    conv_filters = await apply_org_filter(user, {}, http_request)
     all_convs = await select(CONVERSATIONS_TABLE, filters=conv_filters if conv_filters else None)
     conv_list = all_convs or []
 
@@ -932,7 +932,7 @@ async def get_deals(
     filters = {}
     if stage:
         filters["stage"] = stage
-    filters = await apply_org_filter(user, filters)
+    filters = await apply_org_filter(user, filters, http_request)
 
     all_deals = await select(
         DEALS_TABLE,
@@ -1065,7 +1065,7 @@ async def get_pipeline_stats(http_request: Request):
     _ensure_supabase()
     user = await get_current_user(http_request)
 
-    deal_filters = await apply_org_filter(user, {})
+    deal_filters = await apply_org_filter(user, {}, http_request)
     all_deals = await select(DEALS_TABLE, filters=deal_filters if deal_filters else None) or []
     stages = await select(PIPELINE_STAGES_TABLE, order="position.asc") or []
 

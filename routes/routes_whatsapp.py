@@ -57,7 +57,7 @@ async def connect_whatsapp(request: Request, org_id: str):
     """
     try:
         # 1. Verificar autenticação
-        user = await _get_current_user(request)
+        user = await get_current_user(request)
 
         ensure_supabase()
 
@@ -147,7 +147,7 @@ async def whatsapp_status(request: Request, org_id: str):
     """
     try:
         # 1. Verificar autenticação
-        user = await _get_current_user(request)
+        user = await get_current_user(request)
 
         ensure_supabase()
 
@@ -201,7 +201,7 @@ async def disconnect_whatsapp(request: Request, org_id: str):
     """
     try:
         # 1. Verificar autenticação
-        user = await _get_current_user(request)
+        user = await get_current_user(request)
 
         ensure_supabase()
 
@@ -265,7 +265,7 @@ async def get_qr(request: Request, org_id: str):
     """
     try:
         # 1. Verificar autenticação
-        user = await _get_current_user(request)
+        user = await get_current_user(request)
 
         ensure_supabase()
 

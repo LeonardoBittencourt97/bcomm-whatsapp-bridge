@@ -51,7 +51,7 @@ async def list_notes(
         filters["entity_type"] = entity_type
     if entity_id:
         filters["entity_id"] = entity_id
-    filters = await apply_org_filter(user, filters)
+    filters = await apply_org_filter(user, filters, request)
 
     rows = await select(
         TABLE,

@@ -54,7 +54,7 @@ async def list_pipelines(request: Request):
     user = await get_current_user(request)
     ensure_supabase()
 
-    filters = await apply_org_filter(user, {})
+    filters = await apply_org_filter(user, {}, request)
     pipelines = await select(PIPELINES_TABLE, filters=filters if filters else None, order="created_at.asc")
     stages = await select(STAGES_TABLE, order="position.asc")
 

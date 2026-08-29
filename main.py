@@ -33,6 +33,7 @@ from services.stt import STTClient
 from services.database import get_supabase, get_client, select, upsert, insert, ensure_supabase
 # ── Auth helpers ──────────────────────────────────────────────
 from routes.routes_auth import COOKIE_NAME, _verify_supabase_token
+from routes.deps import get_current_user
 
 
 # ── Supabase tables ─────────────────────────────────────────────
@@ -444,10 +445,11 @@ async def webhook_evolution(request: Request):
 
 
 @app.post("/send", response_model=SendMessageResponse)
-async def send_message(req: SendMessageRequest):
+async def send_message(request: Request, req: SendMessageRequest):
     """
     Enviar mensagem manualmente via Evolution API.
     """
+    user = await get_current_user(request)
     result = await evolution_client.send_text(
         to_number=req.to_number,
         message=req.message,
@@ -462,12 +464,13 @@ async def send_message(req: SendMessageRequest):
 
 
 @app.post("/admin/clear-sessions")
-async def clear_sessions(phone: Optional[str] = None):
+async def clear_sessions(request: Request, phone: Optional[str] = None):
     """
     Limpa sessões do Hermes.
     Se phone for especificado, limpa apenas essa sessão.
     Caso contrário, limpa todas.
     """
+    user = await get_current_user(request)
     from services.hermes import _load_sessions, _save_sessions
     
     sessions = _load_sessions()
@@ -506,8 +509,9 @@ async def list_clients():
 
 
 @app.post("/admin/reload")
-async def reload_clients():
+async def reload_clients(request: Request):
     """Recarrega configurações de clientes."""
+    user = await get_current_user(request)
     client_loader.reload()
     return {"status": "reloaded", "count": client_loader.client_count}
 
@@ -515,8 +519,9 @@ async def reload_clients():
 # ── Test Mode ──────────────────────────────────────────────────────
 
 @app.post("/admin/test-mode")
-async def set_test_mode(enabled: bool, numbers: str = ""):
+async def set_test_mode(request: Request, enabled: bool, numbers: str = ""):
     """Habilita/desabilita modo teste."""
+    user = await get_current_user(request)
     settings.test_mode = enabled
     settings.test_numbers = numbers
     await save_test_mode()
@@ -526,8 +531,9 @@ async def set_test_mode(enabled: bool, numbers: str = ""):
     }
 
 @app.get("/admin/test-mode")
-async def get_test_mode():
+async def get_test_mode(request: Request):
     """Verifica status do modo teste."""
+    user = await get_current_user(request)
     return {
         "test_mode": settings.test_mode,
         "test_numbers": settings.test_numbers.split(",") if settings.test_numbers else [],
@@ -537,8 +543,9 @@ async def get_test_mode():
 # ── Pause/Resume ──────────────────────────────────────────────────
 
 @app.post("/admin/pause")
-async def pause_client(client: str):
+async def pause_client(request: Request, client: str):
     """Pausa um cliente."""
+    user = await get_current_user(request)
     paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
     if client not in paused:
         paused.append(client)
@@ -547,8 +554,9 @@ async def pause_client(client: str):
     return {"paused": paused, "message": f"Cliente {client} pausado"}
 
 @app.post("/admin/resume")
-async def resume_client(client: str):
+async def resume_client(request: Request, client: str):
     """Retoma um cliente."""
+    user = await get_current_user(request)
     paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
     if client in paused:
         paused.remove(client)
@@ -557,8 +565,9 @@ async def resume_client(client: str):
     return {"paused": paused, "message": f"Cliente {client} retomado"}
 
 @app.get("/admin/pause")
-async def get_paused_clients():
+async def get_paused_clients(request: Request):
     """Lista clientes pausados."""
+    user = await get_current_user(request)
     paused = [c.strip() for c in settings.paused_clients.split(",") if c.strip()]
     return {"paused": paused}
 
@@ -566,8 +575,9 @@ async def get_paused_clients():
 # ── Contact Pause/Resume ──────────────────────────────────────────
 
 @app.post("/admin/pause-contact")
-async def pause_contact(client: str, phone: str):
+async def pause_contact(request: Request, client: str, phone: str):
     """Pausa um contato específico."""
+    user = await get_current_user(request)
     paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
     contact_key = f"{client}:{phone}"
     if contact_key not in paused:
@@ -577,8 +587,9 @@ async def pause_contact(client: str, phone: str):
     return {"paused": paused, "message": f"Contato {phone} pausado para {client}"}
 
 @app.post("/admin/resume-contact")
-async def resume_contact(client: str, phone: str):
+async def resume_contact(request: Request, client: str, phone: str):
     """Retoma um contato específico."""
+    user = await get_current_user(request)
     paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
     contact_key = f"{client}:{phone}"
     if contact_key in paused:
@@ -588,14 +599,16 @@ async def resume_contact(client: str, phone: str):
     return {"paused": paused, "message": f"Contato {phone} retomado para {client}"}
 
 @app.get("/admin/pause-contact")
-async def get_paused_contacts():
+async def get_paused_contacts(request: Request):
     """Lista contatos pausados."""
+    user = await get_current_user(request)
     paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
     return {"paused": paused}
 
 @app.post("/admin/transfer-to-human")
-async def transfer_to_human(client: str, phone: str, reason: str = ""):
+async def transfer_to_human(request: Request, client: str, phone: str, reason: str = ""):
     """Transfere contato para atendente humano (pausa automaticamente)."""
+    user = await get_current_user(request)
     paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
     contact_key = f"{client}:{phone}"
     if contact_key not in paused:
@@ -617,8 +630,9 @@ async def transfer_to_human(client: str, phone: str, reason: str = ""):
 
 
 @app.post("/admin/send")
-async def admin_send_message(client: str, phone: str, message: str):
+async def admin_send_message(request: Request, client: str, phone: str, message: str):
     """Envia mensagem manualmente para um contato."""
+    user = await get_current_user(request)
     try:
         result = await evolution_client.send_text(
             to_number=phone,
@@ -632,8 +646,9 @@ async def admin_send_message(client: str, phone: str, message: str):
 
 
 @app.get("/admin/metrics")
-async def get_metrics():
+async def get_metrics(request: Request):
     """Retorna métricas do sistema."""
+    user = await get_current_user(request)
     import time
     uptime = time.time() - _start_time
     return {
@@ -646,8 +661,9 @@ async def get_metrics():
 
 
 @app.get("/admin/config")
-async def get_config():
+async def get_config(request: Request):
     """Retorna configurações atuais."""
+    user = await get_current_user(request)
     return {
         "rate_limit_per_minute": settings.rate_limit_per_minute,
         "human_delay_enabled": settings.human_delay_enabled,
@@ -660,6 +676,7 @@ async def get_config():
 
 @app.post("/admin/config")
 async def update_config(
+    request: Request,
     rate_limit_per_minute: int = None,
     human_delay_enabled: bool = None,
     human_delay_min: float = None,
@@ -669,6 +686,7 @@ async def update_config(
     log_level: str = None,
 ):
     """Atualiza configurações."""
+    user = await get_current_user(request)
     if rate_limit_per_minute is not None:
         settings.rate_limit_per_minute = rate_limit_per_minute
     if human_delay_enabled is not None:
@@ -684,12 +702,13 @@ async def update_config(
     if log_level is not None:
         settings.log_level = log_level
     
-    return {"status": "updated", "config": await get_config()}
+    return {"status": "updated", "config": await get_config(request)}
 
 
 @app.get("/admin/sessions")
-async def get_sessions():
+async def get_sessions(request: Request):
     """Retorna sessões ativas."""
+    user = await get_current_user(request)
     sessions = await hermes_client.get_active_sessions() if hasattr(hermes_client, 'get_active_sessions') else []
     return {"sessions": sessions}
 
@@ -730,7 +749,7 @@ async def login_page():
 async def setup_master():
     """Cria usuário master inicial se não existir. Requer MASTER_PASSWORD configurada."""
     from datetime import datetime, timezone
-    from routes.routes_auth import _hash_password
+    from routes.routes_users import _hash_password
 
     if not settings.master_password:
         raise HTTPException(

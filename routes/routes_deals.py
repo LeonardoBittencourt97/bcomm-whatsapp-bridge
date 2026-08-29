@@ -36,7 +36,7 @@ async def list_deals(
             filters["status"] = status
         if owner_id:
             filters["owner_id"] = owner_id
-        filters = await apply_org_filter(user, filters)
+        filters = await apply_org_filter(user, filters, request)
             
         result = await select(
             table="deals",

@@ -6,10 +6,11 @@ from datetime import datetime
 from typing import Optional
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, ensure_supabase
+from routes.deps import get_current_user
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ class AgentStatus(BaseModel):
 
 @router.get("/leads")
 async def get_leads(
+    http_request: Request,
     status: Optional[str] = None,
     segment: Optional[str] = None,
     limit: int = 50,
@@ -75,6 +77,7 @@ async def get_leads(
     - limit: Limite de resultados (default: 50)
     - offset: Offset para paginação
     """
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     filters = {}
@@ -100,8 +103,9 @@ async def get_leads(
 
 
 @router.get("/leads/{lead_id}")
-async def get_lead(lead_id: str):
+async def get_lead(http_request: Request, lead_id: str):
     """Retorna um lead específico"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     rows = await select(LEADS_TABLE, filters={"id": lead_id})
@@ -111,8 +115,9 @@ async def get_lead(lead_id: str):
 
 
 @router.post("/leads/{lead_id}/approve")
-async def approve_lead(lead_id: str):
+async def approve_lead(http_request: Request, lead_id: str):
     """Aprova um lead para envio"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     now = datetime.utcnow().isoformat()
@@ -129,8 +134,9 @@ async def approve_lead(lead_id: str):
 
 
 @router.post("/leads/{lead_id}/reject")
-async def reject_lead(lead_id: str, reason: str = ""):
+async def reject_lead(http_request: Request, lead_id: str, reason: str = ""):
     """Rejeita um lead"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     now = datetime.utcnow().isoformat()
@@ -147,8 +153,9 @@ async def reject_lead(lead_id: str, reason: str = ""):
 
 
 @router.post("/leads/{lead_id}/send")
-async def send_lead(lead_id: str):
+async def send_lead(http_request: Request, lead_id: str):
     """Envia mensagem para o lead via WhatsApp"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     now = datetime.utcnow().isoformat()
@@ -167,8 +174,9 @@ async def send_lead(lead_id: str):
 
 
 @router.get("/agent/status")
-async def get_agent_status():
+async def get_agent_status(http_request: Request):
     """Retorna status do agente de vendas"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     rows = await select(AGENT_STATUS_TABLE, limit=1)
@@ -203,8 +211,9 @@ async def get_agent_status():
 
 
 @router.post("/agent/pause")
-async def pause_agent():
+async def pause_agent(http_request: Request):
     """Pausa o agente de vendas"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     rows = await select(AGENT_STATUS_TABLE, limit=1)
@@ -217,8 +226,9 @@ async def pause_agent():
 
 
 @router.post("/agent/resume")
-async def resume_agent():
+async def resume_agent(http_request: Request):
     """Retoma o agente de vendas"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     rows = await select(AGENT_STATUS_TABLE, limit=1)
@@ -231,8 +241,9 @@ async def resume_agent():
 
 
 @router.get("/stats")
-async def get_stats():
+async def get_stats(http_request: Request):
     """Retorna estatísticas gerais"""
+    user = await get_current_user(http_request)
     ensure_supabase()
 
     all_leads = await select(LEADS_TABLE, limit=10000)
