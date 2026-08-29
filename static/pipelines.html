@@ -291,6 +291,10 @@ function renderKanban(){
                     ${d.contact_name?`<div style="font-size:12px;color:var(--text2);margin-top:4px">👤 ${d.contact_name}</div>`:''}
                     ${d.tags&&d.tags.length?`<div class="deal-tags">${(Array.isArray(d.tags)?d.tags:[]).map(t=>`<span class="deal-tag">${t}</span>`).join('')}</div>`:''}
                     <div class="deal-time">⏰ ${timeAgo(d.created_at)}</div>
+                    <div class="deal-actions" style="display:flex;gap:4px;margin-top:6px">
+                        <button onclick="event.stopPropagation();winDeal('${d.id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer">✓ Ganho</button>
+                        <button onclick="event.stopPropagation();loseDeal('${d.id}')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer">✗ Perdido</button>
+                    </div>
                 </div>`).join('')}
             </div>
         </div>`;
@@ -383,6 +387,20 @@ async function deleteDeal(){
     if(!id||!confirm('Excluir este deal?'))return;
     await api(`/crm/pipelines/deals/${id}`,'DELETE');
     closeModal();loadPipeline();showToast('Deal excluído');
+}
+
+async function winDeal(dealId) {
+    if (!confirm('Marcar este deal como GANHO?')) return;
+    await api(`/crm/pipelines/deals/${dealId}/win`, 'PUT');
+    showToast('Deal ganho! 🎉');
+    loadPipeline();
+}
+
+async function loseDeal(dealId) {
+    if (!confirm('Marcar este deal como PERDIDO?')) return;
+    await api(`/crm/pipelines/deals/${dealId}/lose`, 'PUT');
+    showToast('Deal perdido');
+    loadPipeline();
 }
 
 function timeAgo(ts){

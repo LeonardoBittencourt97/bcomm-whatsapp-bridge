@@ -281,6 +281,8 @@
             <a href="/activities" class="nav-item" data-page="activities">
                 <span class="icon">📋</span><span class="label">Atividades</span>
             </a>
+            <a href="/crm?tab=notes" class="nav-item" data-page="notes"><span class="icon">📝</span><span class="label">Notas</span></a>
+            <a href="/crm?tab=activities-page" class="nav-item" data-page="activities-page"><span class="icon">📋</span><span class="label">Atividades (Gestão)</span></a>
             <a href="/outreach" class="nav-item" data-page="outreach">
                 <span class="icon">📤</span><span class="label">Outreach</span>
             </a>
@@ -376,6 +378,7 @@
                                 <div class="chat-header-status" id="chat-status">-</div>
                             </div>
                             <div class="chat-actions">
+                                <button class="btn btn-ghost btn-sm" id="btn-transfer" onclick="transferToHuman()" style="display:none;margin-right:8px">🧑 Transferir</button>
                                 <button class="btn btn-warning btn-sm" id="btn-pause" onclick="pauseAgent()">⏸ Pausar</button>
                                 <button class="btn btn-success btn-sm" id="btn-resume" onclick="resumeAgent()" style="display:none">▶ Retomar</button>
                                 <button class="btn btn-secondary btn-sm" onclick="closeConversation()">✕ Encerrar</button>
@@ -448,6 +451,28 @@
                     <thead><tr><th>Tipo</th><th>Assunto</th><th>Deal/Contato</th><th>Prazo</th><th>Status</th><th>Ações</th></tr></thead>
                     <tbody id="activities-table"></tbody>
                 </table></div></div>
+            </div>
+
+            <!-- Notes -->
+            <div class="page" id="page-notes" style="display:none">
+                <div style="padding:24px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <h2 style="font-size:20px;font-weight:600">Notas</h2>
+                        <button class="btn btn-primary" onclick="openNewNoteModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">+ Nova Nota</button>
+                    </div>
+                    <div id="notes-list" style="display:flex;flex-direction:column;gap:12px"></div>
+                </div>
+            </div>
+
+            <!-- Activities (Management) -->
+            <div class="page" id="page-activities-page" style="display:none">
+                <div style="padding:24px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <h2 style="font-size:20px;font-weight:600">Atividades</h2>
+                        <button class="btn btn-primary" onclick="openNewActivityModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">+ Nova Atividade</button>
+                    </div>
+                    <div id="activities-list" style="display:flex;flex-direction:column;gap:12px"></div>
+                </div>
             </div>
 
             <!-- Settings -->
@@ -527,6 +552,45 @@
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- Note Modal -->
+<div class="modal-overlay" id="note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rl);width:500px">
+        <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:16px;font-weight:600">Nova Nota</span>
+            <button onclick="document.getElementById('note-modal').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px">&times;</button>
+        </div>
+        <div style="padding:24px">
+            <input type="hidden" id="note-id">
+            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Conteúdo *</label><textarea id="note-content" rows="4" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;resize:vertical" placeholder="Escreva sua nota..."></textarea></div>
+            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Tipo</label><select id="note-entity-type" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px"><option value="deal">Deal</option><option value="contact">Contato</option><option value="conversation">Conversa</option><option value="organization">Organização</option></select></div>
+        </div>
+        <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('note-modal').style.display='none'" style="padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);cursor:pointer">Cancelar</button>
+            <button onclick="saveNote()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Modal -->
+<div class="modal-overlay" id="activity-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rl);width:500px">
+        <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:16px;font-weight:600">Nova Atividade</span>
+            <button onclick="document.getElementById('activity-modal').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px">&times;</button>
+        </div>
+        <div style="padding:24px">
+            <input type="hidden" id="activity-id">
+            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Tipo *</label><select id="activity-type" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px"><option value="task">Tarefa</option><option value="call">Ligação</option><option value="meeting">Reunião</option><option value="email">Email</option><option value="note">Nota</option></select></div>
+            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Assunto *</label><input type="text" id="activity-subject" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px" placeholder="Ex: Ligação com cliente"></div>
+            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Descrição</label><textarea id="activity-desc" rows="3" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;resize:vertical"></textarea></div>
+        </div>
+        <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+            <button onclick="document.getElementById('activity-modal').style.display='none'" style="padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);cursor:pointer">Cancelar</button>
+            <button onclick="saveActivityModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">Salvar</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ── Global State ──
 let currentPage='dashboard',currentPhone=null,currentFilter='all',conversations=[],contacts=[],organizations=[],deals=[],activities=[],users=[],tags=[],pipelines=[],audioPlayers={};
@@ -574,8 +638,8 @@ async function doSearch(q){
 }
 
 // ── Navigation ──
-const TAB_MAP={contacts:'contacts',activities:'activities',deals:'deals',conversations:'conversations',organizations:'organizations',settings:'settings',outreach:'outreach'};
-const PATH_TAB={'/contacts':'contacts','/activities':'activities','/crm':'conversations'};
+const TAB_MAP={contacts:'contacts',activities:'activities',deals:'deals',conversations:'conversations',organizations:'organizations',settings:'settings',outreach:'outreach',notes:'notes','activities-page':'activities-page'};
+const PATH_TAB={'/contacts':'contacts','/activities':'activities','/crm':'conversations','/crm?tab=notes':'notes','/crm?tab=activities-page':'activities-page'};
 function navigate(page){
     currentPage=page;
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -596,11 +660,16 @@ function loadPage(page){
         case'activities':loadActivities();break;
         case'settings':loadSettings();break;
         case'outreach':loadOutreach();break;
+        case'notes':loadNotes();break;
+        case'activities-page':loadActivitiesList();break;
     }
 }
 document.addEventListener('DOMContentLoaded',()=>{
     const path=window.location.pathname;
-    if(PATH_TAB[path]){navigate(PATH_TAB[path])}
+    const params=new URLSearchParams(window.location.search);
+    const tab=params.get('tab');
+    if(tab&&(tab==='notes'||tab==='activities-page')){navigate(tab)}
+    else if(PATH_TAB[path]){navigate(PATH_TAB[path])}
     else{navigate('conversations')}
 });
 
@@ -678,6 +747,7 @@ async function selectConv(phone){
         document.getElementById('chat-status').textContent=cv.status==='open'?'Ativo':cv.status==='paused'?'Pausado':'Encerrado';
         document.getElementById('btn-pause').style.display=cv.agent_enabled?'inline-flex':'none';
         document.getElementById('btn-resume').style.display=cv.agent_enabled?'none':'inline-flex';
+        document.getElementById('btn-transfer').style.display=cv.status!=='closed'?'inline-flex':'none';
     }
     renderMessages(msgs);
 }
@@ -756,6 +826,15 @@ async function sendMessage(){
 async function pauseAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/pause`,'POST');showToast('Agente pausado');selectConv(currentPhone);loadConversations()}
 async function resumeAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/resume`,'POST');showToast('Agente retomado');selectConv(currentPhone);loadConversations()}
 async function closeConversation(){if(!currentPhone)return;if(!confirm('Encerrar esta conversa?'))return;await api(`/crm/conversations/${currentPhone}/close`,'POST');showToast('Conversa encerrada');currentPhone=null;document.getElementById('chat-header').style.display='none';document.getElementById('chat-input').style.display='none';loadConversations()}
+async function transferToHuman(){
+    if(!currentPhone)return;
+    if(!confirm('Transferir esta conversa para um atendente humano?'))return;
+    const result=await api('/admin/transfer-to-human','POST',{phone:currentPhone});
+    if(result){
+        showToast('Conversa transferida para humano!');
+        document.getElementById('btn-transfer').style.display='none';
+    }
+}
 
 // ── Contacts ──
 async function loadContacts(){
@@ -1083,6 +1162,73 @@ async function startOutreach(){
 async function outPause(id){try{await api('/outreach/'+id+'/pause','POST');toast('Pausado');loadOutreach()}catch(e){toast(e.message,'error')}}
 async function outResume(id){try{await api('/outreach/'+id+'/resume','POST');toast('Retomado');loadOutreach()}catch(e){toast(e.message,'error')}}
 async function outStop(id){try{await api('/outreach/'+id+'/stop','POST');toast('Parado');loadOutreach()}catch(e){toast(e.message,'error')}}
+
+// ── Notes ──
+async function loadNotes() {
+    const r = await api('/crm/notes');
+    const notes = r || [];
+    const el = document.getElementById('notes-list');
+    if (!notes.length) { el.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted)">Nenhuma nota</div>'; return; }
+    el.innerHTML = notes.map(n => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;justify-content:space-between;align-items:start">
+            <div style="flex:1">
+                <div style="font-size:14px;white-space:pre-wrap">${n.content || ''}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:8px">${n.entity_type || ''} · ${n.created_at ? new Date(n.created_at).toLocaleString('pt-BR') : ''}</div>
+            </div>
+            <div style="display:flex;gap:4px">
+                <button onclick="editNote('${n.id}','${(n.content||'').replace(/'/g,"\\'").replace(/\n/g,"\\n")}','${n.entity_type||''}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">✏️</button>
+                <button onclick="deleteNote('${n.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+function openNewNoteModal() { document.getElementById('note-id').value = ''; document.getElementById('note-content').value = ''; document.getElementById('note-entity-type').value = 'deal'; document.getElementById('note-modal').style.display = 'flex'; }
+function editNote(id, content, type) { document.getElementById('note-id').value = id; document.getElementById('note-content').value = content.replace(/\\n/g, '\n').replace(/\\'/g, "'"); document.getElementById('note-entity-type').value = type; document.getElementById('note-modal').style.display = 'flex'; }
+async function saveNote() {
+    const id = document.getElementById('note-id').value;
+    const data = { content: document.getElementById('note-content').value, entity_type: document.getElementById('note-entity-type').value, entity_id: '00000000-0000-0000-0000-000000000000' };
+    if (!data.content) return showToast('Preencha o conteúdo', 'error');
+    if (id) { await api(`/crm/notes/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
+    else { await api('/crm/notes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
+    document.getElementById('note-modal').style.display = 'none';
+    loadNotes();
+    showToast(id ? 'Nota atualizada!' : 'Nota criada!');
+}
+async function deleteNote(id) { if (!confirm('Excluir esta nota?')) return; await api(`/crm/notes/${id}`, {method:'DELETE'}); loadNotes(); showToast('Nota excluída'); }
+
+// ── Activities (Management) ──
+async function loadActivitiesList() {
+    const r = await api('/crm/activities');
+    const acts = r || [];
+    const el = document.getElementById('activities-list');
+    if (!acts.length) { el.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted)">Nenhuma atividade</div>'; return; }
+    el.innerHTML = acts.map(a => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;justify-content:space-between;align-items:start">
+            <div style="flex:1">
+                <div style="font-size:14px;font-weight:500">${a.subject || a.type}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px">${a.description || ''}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px">${a.type} · ${a.status || 'pending'} · ${a.created_at ? new Date(a.created_at).toLocaleString('pt-BR') : ''}</div>
+            </div>
+            <div style="display:flex;gap:4px">
+                ${a.status !== 'completed' ? `<button onclick="completeActivityMgmt('${a.id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">✓</button>` : ''}
+                <button onclick="deleteActivityMgmt('${a.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+function openNewActivityModal() { document.getElementById('activity-id').value = ''; document.getElementById('activity-type').value = 'task'; document.getElementById('activity-subject').value = ''; document.getElementById('activity-desc').value = ''; document.getElementById('activity-modal').style.display = 'flex'; }
+async function saveActivityModal() {
+    const id = document.getElementById('activity-id').value;
+    const data = { type: document.getElementById('activity-type').value, subject: document.getElementById('activity-subject').value, description: document.getElementById('activity-desc').value };
+    if (!data.subject) return showToast('Preencha o assunto', 'error');
+    if (id) { await api(`/crm/activities/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
+    else { await api('/crm/activities', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
+    document.getElementById('activity-modal').style.display = 'none';
+    loadActivitiesList();
+    showToast(id ? 'Atividade atualizada!' : 'Atividade criada!');
+}
+async function completeActivityMgmt(id) { await api(`/crm/activities/${id}/complete`, {method:'PUT'}); loadActivitiesList(); showToast('Atividade concluída!'); }
+async function deleteActivityMgmt(id) { if (!confirm('Excluir esta atividade?')) return; await api(`/crm/activities/${id}`, {method:'DELETE'}); loadActivitiesList(); showToast('Atividade excluída'); }
 
 </script>
 </body>

@@ -218,6 +218,14 @@ function stopTask(id) { var reason = prompt('Motivo para parar (opcional):'); if
 function pauseTask(id) { api('/outreach/' + id + '/pause', 'POST').then(function() { showToast('Contato pausado'); loadStats(); loadTasks(); }); }
 function resumeTask(id) { api('/outreach/' + id + '/resume', 'POST').then(function() { showToast('Contato retomado'); loadStats(); loadTasks(); }); }
 function sendCommand(id) { var input = document.getElementById('cmd-' + id); if (!input || !input.value) return; api('/outreach/' + id + '/command?command=' + encodeURIComponent(input.value), 'POST').then(function() { showToast('Comando enviado'); input.value = ''; }); }
+function editInstructions(id) {
+    var instructions = prompt('Digite as novas instruções:');
+    if (!instructions) return;
+    api('/outreach/' + id + '/instructions', 'POST', { instructions: instructions }).then(function() {
+        showToast('Instruções atualizadas!');
+        loadTasks();
+    });
+}
 function loadStats() { api('/outreach/stats/summary').then(function(s) { document.getElementById('stat-total').textContent = s.total || 0; document.getElementById('stat-active').textContent = s.active || 0; document.getElementById('stat-paused').textContent = s.paused || 0; document.getElementById('stat-failed').textContent = s.failed || 0; document.getElementById('stat-cancelled').textContent = (s.cancelled || 0); }); }
 function loadTasks() {
     api('/outreach/list').then(function(d) {
@@ -225,8 +233,8 @@ function loadTasks() {
         if (!d.tasks || !d.tasks.length) { el.innerHTML = '<div class="empty-state">Nenhum contato iniciado</div>'; return; }
         el.innerHTML = d.tasks.map(function(t) {
             var actions = '';
-            if (t.status === 'active') { actions = '<button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button><button class="btn btn-warning btn-sm" onclick="pauseTask(\'' + t.id + '\')">⏸ Pausar</button>'; }
-            else if (t.status === 'paused') { actions = '<button class="btn btn-success btn-sm" onclick="resumeTask(\'' + t.id + '\')">▶ Retomar</button><button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button>'; }
+            if (t.status === 'active') { actions = '<button class="btn btn-warning btn-sm" onclick="pauseTask(\'' + t.id + '\')">⏸ Pausar</button><button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button><button class="btn btn-secondary btn-sm" onclick="editInstructions(\'' + t.id + '\')">✏️ Editar Instruções</button>'; }
+            else if (t.status === 'paused') { actions = '<button class="btn btn-success btn-sm" onclick="resumeTask(\'' + t.id + '\')">▶ Retomar</button><button class="btn btn-danger btn-sm" onclick="stopTask(\'' + t.id + '\')">⏹ Parar</button><button class="btn btn-secondary btn-sm" onclick="editInstructions(\'' + t.id + '\')">✏️ Editar Instruções</button>'; }
             return '<div class="task-item"><div class="task-header"><div><div class="task-name">' + (t.contact_name || 'Sem nome') + '</div><div class="task-phone">' + t.contact_phone + '</div></div><span class="status-badge status-' + t.status + '">' + t.status + '</span></div><div class="task-instructions">' + (t.instructions || '').substring(0, 100) + '...</div><div class="task-actions">' + actions + '</div><div class="command-input"><input type="text" class="form-input" id="cmd-' + t.id + '" placeholder="Comando para o agente..."><button class="btn btn-primary btn-sm" onclick="sendCommand(\'' + t.id + '\')">Enviar</button></div></div>';
         }).join('');
     });
