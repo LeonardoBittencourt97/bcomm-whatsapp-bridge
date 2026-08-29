@@ -1,10 +1,11 @@
 """Deals CRM Routes"""
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Request
 from typing import Optional
 from datetime import datetime
 import logging
 
 from services.database import select, insert, update, delete, ensure_supabase
+from routes.deps import get_current_user
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 # GET /crm/deals - List deals with filters
 @router.get("/deals")
 async def list_deals(
+    request: Request,
     stage_id: Optional[str] = Query(None, description="Filter by stage ID"),
     pipeline_id: Optional[str] = Query(None, description="Filter by pipeline ID"),
     status: Optional[str] = Query(None, description="Filter by status (open, won, lost)"),
@@ -21,6 +23,7 @@ async def list_deals(
     offset: int = Query(0, ge=0)
 ):
     """List all deals with optional filters"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -54,8 +57,9 @@ async def list_deals(
 
 # GET /crm/deals/{id} - Get single deal
 @router.get("/deals/{deal_id}")
-async def get_deal(deal_id: str):
+async def get_deal(request: Request, deal_id: str):
     """Get a deal by ID"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -81,8 +85,9 @@ async def get_deal(deal_id: str):
 
 # POST /crm/deals - Create deal
 @router.post("/deals")
-async def create_deal(data: dict):
+async def create_deal(request: Request, data: dict):
     """Create a new deal"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -110,8 +115,9 @@ async def create_deal(data: dict):
 
 # PUT /crm/deals/{id} - Update deal
 @router.put("/deals/{deal_id}")
-async def update_deal(deal_id: str, data: dict):
+async def update_deal(request: Request, deal_id: str, data: dict):
     """Update an existing deal"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -140,8 +146,9 @@ async def update_deal(deal_id: str, data: dict):
 
 # PUT /crm/deals/{id}/stage - Update deal stage
 @router.put("/deals/{deal_id}/stage")
-async def update_deal_stage(deal_id: str, data: dict):
+async def update_deal_stage(request: Request, deal_id: str, data: dict):
     """Update the stage of a deal"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -173,8 +180,9 @@ async def update_deal_stage(deal_id: str, data: dict):
 
 # PUT /crm/deals/{id}/win - Mark deal as won
 @router.put("/deals/{deal_id}/win")
-async def win_deal(deal_id: str):
+async def win_deal(request: Request, deal_id: str):
     """Mark a deal as won"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -202,8 +210,9 @@ async def win_deal(deal_id: str):
 
 # PUT /crm/deals/{id}/lose - Mark deal as lost
 @router.put("/deals/{deal_id}/lose")
-async def lose_deal(deal_id: str, data: dict):
+async def lose_deal(request: Request, deal_id: str, data: dict):
     """Mark a deal as lost"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -233,8 +242,9 @@ async def lose_deal(deal_id: str, data: dict):
 
 # DELETE /crm/deals/{id} - Delete deal
 @router.delete("/deals/{deal_id}")
-async def delete_deal(deal_id: str):
+async def delete_deal(request: Request, deal_id: str):
     """Delete a deal"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         

@@ -6,10 +6,11 @@ import logging
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, delete, ensure_supabase
+from routes.deps import get_current_user
 
 logger = logging.getLogger("bridge")
 
@@ -48,8 +49,9 @@ class PipelineUpdate(BaseModel):
 # ── Routes ──────────────────────────────────────────────────────
 
 @router.get("/pipelines")
-async def list_pipelines():
+async def list_pipelines(request: Request):
     """Lista pipelines com stages aninhados."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     pipelines = await select(PIPELINES_TABLE, order="created_at.asc")
@@ -75,8 +77,9 @@ async def list_pipelines():
 
 
 @router.get("/pipelines/{pipeline_id}")
-async def get_pipeline(pipeline_id: str):
+async def get_pipeline(request: Request, pipeline_id: str):
     """Retorna pipeline com deals agrupados por stage."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
@@ -118,8 +121,9 @@ async def get_pipeline(pipeline_id: str):
 
 
 @router.post("/pipelines", status_code=201)
-async def create_pipeline(pipeline: PipelineCreate):
+async def create_pipeline(request: Request, pipeline: PipelineCreate):
     """Cria um novo pipeline."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     data = pipeline.model_dump()
@@ -133,8 +137,9 @@ async def create_pipeline(pipeline: PipelineCreate):
 
 
 @router.put("/pipelines/{pipeline_id}")
-async def update_pipeline(pipeline_id: str, pipeline: PipelineUpdate):
+async def update_pipeline(request: Request, pipeline_id: str, pipeline: PipelineUpdate):
     """Atualiza uma pipeline existente."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
@@ -153,8 +158,9 @@ async def update_pipeline(pipeline_id: str, pipeline: PipelineUpdate):
 
 
 @router.delete("/pipelines/{pipeline_id}")
-async def delete_pipeline(pipeline_id: str):
+async def delete_pipeline(request: Request, pipeline_id: str):
     """Deleta uma pipeline e todos seus stages."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
@@ -171,8 +177,9 @@ async def delete_pipeline(pipeline_id: str):
 
 
 @router.post("/pipelines/{pipeline_id}/stages", status_code=201)
-async def create_stage(pipeline_id: str, stage: StageCreate):
+async def create_stage(request: Request, pipeline_id: str, stage: StageCreate):
     """Cria um novo stage dentro de um pipeline."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     # Verify pipeline exists
@@ -192,8 +199,9 @@ async def create_stage(pipeline_id: str, stage: StageCreate):
 
 
 @router.put("/stages/{stage_id}")
-async def update_stage(stage_id: str, stage: StageUpdate):
+async def update_stage(request: Request, stage_id: str, stage: StageUpdate):
     """Atualiza um stage existente."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(STAGES_TABLE, filters={"id": stage_id})
@@ -212,8 +220,9 @@ async def update_stage(stage_id: str, stage: StageUpdate):
 
 
 @router.delete("/stages/{stage_id}")
-async def delete_stage(stage_id: str):
+async def delete_stage(request: Request, stage_id: str):
     """Deleta um stage."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(STAGES_TABLE, filters={"id": stage_id})

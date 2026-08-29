@@ -136,6 +136,7 @@ async def _can_modify_user(current_user: dict, target_role: str) -> bool:
     """
     Verifica se o usuário atual pode modificar o alvo.
     Regra: admin_geral NÃO pode modificar master.
+    admin_contas pode modificar exceto master e admin_geral.
     """
     current_role = current_user.get("role", "agent")
 
@@ -145,7 +146,10 @@ async def _can_modify_user(current_user: dict, target_role: str) -> bool:
     if current_role == "admin_geral":
         return target_role != "master"
 
-    # Admin_contas e agent: só a si mesmos
+    if current_role == "admin_contas":
+        return target_role in ("agent", "admin_contas")
+
+    # Agent: não pode modificar ninguém
     return False
 
 
@@ -316,13 +320,14 @@ async def create_user(request: Request, body: UserCreate):
     Cria novo usuário.
     Master: pode criar qualquer role.
     Admin_geral: pode criar qualquer role exceto master.
-    Admin_contas/agent: não podem criar.
+    Admin_contas: pode criar agent e admin_contas, vincula automaticamente às suas orgs.
+    Agent: não pode criar.
     """
     current_user = await _get_current_user(request)
     current_role = current_user.get("role", "agent")
 
     # Verificar permissão
-    if current_role not in ("master", "admin_geral"):
+    if current_role not in ("master", "admin_geral", "admin_contas"):
         raise HTTPException(
             status_code=403,
             detail="Sem permissão para criar usuários"
@@ -340,6 +345,13 @@ async def create_user(request: Request, body: UserCreate):
         raise HTTPException(
             status_code=403,
             detail="Sem permissão para criar usuários master"
+        )
+
+    # Admin_contas só pode criar agent e admin_contas
+    if current_role == "admin_contas" and body.role not in ("agent", "admin_contas"):
+        raise HTTPException(
+            status_code=403,
+            detail="Sem permissão para criar este tipo de usuário"
         )
 
     _ensure_supabase()
@@ -364,6 +376,15 @@ async def create_user(request: Request, body: UserCreate):
 
     result = await insert(USERS_TABLE, new_user)
     created = result[0] if isinstance(result, list) and result else new_user
+
+    # Admin_contas: auto-link às suas organizações
+    if current_role == "admin_contas" and created.get("id"):
+        my_orgs = await _get_user_organizations(current_user["id"])
+        for org in my_orgs:
+            await insert(USER_ORGS_TABLE, {
+                "user_id": created["id"],
+                "organization_id": org["organization_id"],
+            })
 
     logger.info(
         f"Usuário criado: {body.email} (role={body.role}) "
@@ -463,7 +484,8 @@ async def delete_user(request: Request, user_id: str):
     Desativa (soft delete) ou remove um usuário.
     Master: pode desativar qualquer um.
     Admin_geral: pode desativar qualquer um exceto master.
-    Admin_contas/agent: não podem desativar.
+    Admin_contas: pode desativar agent e admin_contas de suas organizações.
+    Agent: não pode desativar.
     """
     current_user = await _get_current_user(request)
     _ensure_supabase()
@@ -482,6 +504,11 @@ async def delete_user(request: Request, user_id: str):
             status_code=403,
             detail="Sem permissão para excluir este usuário"
         )
+
+    # Admin_contas: verificar se compartilham organização
+    if current_user.get("role") == "admin_contas":
+        if not await _can_access_user(current_user, target_user):
+            raise HTTPException(status_code=403, detail="Sem acesso a este usuário")
 
     # Não permitir que o próprio usuário se desative via DELETE
     if current_user["id"] == user_id:
@@ -545,16 +572,24 @@ async def list_user_organizations(request: Request, user_id: str):
 async def assign_organization(request: Request, user_id: str, body: OrgAssignment):
     """
     Atribui organização a um usuário.
-    Apenas master e admin_geral podem atribuir.
+    Master/admin_geral/admin_contas podem atribuir.
+    Admin_contas: só suas próprias organizações.
     """
     current_user = await _get_current_user(request)
     current_role = current_user.get("role", "agent")
 
-    if current_role not in ("master", "admin_geral"):
+    if current_role not in ("master", "admin_geral", "admin_contas"):
         raise HTTPException(
             status_code=403,
             detail="Sem permissão para atribuir organizações"
         )
+
+    # Admin_contas: só suas organizações
+    if current_role == "admin_contas":
+        my_orgs = await _get_user_organizations(current_user["id"])
+        my_org_ids = {o["organization_id"] for o in my_orgs}
+        if body.organization_id not in my_org_ids:
+            raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
 
     _ensure_supabase()
 
@@ -614,11 +649,18 @@ async def remove_organization(request: Request, user_id: str, organization_id: s
     current_user = await _get_current_user(request)
     current_role = current_user.get("role", "agent")
 
-    if current_role not in ("master", "admin_geral"):
+    if current_role not in ("master", "admin_geral", "admin_contas"):
         raise HTTPException(
             status_code=403,
             detail="Sem permissão para remover organizações"
         )
+
+    # Admin_contas: só suas organizações
+    if current_role == "admin_contas":
+        my_orgs = await _get_user_organizations(current_user["id"])
+        my_org_ids = {o["organization_id"] for o in my_orgs}
+        if organization_id not in my_org_ids:
+            raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
 
     _ensure_supabase()
 

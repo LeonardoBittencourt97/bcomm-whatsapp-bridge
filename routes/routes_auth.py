@@ -441,9 +441,21 @@ async def invite_user(request: Request, body: InviteRequest):
     """
     current_user = await get_current_user(request)
 
-    # Only master and admin_geral can invite
-    if current_user.get("role") not in ("master", "admin_geral"):
+    # Only master, admin_geral, and admin_contas can invite
+    if current_user.get("role") not in ("master", "admin_geral", "admin_contas"):
         raise HTTPException(status_code=403, detail="Sem permissão para convidar usuários")
+
+    # Admin_contas: só suas organizações
+    if current_user.get("role") == "admin_contas":
+        from routes.routes_users import _get_user_organizations
+        my_orgs = await _get_user_organizations(current_user["id"])
+        my_org_ids = {o["organization_id"] for o in my_orgs}
+        if body.organization_id not in my_org_ids:
+            raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
+    # Admin_contas não pode convidar para roles elevadas
+    if current_user.get("role") == "admin_contas" and body.role not in ("agent", "admin_contas"):
+        raise HTTPException(status_code=403, detail="Sem permissão para convidar com este papel")
 
     _ensure_supabase()
 

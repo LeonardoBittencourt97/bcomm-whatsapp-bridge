@@ -1,10 +1,11 @@
 """Contacts CRM Routes"""
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Request
 from typing import Optional
 from datetime import datetime
 import logging
 
 from services.database import select, insert, update, delete, ensure_supabase
+from routes.deps import get_current_user
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 # GET /crm/contacts - List contacts with filters
 @router.get("/contacts")
 async def list_contacts(
+    request: Request,
     organization_id: Optional[str] = Query(None, description="Filter by organization ID"),
     lifecycle_stage: Optional[str] = Query(None, description="Filter by lifecycle stage"),
     search: Optional[str] = Query(None, description="Search by name, email, or phone"),
@@ -20,6 +22,7 @@ async def list_contacts(
     offset: int = Query(0, ge=0)
 ):
     """List all contacts with optional filters"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -49,8 +52,9 @@ async def list_contacts(
 
 # GET /crm/contacts/{id} - Get single contact
 @router.get("/contacts/{contact_id}")
-async def get_contact(contact_id: str):
+async def get_contact(request: Request, contact_id: str):
     """Get a contact by ID"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -76,8 +80,9 @@ async def get_contact(contact_id: str):
 
 # POST /crm/contacts - Create contact
 @router.post("/contacts")
-async def create_contact(data: dict):
+async def create_contact(request: Request, data: dict):
     """Create a new contact"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -103,8 +108,9 @@ async def create_contact(data: dict):
 
 # PUT /crm/contacts/{id} - Update contact
 @router.put("/contacts/{contact_id}")
-async def update_contact(contact_id: str, data: dict):
+async def update_contact(request: Request, contact_id: str, data: dict):
     """Update an existing contact"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
@@ -133,8 +139,9 @@ async def update_contact(contact_id: str, data: dict):
 
 # DELETE /crm/contacts/{id} - Delete contact
 @router.delete("/contacts/{contact_id}")
-async def delete_contact(contact_id: str):
+async def delete_contact(request: Request, contact_id: str):
     """Delete a contact"""
+    user = await get_current_user(request)
     try:
         ensure_supabase()
         
