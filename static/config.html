@@ -72,21 +72,26 @@
         /* ── Sidebar ── */
         :root{--menu-w:60px;--menu-expanded:220px}
         .app{display:flex;height:100vh}
-        .sidebar{width:var(--menu-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
-        .sidebar:hover{width:var(--menu-expanded)}
+        .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar.collapsed{width:var(--menu-w)}
         .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
-        .sidebar-logo .logo{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
-        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s}
-        .sidebar:hover .logo-text{opacity:1}
+        .sidebar-logo .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;transition:opacity .2s}
+        .sidebar.collapsed .logo-text{opacity:0}
         .nav-items{flex:1;padding:8px 0;overflow-y:auto}
         .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
         .nav-item:hover{color:var(--text,#fff);background:var(--card,#13161a)}
         .nav-item.active{color:var(--accent,#3b9eff);border-left-color:var(--accent,#3b9eff);background:rgba(59,158,255,.08)}
         .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
-        .nav-item .label{font-size:13px;font-weight:500;opacity:0;transition:opacity .2s}
-        .sidebar:hover .nav-item .label{opacity:1}
+        .nav-item .label{font-size:13px;font-weight:500;transition:opacity .2s}
+        .sidebar.collapsed .nav-item .label{opacity:0}
         .nav-divider{height:1px;background:var(--border,#292d30);margin:8px 16px}
-        .main{margin-left:var(--menu-w);flex:1;display:flex;flex-direction:column;overflow:hidden}
+        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-top:1px solid var(--border,#292d30);white-space:nowrap}
+        .sidebar-toggle:hover{color:var(--text,#fff);background:var(--card,#13161a)}
+        .sidebar-toggle .label{font-size:13px;font-weight:500}
+        .sidebar.collapsed .sidebar-toggle .label{opacity:0}
+        .main{margin-left:var(--menu-expanded);flex:1;display:flex;flex-direction:column;overflow:hidden;transition:margin-left .2s}
+        .sidebar.collapsed~.main{margin-left:var(--menu-w)}
         @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
 
     </style>
@@ -123,6 +128,9 @@
             <a href="/config" class="nav-item active" data-page="settings">
                 <span class="icon">⚙️</span><span class="label">Configurações</span>
             </a>
+        </div>
+        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')">
+            <span class="icon">☰</span><span class="label">Recolher</span>
         </div>
     </nav>
 
