@@ -221,7 +221,7 @@ async def auth_middleware(request: Request, call_next):
     public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/",
                     "/dashboard", "/outreach", "/config", "/pipelines", "/organizations",
                     "/setup-master", "/crm", "/contacts", "/activities", "/users"}
-    public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc", "/invite/")
+    public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc", "/invite/", "/crm/auth/accept-invite")
     crm_auth_exact = {"/crm/auth/login"}
 
     # Checar se é pública
