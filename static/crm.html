@@ -281,8 +281,7 @@
             <a href="/activities" class="nav-item" data-page="activities">
                 <span class="icon">📋</span><span class="label">Atividades</span>
             </a>
-            <a href="/crm?tab=notes" class="nav-item" data-page="notes"><span class="icon">📝</span><span class="label">Notas</span></a>
-            <a href="/crm?tab=activities-page" class="nav-item" data-page="activities-page"><span class="icon">📋</span><span class="label">Atividades (Gestão)</span></a>
+            <a href="/notes" class="nav-item" data-page="notes"><span class="icon">📝</span><span class="label">Notas</span></a>
             <a href="/outreach" class="nav-item" data-page="outreach">
                 <span class="icon">📤</span><span class="label">Outreach</span>
             </a>
@@ -432,27 +431,6 @@
             </div>
 
             <!-- Activities -->
-            <div class="page" id="page-activities">
-                <div class="card-header">
-                    <span class="card-title">📋 Atividades</span>
-                    <button class="btn btn-primary" onclick="showActivityModal()">+ Nova Atividade</button>
-                </div>
-                <div style="display:flex;gap:8px;margin-bottom:16px">
-                    <select class="input" style="max-width:200px" onchange="filterActivities(this.value)" id="act-type-filter">
-                        <option value="">Todos os tipos</option>
-                        <option value="call">📞 Chamada</option>
-                        <option value="meeting">📅 Reunião</option>
-                        <option value="task">✅ Tarefa</option>
-                        <option value="note">📝 Nota</option>
-                        <option value="whatsapp">💬 WhatsApp</option>
-                    </select>
-                </div>
-                <div class="card"><div class="table-wrap"><table>
-                    <thead><tr><th>Tipo</th><th>Assunto</th><th>Deal/Contato</th><th>Prazo</th><th>Status</th><th>Ações</th></tr></thead>
-                    <tbody id="activities-table"></tbody>
-                </table></div></div>
-            </div>
-
             <!-- Notes -->
             <div class="page" id="page-notes" style="display:none">
                 <div style="padding:24px">
@@ -464,8 +442,8 @@
                 </div>
             </div>
 
-            <!-- Activities (Management) -->
-            <div class="page" id="page-activities-page" style="display:none">
+            <!-- Activities -->
+            <div class="page" id="page-activities" style="display:none">
                 <div style="padding:24px">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
                         <h2 style="font-size:20px;font-weight:600">Atividades</h2>
@@ -638,8 +616,8 @@ async function doSearch(q){
 }
 
 // ── Navigation ──
-const TAB_MAP={contacts:'contacts',activities:'activities',deals:'deals',conversations:'conversations',organizations:'organizations',settings:'settings',outreach:'outreach',notes:'notes','activities-page':'activities-page'};
-const PATH_TAB={'/contacts':'contacts','/activities':'activities','/crm':'conversations','/crm?tab=notes':'notes','/crm?tab=activities-page':'activities-page'};
+const TAB_MAP={contacts:'contacts',activities:'activities',deals:'deals',conversations:'conversations',organizations:'organizations',settings:'settings',outreach:'outreach',notes:'notes'};
+const PATH_TAB={'/contacts':'contacts','/activities':'activities','/notes':'notes','/crm':'conversations'};
 function navigate(page){
     currentPage=page;
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -657,18 +635,17 @@ function loadPage(page){
         case'contacts':loadContacts();break;
         case'organizations':loadOrgs();break;
         case'deals':loadPipeline();break;
-        case'activities':loadActivities();break;
+        case'activities':loadActivitiesList();break;
         case'settings':loadSettings();break;
         case'outreach':loadOutreach();break;
         case'notes':loadNotes();break;
-        case'activities-page':loadActivitiesList();break;
     }
 }
 document.addEventListener('DOMContentLoaded',()=>{
     const path=window.location.pathname;
     const params=new URLSearchParams(window.location.search);
     const tab=params.get('tab');
-    if(tab&&(tab==='notes'||tab==='activities-page')){navigate(tab)}
+    if(tab&&(tab==='notes'||tab==='activities')){navigate(tab)}
     else if(PATH_TAB[path]){navigate(PATH_TAB[path])}
     else{navigate('conversations')}
 });

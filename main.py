@@ -852,6 +852,17 @@ async def users_page():
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
 
+@app.get("/notes")
+async def notes_page():
+    """Página de notas."""
+    from fastapi.responses import HTMLResponse
+    crm_path = os.path.join(os.path.dirname(__file__), "static", "crm.html")
+    if os.path.exists(crm_path):
+        with open(crm_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
+
+
 @app.get("/invite/{token}")
 async def invite_page(token: str):
     """Página de aceitação de convite."""
