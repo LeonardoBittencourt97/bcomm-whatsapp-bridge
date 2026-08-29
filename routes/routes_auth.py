@@ -376,20 +376,32 @@ async def select_org(request: Request, response: Response, body: SelectOrgReques
 async def get_me(request: Request):
     """
     Retorna dados do usuário autenticado (sessão atual).
-    Inclui organizações vinculadas.
+    Master/admin_geral: retorna TODAS as organizações.
+    Admin_contas/agent: retorna apenas organizações vinculadas.
     """
     user = await get_current_user(request)
     _ensure_supabase()
 
-    # Buscar organizações do usuário
-    orgs = await select(
-        USER_ORGS_TABLE,
-        filters={"user_id": user["id"]}
-    )
+    if user.get("role") in ("master", "admin_geral"):
+        # Buscar TODAS as organizações
+        all_orgs = await select("bcomm_inbox.organizations", order="name.asc")
+        orgs = [{"id": o["id"], "name": o.get("name", "")} for o in (all_orgs or [])]
+    else:
+        # Buscar apenas vinculadas ao usuário
+        raw_orgs = await select(
+            USER_ORGS_TABLE,
+            filters={"user_id": user["id"]}
+        )
+        org_ids = [o["organization_id"] for o in (raw_orgs or [])]
+        if org_ids:
+            all_orgs = await select("bcomm_inbox.organizations")
+            orgs = [{"id": o["id"], "name": o.get("name", "")} for o in (all_orgs or []) if o["id"] in org_ids]
+        else:
+            orgs = []
 
     return {
         "user": _sanitize_user(user),
-        "organizations": orgs or [],
+        "organizations": orgs,
     }
 
 
