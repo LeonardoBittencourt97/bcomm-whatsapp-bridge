@@ -21,7 +21,7 @@ async def list_organizations(
 ):
     """List all organizations with optional search"""
     try:
-        await _get_current_user(request)
+        await get_current_user(request)
         ensure_supabase()
         
         filters = {}
@@ -52,7 +52,7 @@ async def list_organizations(
 async def get_organization(request: Request, organization_id: str):
     """Get an organization by ID"""
     try:
-        await _get_current_user(request)
+        await get_current_user(request)
         ensure_supabase()
         
         result = await select(
@@ -79,7 +79,7 @@ async def get_organization(request: Request, organization_id: str):
 async def create_organization(request: Request, data: dict):
     """Create a new organization"""
     try:
-        await _get_current_user(request)
+        await get_current_user(request)
         ensure_supabase()
         
         # Add timestamps
@@ -108,7 +108,7 @@ async def create_organization(request: Request, data: dict):
 async def update_organization(request: Request, organization_id: str, data: dict):
     """Update an existing organization"""
     try:
-        await _get_current_user(request)
+        await get_current_user(request)
         ensure_supabase()
         
         # Add updated timestamp
@@ -140,7 +140,7 @@ async def update_organization(request: Request, organization_id: str, data: dict
 async def delete_organization(request: Request, organization_id: str):
     """Delete an organization"""
     try:
-        await _get_current_user(request)
+        await get_current_user(request)
         ensure_supabase()
         
         result = delete(

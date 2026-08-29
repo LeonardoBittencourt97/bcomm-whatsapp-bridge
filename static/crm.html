@@ -245,7 +245,7 @@
             <a href="/crm" class="nav-item active" data-page="conversations">
                 <span class="icon">💬</span><span class="label">Atendimento</span>
             </a>
-            <a href="/crm?tab=contacts" class="nav-item" data-page="contacts">
+            <a href="/contacts" class="nav-item" data-page="contacts">
                 <span class="icon">📇</span><span class="label">Contatos</span>
             </a>
             <a href="/organizations" class="nav-item" data-page="organizations">
@@ -254,7 +254,7 @@
             <a href="/pipelines" class="nav-item" data-page="deals">
                 <span class="icon">💰</span><span class="label">Negócios</span>
             </a>
-            <a href="/crm?tab=activities" class="nav-item" data-page="activities">
+            <a href="/activities" class="nav-item" data-page="activities">
                 <span class="icon">📋</span><span class="label">Atividades</span>
             </a>
             <a href="/outreach" class="nav-item" data-page="outreach">
@@ -529,6 +529,7 @@ async function doSearch(q){
 
 // ── Navigation ──
 const TAB_MAP={contacts:'contacts',activities:'activities',deals:'deals',conversations:'conversations',organizations:'organizations',settings:'settings',outreach:'outreach'};
+const PATH_TAB={'/contacts':'contacts','/activities':'activities','/crm':'conversations'};
 function navigate(page){
     currentPage=page;
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -537,10 +538,6 @@ function navigate(page){
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     const nav=document.querySelector(`[data-page="${page}"]`);
     if(nav)nav.classList.add('active');
-    const url=new URL(window.location);
-    if(page==='conversations'){url.searchParams.delete('tab')}
-    else{url.searchParams.set('tab',page)}
-    history.replaceState(null,'',url);
     loadPage(page);
 }
 function loadPage(page){
@@ -556,9 +553,8 @@ function loadPage(page){
     }
 }
 document.addEventListener('DOMContentLoaded',()=>{
-    const params=new URLSearchParams(window.location.search);
-    const tab=params.get('tab');
-    if(tab&&TAB_MAP[tab]){navigate(tab)}
+    const path=window.location.pathname;
+    if(PATH_TAB[path]){navigate(PATH_TAB[path])}
     else{navigate('conversations')}
 });
 

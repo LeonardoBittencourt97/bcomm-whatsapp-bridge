@@ -220,7 +220,7 @@ async def auth_middleware(request: Request, call_next):
     # Rotas públicas (não precisam de auth)
     public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/",
                     "/dashboard", "/outreach", "/config", "/pipelines", "/organizations",
-                    "/setup-master", "/crm"}
+                    "/setup-master", "/crm", "/contacts", "/activities"}
     public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc")
     crm_auth_exact = {"/crm/auth/login"}
 
@@ -790,6 +790,28 @@ async def crm_page():
         with open(crm_path, "r") as f:
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>CRM não encontrado</h1>", status_code=404)
+
+
+@app.get("/contacts")
+async def contacts_page():
+    """Página de contatos."""
+    from fastapi.responses import HTMLResponse
+    crm_path = os.path.join(os.path.dirname(__file__), "static", "crm.html")
+    if os.path.exists(crm_path):
+        with open(crm_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
+
+
+@app.get("/activities")
+async def activities_page():
+    """Página de atividades."""
+    from fastapi.responses import HTMLResponse
+    crm_path = os.path.join(os.path.dirname(__file__), "static", "crm.html")
+    if os.path.exists(crm_path):
+        with open(crm_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
 
 # ── Outreach Routes ─────────────────────────────────────────────
