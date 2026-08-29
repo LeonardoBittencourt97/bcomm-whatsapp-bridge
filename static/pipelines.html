@@ -145,6 +145,7 @@
                         <div class="stat-item">Taxa: <span class="stat-value" id="win-rate">0%</span></div>
                     </div>
                 </div>
+                <button class="btn btn-ghost" onclick="openPipelinesModal()">⚙️ Gerenciar</button>
                 <button class="btn btn-primary" onclick="openNewDealModal()">+ Novo Deal</button>
             </div>
 
@@ -175,6 +176,61 @@
             </div>
 
             <div id="toast" class="toast"></div>
+
+            <!-- Modal Gerenciar Pipelines -->
+            <div class="modal-overlay" id="pipelines-modal">
+                <div class="modal" style="width:600px">
+                    <div class="modal-header">
+                        <span class="modal-title">Gerenciar Pipelines</span>
+                        <button class="modal-close" onclick="closePipelinesModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                            <h3 style="font-size:16px">Pipelines</h3>
+                            <button class="btn btn-primary btn-sm" onclick="openNewPipelineModal()">+ Nova Pipeline</button>
+                        </div>
+                        <div id="pipelines-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Pipeline (criar/editar) -->
+            <div class="modal-overlay" id="pipeline-form-modal">
+                <div class="modal" style="width:400px">
+                    <div class="modal-header">
+                        <span class="modal-title" id="pipeline-form-title">Nova Pipeline</span>
+                        <button class="modal-close" onclick="closePipelineFormModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="pipeline-form-id">
+                        <div class="input-group"><label class="input-label">Nome *</label><input type="text" class="input" id="pipeline-form-name" placeholder="Ex: Pipeline Principal"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closePipelineFormModal()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="savePipeline()">Salvar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Stage (criar/editar) -->
+            <div class="modal-overlay" id="stage-form-modal">
+                <div class="modal" style="width:400px">
+                    <div class="modal-header">
+                        <span class="modal-title" id="stage-form-title">Novo Estágio</span>
+                        <button class="modal-close" onclick="closeStageFormModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="stage-form-id">
+                        <input type="hidden" id="stage-form-pipeline-id">
+                        <div class="input-group"><label class="input-label">Nome *</label><input type="text" class="input" id="stage-form-name" placeholder="Ex: Lead"></div>
+                        <div class="input-group"><label class="input-label">Cor</label><input type="color" class="input" id="stage-form-color" value="#3b9eff" style="height:40px;padding:4px"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeStageFormModal()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="saveStage()">Salvar</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -352,6 +408,134 @@ async function logout(){
     window.location.href='/login';
 }
 loadUserInfo();
+
+// ── Pipeline Management ──
+let allPipelines=[];
+
+function openPipelinesModal(){
+    document.getElementById('pipelines-modal').classList.add('active');
+    loadPipelinesList();
+}
+function closePipelinesModal(){document.getElementById('pipelines-modal').classList.remove('active')}
+function openNewPipelineModal(){
+    document.getElementById('pipeline-form-title').textContent='Nova Pipeline';
+    document.getElementById('pipeline-form-id').value='';
+    document.getElementById('pipeline-form-name').value='';
+    document.getElementById('pipeline-form-modal').classList.add('active');
+}
+function closePipelineFormModal(){document.getElementById('pipeline-form-modal').classList.remove('active')}
+function openNewStageModal(pipelineId){
+    document.getElementById('stage-form-title').textContent='Novo Estágio';
+    document.getElementById('stage-form-id').value='';
+    document.getElementById('stage-form-pipeline-id').value=pipelineId;
+    document.getElementById('stage-form-name').value='';
+    document.getElementById('stage-form-color').value='#3b9eff';
+    document.getElementById('stage-form-modal').classList.add('active');
+}
+function closeStageFormModal(){document.getElementById('stage-form-modal').classList.remove('active')}
+
+async function loadPipelinesList(){
+    try{
+        const r=await api('/crm/pipelines');
+        allPipelines=r.pipelines||r||[];
+        renderPipelinesList();
+    }catch(e){showToast('Erro ao carregar pipelines','error')}
+}
+
+function renderPipelinesList(){
+    const el=document.getElementById('pipelines-list');
+    if(!allPipelines.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Nenhuma pipeline encontrada</div>';return}
+    el.innerHTML=allPipelines.map(p=>{
+        const stages=(p.stages||[]).map(s=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface);border-radius:8px;margin:4px 0">
+                <span style="color:${s.color}">●</span>
+                <span style="flex:1;font-size:13px">${s.name}</span>
+                <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="editStage('${s.id}','${s.name.replace(/'/g,"\\'")}','${s.color}','${p.id}')">✏️</button>
+                <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;color:var(--red)" onclick="deleteStage('${s.id}')">🗑️</button>
+            </div>
+        `).join('');
+        return `
+            <div style="border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;background:var(--surface)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                    <h4 style="font-size:15px">${p.name}</h4>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-ghost btn-sm" onclick="editPipeline('${p.id}','${p.name.replace(/'/g,"\\'")}')">✏️</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deletePipeline('${p.id}','${p.name.replace(/'/g,"\\'")}')">🗑️</button>
+                    </div>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${(p.stages||[]).length} estágios · ${(p.total_deals||0)} deals</div>
+                <div>${stages}</div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="openNewStageModal('${p.id}')">+ Novo Estágio</button>
+            </div>
+        `;
+    }).join('');
+}
+
+async function savePipeline(){
+    const id=document.getElementById('pipeline-form-id').value;
+    const name=document.getElementById('pipeline-form-name').value.trim();
+    if(!name)return showToast('Informe o nome','error');
+    try{
+        if(id){await api(`/crm/pipelines/${id}`,'PUT',{name})}
+        else{await api('/crm/pipelines','POST',{name})}
+        closePipelineFormModal();
+        loadPipelinesList();
+        loadPipeline();
+        showToast(id?'Pipeline atualizada!':'Pipeline criada!');
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
+function editPipeline(id,name){
+    document.getElementById('pipeline-form-title').textContent='Editar Pipeline';
+    document.getElementById('pipeline-form-id').value=id;
+    document.getElementById('pipeline-form-name').value=name;
+    document.getElementById('pipeline-form-modal').classList.add('active');
+}
+
+async function deletePipeline(id,name){
+    if(!confirm('Excluir a pipeline "'+name+'"? Os estágios serão removidos também.'))return;
+    try{
+        await api(`/crm/pipelines/${id}`,'DELETE');
+        loadPipelinesList();
+        loadPipeline();
+        showToast('Pipeline excluída!');
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
+async function saveStage(){
+    const id=document.getElementById('stage-form-id').value;
+    const pipelineId=document.getElementById('stage-form-pipeline-id').value;
+    const name=document.getElementById('stage-form-name').value.trim();
+    const color=document.getElementById('stage-form-color').value;
+    if(!name)return showToast('Informe o nome','error');
+    try{
+        if(id){await api(`/crm/stages/${id}`,'PUT',{name,color})}
+        else{await api(`/crm/pipelines/${pipelineId}/stages`,'POST',{name,color,position:99})}
+        closeStageFormModal();
+        loadPipelinesList();
+        loadPipeline();
+        showToast(id?'Estágio atualizado!':'Estágio criado!');
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
+function editStage(id,name,color,pipelineId){
+    document.getElementById('stage-form-title').textContent='Editar Estágio';
+    document.getElementById('stage-form-id').value=id;
+    document.getElementById('stage-form-pipeline-id').value=pipelineId;
+    document.getElementById('stage-form-name').value=name;
+    document.getElementById('stage-form-color').value=color;
+    document.getElementById('stage-form-modal').classList.add('active');
+}
+
+async function deleteStage(id){
+    if(!confirm('Excluir este estágio?'))return;
+    try{
+        await api(`/crm/stages/${id}`,'DELETE');
+        loadPipelinesList();
+        loadPipeline();
+        showToast('Estágio excluído!');
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
 </script>
 </body>
 </html>

@@ -40,6 +40,11 @@ class StageUpdate(BaseModel):
     color: Optional[str] = None
 
 
+class PipelineUpdate(BaseModel):
+    name: Optional[str] = None
+    is_default: Optional[bool] = None
+
+
 # ── Routes ──────────────────────────────────────────────────────
 
 @router.get("/pipelines")
@@ -125,6 +130,44 @@ async def create_pipeline(pipeline: PipelineCreate):
 
     logger.info(f"Pipeline criada: {created.get('id')} ({pipeline.name})")
     return created
+
+
+@router.put("/pipelines/{pipeline_id}")
+async def update_pipeline(pipeline_id: str, pipeline: PipelineUpdate):
+    """Atualiza uma pipeline existente."""
+    ensure_supabase()
+
+    rows = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Pipeline não encontrada")
+
+    data = {k: v for k, v in pipeline.model_dump().items() if v is not None}
+    if not data:
+        raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+
+    await update(PIPELINES_TABLE, data, filters={"id": pipeline_id})
+
+    updated = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
+    logger.info(f"Pipeline atualizada: {pipeline_id}")
+    return updated[0]
+
+
+@router.delete("/pipelines/{pipeline_id}")
+async def delete_pipeline(pipeline_id: str):
+    """Deleta uma pipeline e todos seus stages."""
+    ensure_supabase()
+
+    rows = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Pipeline não encontrada")
+
+    stages = await select(STAGES_TABLE, filters={"pipeline_id": pipeline_id})
+    for stage in (stages or []):
+        await delete(STAGES_TABLE, filters={"id": stage["id"]})
+
+    await delete(PIPELINES_TABLE, filters={"id": pipeline_id})
+    logger.info(f"Pipeline deletada: {pipeline_id} ({len(stages or [])} stages removidos)")
+    return {"deleted": True, "id": pipeline_id, "stages_removed": len(stages or [])}
 
 
 @router.post("/pipelines/{pipeline_id}/stages", status_code=201)
