@@ -1,0 +1,35 @@
+:root {
+    /* ── Cores Base ── */
+    --bg: #0b0b0c;
+    --surface: #0b0e14;
+    --card: #13161a;
+    --elevated: #1a1d21;
+    --border: #292d30;
+    --border-hover: #464a4d;
+
+    /* ── Texto ── */
+    --text: #fff;
+    --text2: #a1a4a5;
+    --muted: #6e727a;
+
+    /* ── Accent ── */
+    --accent: #3b9eff;
+    --accent2: #5aadff;
+    --accent-hover: #2d8ae6;
+
+    /* ── Status ── */
+    --green: #34c759;
+    --red: #ff453a;
+    --yellow: #ffd60a;
+    --orange: #ff9500;
+
+    /* ── Border Radius ── */
+    --r: 12px;
+    --rl: 16px;
+    --radius: 12px;
+    --radius-lg: 16px;
+
+    /* ── Sidebar ── */
+    --menu-w: 60px;
+    --menu-expanded: 220px;
+}
