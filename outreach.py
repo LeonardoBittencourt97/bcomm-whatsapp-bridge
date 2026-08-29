@@ -10,7 +10,7 @@ import json
 import logging
 
 from services.database import get_supabase, select, upsert, update, insert
-from routes.deps import get_current_user
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,11 @@ async def start_outreach(http_request: Request, request: OutreachStartRequest):
         "messages_received": 0,
     }
 
+    if not is_unrestricted(user):
+        org_ids = await get_user_org_ids(user["id"])
+        if org_ids:
+            task["organization_id"] = list(org_ids)[0]
+
     # Insert task into Supabase
     result = await insert(TABLE_OUTREACH, task)
     if result is None:
@@ -107,17 +112,20 @@ async def start_outreach(http_request: Request, request: OutreachStartRequest):
 @router.get("/list")
 async def list_outreach_tasks(http_request: Request, status: Optional[str] = None):
     user = await get_current_user(http_request)
+    filters = {}
     if status:
-        tasks = await select(TABLE_OUTREACH, filters={"status": status}, order="created_at.desc")
-    else:
-        tasks = await select(TABLE_OUTREACH, order="created_at.desc")
+        filters["status"] = status
+    filters = await apply_org_filter(user, filters, http_request)
+    tasks = await select(TABLE_OUTREACH, filters=filters if filters else None, order="created_at.desc")
     return {"tasks": tasks, "total": len(tasks)}
 
 
 @router.get("/stats/summary")
 async def get_outreach_stats(http_request: Request):
     user = await get_current_user(http_request)
-    all_tasks = await select(TABLE_OUTREACH, columns="status")
+    filters = {}
+    filters = await apply_org_filter(user, filters, http_request)
+    all_tasks = await select(TABLE_OUTREACH, filters=filters if filters else None, columns="status")
     statuses = [t["status"] for t in all_tasks]
     return {
         "total": len(statuses),
@@ -137,7 +145,16 @@ async def get_outreach_task(http_request: Request, task_id: str):
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
-    return tasks[0]
+
+    task = tasks[0]
+    if not is_unrestricted(user):
+        task_org = task.get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
+
+    return task
 
 
 @router.put("/{task_id}")
@@ -146,6 +163,13 @@ async def update_outreach_task(http_request: Request, task_id: str, request: Out
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+
+    if not is_unrestricted(user):
+        task_org = tasks[0].get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
 
     update_data = {"updated_at": datetime.now().isoformat()}
     if request.status:
@@ -164,6 +188,13 @@ async def cancel_outreach_task(http_request: Request, task_id: str):
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
+    if not is_unrestricted(user):
+        task_org = tasks[0].get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
+
     update_data = {
         "status": "cancelled",
         "updated_at": datetime.now().isoformat(),
@@ -180,6 +211,13 @@ async def stop_outreach_task(http_request: Request, task_id: str, reason: str = 
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
     task = tasks[0]
+    if not is_unrestricted(user):
+        task_org = task.get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
+
     now = datetime.now().isoformat()
     update_data = {
         "status": "cancelled",
@@ -217,6 +255,13 @@ async def send_command_to_agent(http_request: Request, task_id: str, command: st
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
+    if not is_unrestricted(user):
+        task_org = tasks[0].get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
+
     now = datetime.now().isoformat()
     update_data = {
         "last_command": command,
@@ -233,6 +278,13 @@ async def update_task_instructions(http_request: Request, task_id: str, instruct
     tasks = await select(TABLE_OUTREACH, filters={"id": task_id})
     if not tasks:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+
+    if not is_unrestricted(user):
+        task_org = tasks[0].get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
 
     now = datetime.now().isoformat()
     update_data = {
@@ -251,6 +303,13 @@ async def pause_outreach_task(http_request: Request, task_id: str):
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
     task = tasks[0]
+    if not is_unrestricted(user):
+        task_org = task.get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
+
     now = datetime.now().isoformat()
 
     # Update task status
@@ -285,6 +344,13 @@ async def resume_outreach_task(http_request: Request, task_id: str):
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
     task = tasks[0]
+    if not is_unrestricted(user):
+        task_org = task.get("organization_id")
+        if task_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if task_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta tarefa")
+
     now = datetime.now().isoformat()
 
     # Update task status

@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, ensure_supabase
-from routes.deps import get_current_user
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 logger = logging.getLogger(__name__)
@@ -86,6 +86,8 @@ async def get_leads(
     if segment:
         filters["segment"] = segment
 
+    filters = await apply_org_filter(user, filters, http_request)
+
     leads = await select(
         LEADS_TABLE,
         filters=filters if filters else None,
@@ -111,7 +113,16 @@ async def get_lead(http_request: Request, lead_id: str):
     rows = await select(LEADS_TABLE, filters={"id": lead_id})
     if not rows:
         raise HTTPException(status_code=404, detail="Lead não encontrado")
-    return rows[0]
+
+    lead = rows[0]
+    if not is_unrestricted(user):
+        lead_org = lead.get("organization_id")
+        if lead_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if lead_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a este lead")
+
+    return lead
 
 
 @router.post("/leads/{lead_id}/approve")
@@ -120,15 +131,23 @@ async def approve_lead(http_request: Request, lead_id: str):
     user = await get_current_user(http_request)
     ensure_supabase()
 
+    rows = await select(LEADS_TABLE, filters={"id": lead_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+
+    if not is_unrestricted(user):
+        lead_org = rows[0].get("organization_id")
+        if lead_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if lead_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a este lead")
+
     now = datetime.utcnow().isoformat()
     result = await update(
         LEADS_TABLE,
         filters={"id": lead_id},
         data={"status": "approved", "updated_at": now},
     )
-
-    if not result:
-        raise HTTPException(status_code=404, detail="Lead não encontrado")
 
     return {"status": "approved", "lead": result[0] if result else None}
 
@@ -139,15 +158,23 @@ async def reject_lead(http_request: Request, lead_id: str, reason: str = ""):
     user = await get_current_user(http_request)
     ensure_supabase()
 
+    rows = await select(LEADS_TABLE, filters={"id": lead_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+
+    if not is_unrestricted(user):
+        lead_org = rows[0].get("organization_id")
+        if lead_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if lead_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a este lead")
+
     now = datetime.utcnow().isoformat()
     result = await update(
         LEADS_TABLE,
         filters={"id": lead_id},
         data={"status": "rejected", "reject_reason": reason, "updated_at": now},
     )
-
-    if not result:
-        raise HTTPException(status_code=404, detail="Lead não encontrado")
 
     return {"status": "rejected", "lead": result[0] if result else None}
 
@@ -158,15 +185,23 @@ async def send_lead(http_request: Request, lead_id: str):
     user = await get_current_user(http_request)
     ensure_supabase()
 
+    rows = await select(LEADS_TABLE, filters={"id": lead_id})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+
+    if not is_unrestricted(user):
+        lead_org = rows[0].get("organization_id")
+        if lead_org:
+            org_ids = await get_user_org_ids(user["id"])
+            if lead_org not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a este lead")
+
     now = datetime.utcnow().isoformat()
     result = await update(
         LEADS_TABLE,
         filters={"id": lead_id},
         data={"status": "sent", "sent_at": now, "updated_at": now},
     )
-
-    if not result:
-        raise HTTPException(status_code=404, detail="Lead não encontrado")
 
     # TODO: Enviar via Evolution API
 
