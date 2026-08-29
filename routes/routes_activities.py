@@ -114,8 +114,9 @@ async def create_activity(request: Request, activity: ActivityCreate):
 
 
 @router.put("/activities/{activity_id}")
-async def update_activity(activity_id: str, activity: ActivityUpdate):
+async def update_activity(request: Request, activity_id: str, activity: ActivityUpdate):
     """Atualiza uma atividade existente."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(TABLE, filters={"id": activity_id})
@@ -134,8 +135,9 @@ async def update_activity(activity_id: str, activity: ActivityUpdate):
 
 
 @router.put("/activities/{activity_id}/complete")
-async def complete_activity(activity_id: str):
+async def complete_activity(request: Request, activity_id: str):
     """Marca uma atividade como concluída."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(TABLE, filters={"id": activity_id})
@@ -154,8 +156,9 @@ async def complete_activity(activity_id: str):
 
 
 @router.delete("/activities/{activity_id}")
-async def delete_activity(activity_id: str):
+async def delete_activity(request: Request, activity_id: str):
     """Deleta uma atividade."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(TABLE, filters={"id": activity_id})

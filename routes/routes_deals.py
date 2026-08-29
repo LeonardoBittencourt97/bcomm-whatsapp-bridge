@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 
 from services.database import select, insert, update, delete, ensure_supabase
-from routes.deps import get_current_user
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ async def list_deals(
             filters["status"] = status
         if owner_id:
             filters["owner_id"] = owner_id
+        filters = await apply_org_filter(user, filters)
             
         result = await select(
             table="deals",
@@ -71,6 +72,13 @@ async def get_deal(request: Request, deal_id: str):
         
         if not result or len(result) == 0:
             raise HTTPException(status_code=404, detail="Deal not found")
+
+        if not is_unrestricted(user):
+            deal_org = result[0].get("organization_id")
+            if deal_org:
+                org_ids = await get_user_org_ids(user["id"])
+                if deal_org not in org_ids:
+                    raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
             
         return {
             "status": "success",
@@ -91,6 +99,11 @@ async def create_deal(request: Request, data: dict):
     try:
         ensure_supabase()
         
+        if not is_unrestricted(user):
+            org_ids = await get_user_org_ids(user["id"])
+            if org_ids:
+                data["organization_id"] = data.get("organization_id") or list(org_ids)[0]
+
         # Add timestamps and default status
         data["created_at"] = datetime.utcnow().isoformat()
         data["updated_at"] = datetime.utcnow().isoformat()
@@ -120,6 +133,15 @@ async def update_deal(request: Request, deal_id: str, data: dict):
     user = await get_current_user(request)
     try:
         ensure_supabase()
+
+        if not is_unrestricted(user):
+            existing = await select(table="deals", filters={"id": deal_id})
+            if existing:
+                deal_org = existing[0].get("organization_id")
+                if deal_org:
+                    org_ids = await get_user_org_ids(user["id"])
+                    if deal_org not in org_ids:
+                        raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
         
         # Add updated timestamp
         data["updated_at"] = datetime.utcnow().isoformat()
@@ -247,6 +269,15 @@ async def delete_deal(request: Request, deal_id: str):
     user = await get_current_user(request)
     try:
         ensure_supabase()
+
+        if not is_unrestricted(user):
+            existing = await select(table="deals", filters={"id": deal_id})
+            if existing:
+                deal_org = existing[0].get("organization_id")
+                if deal_org:
+                    org_ids = await get_user_org_ids(user["id"])
+                    if deal_org not in org_ids:
+                        raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
         
         result = await delete(
             table="deals",

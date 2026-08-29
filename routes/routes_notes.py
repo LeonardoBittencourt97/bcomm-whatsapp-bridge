@@ -6,10 +6,11 @@ import logging
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, delete, ensure_supabase
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 logger = logging.getLogger("bridge")
 
@@ -35,12 +36,14 @@ class NoteUpdate(BaseModel):
 
 @router.get("/notes")
 async def list_notes(
+    request: Request,
     entity_type: Optional[str] = None,
     entity_id: Optional[str] = None,
     limit: int = Query(default=50, le=200),
     offset: int = Query(default=0, ge=0),
 ):
     """Lista notas com filtros opcionais por entidade."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     filters = {}
@@ -48,6 +51,7 @@ async def list_notes(
         filters["entity_type"] = entity_type
     if entity_id:
         filters["entity_id"] = entity_id
+    filters = await apply_org_filter(user, filters)
 
     rows = await select(
         TABLE,
@@ -67,11 +71,16 @@ async def list_notes(
 
 
 @router.post("/notes", status_code=201)
-async def create_note(note: NoteCreate):
+async def create_note(request: Request, note: NoteCreate):
     """Cria uma nova nota."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     data = note.model_dump()
+    if not is_unrestricted(user):
+        org_ids = await get_user_org_ids(user["id"])
+        if org_ids:
+            data["organization_id"] = data.get("organization_id") or list(org_ids)[0]
     now = datetime.now().isoformat()
     data["created_at"] = now
     data["updated_at"] = now
@@ -84,8 +93,9 @@ async def create_note(note: NoteCreate):
 
 
 @router.put("/notes/{note_id}")
-async def update_note(note_id: str, note: NoteUpdate):
+async def update_note(request: Request, note_id: str, note: NoteUpdate):
     """Atualiza uma nota existente."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(TABLE, filters={"id": note_id})
@@ -105,8 +115,9 @@ async def update_note(note_id: str, note: NoteUpdate):
 
 
 @router.delete("/notes/{note_id}")
-async def delete_note(note_id: str):
+async def delete_note(request: Request, note_id: str):
     """Deleta uma nota."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(TABLE, filters={"id": note_id})

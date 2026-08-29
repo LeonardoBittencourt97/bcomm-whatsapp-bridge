@@ -37,6 +37,16 @@
         .search-trigger:hover{border-color:var(--accent);color:var(--text2)}
         .search-trigger .shortcut{margin-left:auto;font-size:11px;background:var(--elevated);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
         .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+        .org-selector{position:relative;display:flex;align-items:center}
+        .org-select-btn{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+        .org-select-btn:hover{border-color:var(--accent)}
+        .org-select-btn .org-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+        .org-dropdown{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+        .org-dropdown.show{display:block}
+        .org-dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:var(--text2);font-size:13px;transition:background .15s}
+        .org-dropdown-item:hover{background:var(--surface);color:var(--text)}
+        .org-dropdown-item.active{color:var(--accent);font-weight:500}
+        .org-dropdown-divider{height:1px;background:var(--border)}
         .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;position:relative}
         .user-menu-wrap{position:relative;display:inline-block}
         .user-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3)}
@@ -124,6 +134,16 @@
         <div class="topbar">
             <div class="search-trigger"><span>🔍</span><span>Buscar contatos, deals, mensagens...</span><span class="shortcut">Ctrl+K</span></div>
             <div class="topbar-right">
+            <div class="org-selector" id="org-selector" style="display:none">
+                <button class="org-select-btn" onclick="toggleOrgDropdown()">
+                    <span class="org-dot"></span>
+                    <span id="org-current-name">Todas</span>
+                    <span style="font-size:10px">▼</span>
+                </button>
+                <div class="org-dropdown" id="org-dropdown">
+                    <div class="org-dropdown-item active" onclick="selectOrg(null)">Todas</div>
+                </div>
+            </div>
             <div class="user-menu-wrap">
                 <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()">U</div>
                 <div class="user-menu" id="user-menu">
@@ -392,7 +412,57 @@ async function loadUserInfo(){
             if(usersNavItem&&role!=='master'&&role!=='admin_geral'){usersNavItem.style.display='none'}
         }
     }catch(e){window.location.href='/login'}
+    loadUserOrgs();
 }
+let userOrgs = [];
+let selectedOrgId = null;
+
+function toggleOrgDropdown(){
+    const d = document.getElementById('org-dropdown');
+    d.classList.toggle('show');
+    const close = (e) => { if (!d.contains(e.target) && !e.target.closest('.org-select-btn')) { d.classList.remove('show'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+async function loadUserOrgs() {
+    try {
+        const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { window.location.href = '/login'; return; }
+        const data = await r.json();
+        if (r.ok && data.user) {
+            userOrgs = data.organizations || [];
+            const cookies = document.cookie.split(';');
+            for (const c of cookies) {
+                const [name, val] = c.trim().split('=');
+                if (name === 'bcomm_org_id') { selectedOrgId = decodeURIComponent(val) || null; break; }
+            }
+            renderOrgSelector();
+        }
+    } catch (e) {}
+}
+
+function renderOrgSelector() {
+    const selector = document.getElementById('org-selector');
+    if (!selector) return;
+    if (userOrgs.length <= 1) { selector.style.display = 'none'; return; }
+    selector.style.display = 'flex';
+    const dd = document.getElementById('org-dropdown');
+    dd.innerHTML = '<div class="org-dropdown-item ' + (!selectedOrgId ? 'active' : '') + '" onclick="selectOrg(null)">Todas</div><div class="org-dropdown-divider"></div>';
+    dd.innerHTML += userOrgs.map(o => '<div class="org-dropdown-item ' + (selectedOrgId === o.id ? 'active' : '') + '" onclick="selectOrg(\'' + o.id + '\')">' + (o.name || o.id) + '</div>').join('');
+    document.getElementById('org-current-name').textContent = selectedOrgId ? (userOrgs.find(o => o.id === selectedOrgId) || {}).name || 'Org' : 'Todas';
+}
+
+async function selectOrg(orgId) {
+    document.getElementById('org-dropdown').classList.remove('show');
+    try {
+        await fetch('/crm/auth/select-org', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ organization_id: orgId })
+        });
+    } catch (e) {}
+    window.location.reload();
+}
+
 function toggleUserMenu(){
     const m=document.getElementById('user-menu');
     m.classList.toggle('show');

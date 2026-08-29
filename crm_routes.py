@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from config import settings
 from services.evolution import EvolutionClient
 from services.database import get_supabase, get_client, select, insert, update, upsert, delete
-from routes.deps import get_current_user, apply_org_filter
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,25 @@ async def _get_messages(conversation_id: str, limit: int = 100) -> list:
         limit=limit,
     )
     return rows or []
+
+
+async def _check_conversation_access(conv: dict, user: dict):
+    """Verifica se o usuário tem acesso à organização da conversa."""
+    if is_unrestricted(user):
+        return
+    org_ids = await get_user_org_ids(user["id"])
+    conv_org = conv.get("organization_id")
+    if conv_org and conv_org not in org_ids:
+        raise HTTPException(status_code=403, detail="Sem acesso a esta conversa")
+
+
+async def _assign_org_to_conversation(conv_id: str, user: dict):
+    """Atribui organization_id à conversa baseado no org do usuário (se não restrito)."""
+    if is_unrestricted(user):
+        return
+    org_ids = await get_user_org_ids(user["id"])
+    if org_ids:
+        await update(CONVERSATIONS_TABLE, {"organization_id": list(org_ids)[0]}, filters={"id": conv_id})
 
 
 # ── Audio Storage (in-memory with size limit) ─────────────────
@@ -242,7 +261,7 @@ async def transcribe_message(msg_id: str):
 
 
 @router.get("/search")
-async def search_messages(q: str, phone: Optional[str] = None, limit: int = Query(default=50, le=200)):
+async def search_messages(q: str, http_request: Request, phone: Optional[str] = None, limit: int = Query(default=50, le=200)):
     """
     Busca mensagens por texto (inclui transcrições de áudio).
 
@@ -252,6 +271,8 @@ async def search_messages(q: str, phone: Optional[str] = None, limit: int = Quer
     - limit: Limite de resultados (default: 50)
     """
     _ensure_supabase()
+    user = await get_current_user(http_request)
+    user_org_ids = set() if is_unrestricted(user) else await get_user_org_ids(user["id"])
 
     # Search in messages table
     all_msgs = await select(MESSAGES_TABLE, order="created_at.desc", limit=500)
@@ -283,7 +304,14 @@ async def search_messages(q: str, phone: Optional[str] = None, limit: int = Quer
         if q.lower() in content.lower():
             # Get conversation info for context
             conv = await select(CONVERSATIONS_TABLE, filters={"id": msg.get("conversation_id", "")})
-            phone_num = conv[0].get("phone", "") if conv else ""
+            if not conv:
+                continue
+            # Filter by user's orgs
+            if not is_unrestricted(user) and user_org_ids:
+                conv_org = conv[0].get("organization_id")
+                if conv_org and conv_org not in user_org_ids:
+                    continue
+            phone_num = conv[0].get("phone", "")
             results.append({
                 "message_id": msg.get("message_id", ""),
                 "phone": phone_num,
@@ -475,9 +503,11 @@ async def get_conversations(
 
 
 @router.get("/conversations/{phone}")
-async def get_conversation(phone: str):
+async def get_conversation(phone: str, http_request: Request):
     """Retorna conversa específica"""
+    user = await get_current_user(http_request)
     conv = await _get_or_create_conversation(phone)
+    await _check_conversation_access(conv, user)
 
     # Buscar mensagens
     messages = await _get_messages(conv["id"])
@@ -487,15 +517,17 @@ async def get_conversation(phone: str):
 
 
 @router.get("/conversations/{phone}/messages")
-async def get_messages(phone: str, limit: int = 100):
+async def get_messages(phone: str, http_request: Request, limit: int = 100):
     """Retorna mensagens da conversa"""
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
     rows = await select(CONVERSATIONS_TABLE, filters={"phone": phone})
     if not rows:
         raise HTTPException(status_code=404, detail="Conversa não encontrada")
 
     conv = rows[0]
+    await _check_conversation_access(conv, user)
     # Buscar últimas N mensagens (mais recentes primeiro), depois inverter para ordem cronológica
     all_msgs = await _get_messages(conv["id"], limit=1000)
     recent = all_msgs[-limit:] if len(all_msgs) > limit else all_msgs
@@ -508,14 +540,20 @@ async def get_messages(phone: str, limit: int = 100):
 
 
 @router.post("/conversations/{phone}/send")
-async def send_message(phone: str, request: SendMessageRequest):
+async def send_message(phone: str, body: SendMessageRequest, http_request: Request):
     """Envia mensagem manual para o cliente via Evolution API"""
+    user = await get_current_user(http_request)
     conv = await _get_or_create_conversation(phone)
+    await _check_conversation_access(conv, user)
+
+    # Auto-assign organization_id para conversas novas
+    if not conv.get("organization_id"):
+        await _assign_org_to_conversation(conv["id"], user)
 
     # Enviar via Evolution API
     result = await evolution_client.send_text(
         to_number=phone,
-        message=request.content,
+        message=body.content,
         instance=settings.evolution_instance,
     )
 
@@ -527,7 +565,7 @@ async def send_message(phone: str, request: SendMessageRequest):
     message = await _insert_message(
         conversation_id=conv["id"],
         sender="manual",
-        content=request.content,
+        content=body.content,
         responded=True,
         message_id=result.get("message_id", ""),
     )
@@ -612,15 +650,17 @@ async def agent_response(phone: str, request: SendMessageRequest, model: str = "
 
 
 @router.post("/conversations/{phone}/pause")
-async def pause_conversation(phone: str):
+async def pause_conversation(phone: str, http_request: Request):
     """Pausa agente na conversa e salva contexto das últimas mensagens"""
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
     rows = await select(CONVERSATIONS_TABLE, filters={"phone": phone})
     if not rows:
         raise HTTPException(status_code=404, detail="Conversa não encontrada")
 
     conv = rows[0]
+    await _check_conversation_access(conv, user)
     
     # Carregar últimas mensagens para contexto
     messages = await _get_messages(conv["id"], limit=20)
@@ -644,15 +684,17 @@ async def pause_conversation(phone: str):
 
 
 @router.post("/conversations/{phone}/resume")
-async def resume_conversation(phone: str):
+async def resume_conversation(phone: str, http_request: Request):
     """Retoma agente na conversa com contexto das últimas mensagens"""
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
     rows = await select(CONVERSATIONS_TABLE, filters={"phone": phone})
     if not rows:
         raise HTTPException(status_code=404, detail="Conversa não encontrada")
 
     conv = rows[0]
+    await _check_conversation_access(conv, user)
     pause_context = conv.get("pause_context", "")
     
     # Carregar últimas mensagens para contexto atualizado
@@ -680,13 +722,17 @@ async def resume_conversation(phone: str):
 
 
 @router.post("/conversations/{phone}/close")
-async def close_conversation(phone: str):
+async def close_conversation(phone: str, http_request: Request):
     """Encerra conversa"""
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
     rows = await select(CONVERSATIONS_TABLE, filters={"phone": phone})
     if not rows:
         raise HTTPException(status_code=404, detail="Conversa não encontrada")
+
+    conv = rows[0]
+    await _check_conversation_access(conv, user)
 
     now = datetime.now().isoformat()
     await update(CONVERSATIONS_TABLE, {
@@ -739,12 +785,14 @@ async def get_summary(phone: str):
 
 
 @router.get("/stats")
-async def get_stats():
+async def get_stats(http_request: Request):
     """Retorna estatísticas gerais do CRM"""
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
-    # Buscar todas as conversas
-    all_convs = await select(CONVERSATIONS_TABLE)
+    # Buscar conversas com filtro de org
+    conv_filters = await apply_org_filter(user, {})
+    all_convs = await select(CONVERSATIONS_TABLE, filters=conv_filters if conv_filters else None)
     conv_list = all_convs or []
 
     # Stats
@@ -795,12 +843,13 @@ async def get_pipeline_stages():
 
 
 @router.post("/pipeline/stages")
-async def create_pipeline_stage(body: PipelineStageCreate):
+async def create_pipeline_stage(body: PipelineStageCreate, http_request: Request):
     """
     Cria um novo estágio no pipeline.
     O campo 'id' é obrigatório (ex: "lead", "qualified").
     """
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
     now = datetime.now().isoformat()
     stage_data = {
@@ -810,6 +859,13 @@ async def create_pipeline_stage(body: PipelineStageCreate):
         "color": body.color,
         "created_at": now,
     }
+
+    # Auto-assign organization_id para usuários não restritos
+    if not is_unrestricted(user):
+        org_ids = await get_user_org_ids(user["id"])
+        if org_ids:
+            stage_data["organization_id"] = list(org_ids)[0]
+
     result = await insert(PIPELINE_STAGES_TABLE, stage_data)
     if result is None:
         raise HTTPException(status_code=400, detail="Erro ao criar estágio (verifique se o id já existe)")
@@ -855,6 +911,7 @@ async def delete_pipeline_stage(stage_id: str):
 
 @router.get("/pipelines/deals")
 async def get_deals(
+    http_request: Request,
     stage: Optional[str] = None,
     search: Optional[str] = None,
     limit: int = Query(default=100, le=500),
@@ -869,11 +926,13 @@ async def get_deals(
     - limit / offset: paginação
     """
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
     # Buscar deals com filtros básicos
     filters = {}
     if stage:
         filters["stage"] = stage
+    filters = await apply_org_filter(user, filters)
 
     all_deals = await select(
         DEALS_TABLE,
@@ -905,9 +964,10 @@ async def get_deals(
 
 
 @router.post("/pipelines/deals")
-async def create_deal(body: DealCreate):
+async def create_deal(body: DealCreate, http_request: Request):
     """Cria um novo deal no pipeline."""
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
     now = datetime.now().isoformat()
 
@@ -925,6 +985,12 @@ async def create_deal(body: DealCreate):
         "created_at": now,
         "updated_at": now,
     }
+
+    # Auto-assign organization_id para usuários não restritos
+    if not is_unrestricted(user):
+        org_ids = await get_user_org_ids(user["id"])
+        if org_ids:
+            deal_data["organization_id"] = list(org_ids)[0]
 
     result = await insert(DEALS_TABLE, deal_data)
     if result is None:
@@ -988,7 +1054,7 @@ async def delete_deal(deal_id: str):
 
 
 @router.get("/pipelines/stats")
-async def get_pipeline_stats():
+async def get_pipeline_stats(http_request: Request):
     """
     Retorna estatísticas gerais do pipeline:
     - Total de deals, por estágio
@@ -997,8 +1063,10 @@ async def get_pipeline_stats():
     - Taxa de conversão
     """
     _ensure_supabase()
+    user = await get_current_user(http_request)
 
-    all_deals = await select(DEALS_TABLE) or []
+    deal_filters = await apply_org_filter(user, {})
+    all_deals = await select(DEALS_TABLE, filters=deal_filters if deal_filters else None) or []
     stages = await select(PIPELINE_STAGES_TABLE, order="position.asc") or []
 
     # Deals por estágio (campo 'stage' no banco)

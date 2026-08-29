@@ -67,6 +67,13 @@ async def get_contact(request: Request, contact_id: str):
         
         if not result or len(result) == 0:
             raise HTTPException(status_code=404, detail="Contact not found")
+
+        if not is_unrestricted(user):
+            contact_org = result[0].get("organization_id")
+            if contact_org:
+                org_ids = await get_user_org_ids(user["id"])
+                if contact_org not in org_ids:
+                    raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
             
         return {
             "status": "success",
@@ -119,6 +126,15 @@ async def update_contact(request: Request, contact_id: str, data: dict):
     user = await get_current_user(request)
     try:
         ensure_supabase()
+
+        if not is_unrestricted(user):
+            existing = await select(table="contacts", filters={"id": contact_id})
+            if existing:
+                contact_org = existing[0].get("organization_id")
+                if contact_org:
+                    org_ids = await get_user_org_ids(user["id"])
+                    if contact_org not in org_ids:
+                        raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
         
         # Add updated timestamp
         data["updated_at"] = datetime.utcnow().isoformat()
@@ -150,6 +166,15 @@ async def delete_contact(request: Request, contact_id: str):
     user = await get_current_user(request)
     try:
         ensure_supabase()
+
+        if not is_unrestricted(user):
+            existing = await select(table="contacts", filters={"id": contact_id})
+            if existing:
+                contact_org = existing[0].get("organization_id")
+                if contact_org:
+                    org_ids = await get_user_org_ids(user["id"])
+                    if contact_org not in org_ids:
+                        raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
         
         result = await delete(
             table="contacts",

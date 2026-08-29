@@ -339,6 +339,37 @@ async def logout(response: Response):
     return {"status": "ok", "message": "Sessão encerrada"}
 
 
+class SelectOrgRequest(BaseModel):
+    organization_id: Optional[str] = None
+
+
+@router.post("/auth/select-org")
+async def select_org(request: Request, response: Response, body: SelectOrgRequest):
+    """
+    Seleciona organização ativa. Salva em cookie.
+    organization_id = null limpa a seleção.
+    """
+    from routes.deps import ORG_COOKIE, get_user_org_ids, is_unrestricted
+    user = await get_current_user(request)
+
+    if body.organization_id:
+        # Verificar se tem acesso
+        if not is_unrestricted(user):
+            org_ids = await get_user_org_ids(user["id"])
+            if body.organization_id not in org_ids:
+                raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
+
+    response.set_cookie(
+        key=ORG_COOKIE,
+        value=body.organization_id or "",
+        httponly=False,
+        max_age=86400 * 30,
+        samesite="lax",
+    )
+    logger.info(f"Org selecionada: {body.organization_id or 'todas'} por {user['email']}")
+    return {"status": "ok", "organization_id": body.organization_id}
+
+
 @router.get("/auth/me")
 async def get_me(request: Request):
     """

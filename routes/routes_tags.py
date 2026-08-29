@@ -6,10 +6,11 @@ import logging
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, delete, ensure_supabase
+from routes.deps import get_current_user
 
 logger = logging.getLogger("bridge")
 
@@ -29,9 +30,11 @@ class TagCreate(BaseModel):
 
 @router.get("/tags")
 async def list_tags(
+    request: Request,
     limit: int = Query(default=100, le=500),
 ):
     """Lista todas as tags."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(
@@ -47,8 +50,9 @@ async def list_tags(
 
 
 @router.post("/tags", status_code=201)
-async def create_tag(tag: TagCreate):
+async def create_tag(request: Request, tag: TagCreate):
     """Cria uma nova tag."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     # Check for duplicate name
@@ -67,8 +71,9 @@ async def create_tag(tag: TagCreate):
 
 
 @router.delete("/tags/{tag_id}")
-async def delete_tag(tag_id: str):
+async def delete_tag(request: Request, tag_id: str):
     """Deleta uma tag."""
+    user = await get_current_user(request)
     ensure_supabase()
 
     rows = await select(TABLE, filters={"id": tag_id})
