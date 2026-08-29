@@ -6,9 +6,8 @@
   <title>BCOMM — Organizações</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/theme.css">
   <style>
-
+    :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--border:#292d30;--accent:#3b9eff;--accent-hover:#2d8ae6;--text:#fff;--text2:#a1a4a5;--text3:#6e727a;--success:#34c759;--danger:#ff453a;--radius:12px;--radius-lg:16px}
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
     .header{position:sticky;top:0;z-index:100;background:rgba(11,11,12,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
@@ -16,7 +15,7 @@
     .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;text-decoration:none;color:inherit}
     .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
     .nav-tabs{display:flex;gap:4px;background:var(--surface);padding:4px;border-radius:10px}
-    .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;transition:all .15s}
+    .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text3);text-decoration:none;transition:all .15s}
     .nav-tab:hover{color:var(--text2);background:var(--card)}
     .nav-tab.active{background:var(--card);color:var(--text)}
     .user-info{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
@@ -24,29 +23,29 @@
     .main{max-width:1400px;margin:0 auto;padding:32px 24px}
     .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
     .page-title{font-size:28px;font-weight:600}
-    .page-subtitle{font-size:15px;color:var(--muted);margin-top:4px}
+    .page-subtitle{font-size:15px;color:var(--text3);margin-top:4px}
     .btn{padding:10px 20px;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
     .btn-primary{background:var(--accent);color:#fff}
     .btn-primary:hover{background:var(--accent-hover)}
     .btn-secondary{background:transparent;color:var(--text2);border:1px solid var(--border)}
     .btn-secondary:hover{border-color:var(--text2)}
-    .btn-danger{background:transparent;color:var(--red);border:1px solid var(--red)}
-    .btn-danger:hover{background:var(--red);color:#fff}
+    .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+    .btn-danger:hover{background:var(--danger);color:#fff}
     .btn-sm{padding:6px 14px;font-size:12px}
     .btn:disabled{opacity:.5;cursor:not-allowed}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px}
     .org-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;transition:border-color .15s}
     .org-card:hover{border-color:var(--accent)}
     .org-name{font-size:18px;font-weight:600;margin-bottom:4px}
-    .org-cnpj{font-size:13px;color:var(--muted);margin-bottom:16px}
+    .org-cnpj{font-size:13px;color:var(--text3);margin-bottom:16px}
     .org-status{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px}
     .status-dot{width:8px;height:8px;border-radius:50%}
-    .status-dot.on{background:var(--green)}
-    .status-dot.off{background:var(--red)}
+    .status-dot.on{background:var(--success)}
+    .status-dot.off{background:var(--danger)}
     .org-phone{font-size:13px;color:var(--text2);margin-bottom:16px}
-    .org-meta{font-size:12px;color:var(--muted);margin-bottom:16px}
+    .org-meta{font-size:12px;color:var(--text3);margin-bottom:16px}
     .org-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .empty-state{text-align:center;padding:80px 24px;color:var(--muted)}
+    .empty-state{text-align:center;padding:80px 24px;color:var(--text3)}
     .empty-state h3{font-size:18px;color:var(--text2);margin-bottom:8px}
     .empty-state p{font-size:14px;margin-bottom:24px}
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:24px}
@@ -66,12 +65,12 @@
     .qr-status{font-size:14px;color:var(--text2);margin-bottom:16px}
     .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:500;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s}
     .toast.show{transform:translateY(0);opacity:1}
-    .toast.success{background:var(--green);color:#fff}
-    .toast.error{background:var(--red);color:#fff}
+    .toast.success{background:var(--success);color:#fff}
+    .toast.error{background:var(--danger);color:#fff}
     @media(max-width:768px){.grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.nav-tabs{display:none}.page-header{flex-direction:column;align-items:flex-start}}
   
         /* ── Sidebar ── */
-
+        :root{--menu-w:60px;--menu-expanded:220px}
         .app{display:flex;height:100vh}
         .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
         .sidebar.collapsed{width:var(--menu-w)}
@@ -194,10 +193,10 @@
     <div class="modal">
       <h2 class="modal-title">Conectar WhatsApp</h2>
       <div class="qr-container">
-        <div id="qrLoading" style="padding:40px;color:var(--muted)">Gerando QR Code...</div>
+        <div id="qrLoading" style="padding:40px;color:var(--text3)">Gerando QR Code...</div>
         <img id="qrImage" style="display:none" alt="QR Code">
         <p class="qr-status" id="qrStatus">Escaneie o QR Code com seu WhatsApp</p>
-        <div id="qrConnected" style="display:none;color:var(--green);font-weight:600;font-size:16px">✅ WhatsApp Conectado!</div>
+        <div id="qrConnected" style="display:none;color:var(--success);font-weight:600;font-size:16px">✅ WhatsApp Conectado!</div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeQrModal()">Fechar</button>
