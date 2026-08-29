@@ -606,9 +606,17 @@ async def get_paused_contacts(request: Request):
     return {"paused": paused}
 
 @app.post("/admin/transfer-to-human")
-async def transfer_to_human(request: Request, client: str, phone: str, reason: str = ""):
+async def transfer_to_human(request: Request):
     """Transfere contato para atendente humano (pausa automaticamente)."""
     user = await get_current_user(request)
+    body = await request.json()
+    phone = body.get("phone", "")
+    reason = body.get("reason", "")
+    client = body.get("client", settings.evolution_instance)
+
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone é obrigatório")
+
     paused = [c.strip() for c in settings.paused_contacts.split(",") if c.strip()]
     contact_key = f"{client}:{phone}"
     if contact_key not in paused:
