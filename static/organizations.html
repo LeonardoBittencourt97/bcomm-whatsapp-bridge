@@ -1,76 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BCOMM — Organizações</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--border:#292d30;--accent:#3b9eff;--accent-hover:#2d8ae6;--text:#fff;--text2:#a1a4a5;--text3:#6e727a;--success:#34c759;--danger:#ff453a;--radius:12px;--radius-lg:16px}
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-    .header{position:sticky;top:0;z-index:100;background:rgba(11,11,12,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
-    .header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
-    .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;text-decoration:none;color:inherit}
-    .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
-    .nav-tabs{display:flex;gap:4px;background:var(--surface);padding:4px;border-radius:10px}
-    .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text3);text-decoration:none;transition:all .15s}
-    .nav-tab:hover{color:var(--text2);background:var(--card)}
-    .nav-tab.active{background:var(--card);color:var(--text)}
-    .user-info{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
-    .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:#fff}
-    .main{max-width:1400px;margin:0 auto;padding:32px 24px}
-    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
-    .page-title{font-size:28px;font-weight:600}
-    .page-subtitle{font-size:15px;color:var(--text3);margin-top:4px}
-    .btn{padding:10px 20px;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
-    .btn-primary{background:var(--accent);color:#fff}
-    .btn-primary:hover{background:var(--accent-hover)}
-    .btn-secondary{background:transparent;color:var(--text2);border:1px solid var(--border)}
-    .btn-secondary:hover{border-color:var(--text2)}
-    .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
-    .btn-danger:hover{background:var(--danger);color:#fff}
-    .btn-sm{padding:6px 14px;font-size:12px}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px}
-    .org-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;transition:border-color .15s}
-    .org-card:hover{border-color:var(--accent)}
-    .org-name{font-size:18px;font-weight:600;margin-bottom:4px}
-    .org-cnpj{font-size:13px;color:var(--text3);margin-bottom:16px}
-    .org-status{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px}
-    .status-dot{width:8px;height:8px;border-radius:50%}
-    .status-dot.on{background:var(--success)}
-    .status-dot.off{background:var(--danger)}
-    .org-phone{font-size:13px;color:var(--text2);margin-bottom:16px}
-    .org-meta{font-size:12px;color:var(--text3);margin-bottom:16px}
-    .org-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .empty-state{text-align:center;padding:80px 24px;color:var(--text3)}
-    .empty-state h3{font-size:18px;color:var(--text2);margin-bottom:8px}
-    .empty-state p{font-size:14px;margin-bottom:24px}
-    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:24px}
-    .modal-overlay.visible{display:flex}
-    .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
-    .modal-title{font-size:20px;font-weight:600;margin-bottom:24px}
-    .form-group{margin-bottom:16px}
-    .form-label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px}
-    .form-input{width:100%;padding:10px 14px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;outline:none;transition:border-color .15s}
-    .form-input:focus{border-color:var(--accent)}
-    select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a1a4a5'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-    textarea.form-input{min-height:80px;resize:vertical}
-    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .modal-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
-    .qr-container{text-align:center;padding:24px}
-    .qr-container img{max-width:280px;border-radius:12px;border:1px solid var(--border);margin-bottom:16px}
-    .qr-status{font-size:14px;color:var(--text2);margin-bottom:16px}
-    .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:500;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s}
-    .toast.show{transform:translateY(0);opacity:1}
-    .toast.success{background:var(--success);color:#fff}
-    .toast.error{background:var(--danger);color:#fff}
-    @media(max-width:768px){.grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.nav-tabs{display:none}.page-header{flex-direction:column;align-items:flex-start}}
-  
-        /* ── Sidebar ── */
-        :root{--menu-w:60px;--menu-expanded:220px}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM - Organizações</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--elevated:#1a1d21;--border:#292d30;--border-hover:#464a4d;--text:#fff;--text2:#a1a4a5;--muted:#6e727a;--accent:#3b9eff;--accent2:#5aadff;--green:#34c759;--red:#ff453a;--yellow:#ffd60a;--orange:#ff9500;--r:12px;--rl:16px;--menu-w:60px;--menu-expanded:220px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
         .app{display:flex;height:100vh}
         .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
         .sidebar.collapsed{width:var(--menu-w)}
@@ -79,29 +19,73 @@
         .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;transition:opacity .2s}
         .sidebar.collapsed .logo-text{opacity:0}
         .nav-items{flex:1;padding:8px 0;overflow-y:auto}
-        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
-        .nav-item:hover{color:var(--text,#fff);background:var(--card,#13161a)}
-        .nav-item.active{color:var(--accent,#3b9eff);border-left-color:var(--accent,#3b9eff);background:rgba(59,158,255,.08)}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text);background:var(--card)}
+        .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,158,255,.08)}
         .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
         .nav-item .label{font-size:13px;font-weight:500;transition:opacity .2s}
         .sidebar.collapsed .nav-item .label{opacity:0}
-        .nav-divider{height:1px;background:var(--border,#292d30);margin:8px 16px}
-        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-top:1px solid var(--border,#292d30);white-space:nowrap}
-        .sidebar-toggle:hover{color:var(--text,#fff);background:var(--card,#13161a)}
+        .nav-divider{height:1px;background:var(--border);margin:8px 16px}
+        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-top:1px solid var(--border);white-space:nowrap}
+        .sidebar-toggle:hover{color:var(--text);background:var(--card)}
         .sidebar-toggle .label{font-size:13px;font-weight:500}
         .sidebar.collapsed .sidebar-toggle .label{opacity:0}
         .main{margin-left:var(--menu-expanded);flex:1;display:flex;flex-direction:column;overflow:hidden;transition:margin-left .2s}
         .sidebar.collapsed~.main{margin-left:var(--menu-w)}
-        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
-
-        /* ── Topbar ── */
         .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
-        .search-trigger{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r,12px);color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;min-width:300px}
+        .search-trigger{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;min-width:300px}
         .search-trigger:hover{border-color:var(--accent);color:var(--text2)}
         .search-trigger .shortcut{margin-left:auto;font-size:11px;background:var(--elevated);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
         .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
         .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer}
-
+        .content{flex:1;overflow-y:auto;padding:24px}
+        .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px}
+        .page-title{font-size:28px;font-weight:600}
+        .page-subtitle{font-size:15px;color:var(--muted);margin-top:4px}
+        .btn{padding:10px 20px;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+        .btn-primary{background:var(--accent);color:#fff}
+        .btn-primary:hover{background:var(--accent2)}
+        .btn-secondary{background:transparent;color:var(--text2);border:1px solid var(--border)}
+        .btn-secondary:hover{border-color:var(--text2)}
+        .btn-danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+        .btn-danger:hover{background:var(--red);color:#fff}
+        .btn-sm{padding:6px 14px;font-size:12px}
+        .btn:disabled{opacity:.5;cursor:not-allowed}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px}
+        .org-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:24px;transition:border-color .15s}
+        .org-card:hover{border-color:var(--accent)}
+        .org-name{font-size:18px;font-weight:600;margin-bottom:4px}
+        .org-cnpj{font-size:13px;color:var(--muted);margin-bottom:16px}
+        .org-status{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px}
+        .status-dot{width:8px;height:8px;border-radius:50%}
+        .status-dot.on{background:var(--green)}
+        .status-dot.off{background:var(--red)}
+        .org-phone{font-size:13px;color:var(--text2);margin-bottom:16px}
+        .org-meta{font-size:12px;color:var(--muted);margin-bottom:16px}
+        .org-actions{display:flex;gap:8px;flex-wrap:wrap}
+        .empty-state{text-align:center;padding:80px 24px;color:var(--muted)}
+        .empty-state h3{font-size:18px;color:var(--text2);margin-bottom:8px}
+        .empty-state p{font-size:14px;margin-bottom:24px}
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:24px}
+        .modal-overlay.visible{display:flex}
+        .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+        .modal-title{font-size:20px;font-weight:600;margin-bottom:24px}
+        .form-group{margin-bottom:16px}
+        .form-label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px}
+        .form-input{width:100%;padding:10px 14px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;outline:none;transition:border-color .15s}
+        .form-input:focus{border-color:var(--accent)}
+        select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a1a4a5'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+        textarea.form-input{min-height:80px;resize:vertical}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .modal-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
+        .qr-container{text-align:center;padding:24px}
+        .qr-container img{max-width:280px;border-radius:12px;border:1px solid var(--border);margin-bottom:16px}
+        .qr-status{font-size:14px;color:var(--text2);margin-bottom:16px}
+        .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:10px;font-size:14px;font-weight:500;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s}
+        .toast.show{transform:translateY(0);opacity:1}
+        .toast.success{background:var(--green);color:#fff}
+        .toast.error{background:var(--red);color:#fff}
+        @media(max-width:768px){.grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.page-header{flex-direction:column;align-items:flex-start}.sidebar{width:0}.main{margin-left:0}}
     </style>
 </head>
 <body>
@@ -111,214 +95,190 @@
             <a href="/dashboard" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
         </div>
         <div class="nav-items">
-            <a href="/dashboard" class="nav-item" data-page="dashboard">
-                <span class="icon">📊</span><span class="label">Dashboard</span>
-            </a>
-            <a href="/crm" class="nav-item" data-page="conversations">
-                <span class="icon">💬</span><span class="label">Atendimento</span>
-            </a>
-            <a href="/contacts" class="nav-item" data-page="contacts">
-                <span class="icon">📇</span><span class="label">Contatos</span>
-            </a>
-            <a href="/organizations" class="nav-item active" data-page="organizations">
-                <span class="icon">🏢</span><span class="label">Organizações</span>
-            </a>
-            <a href="/pipelines" class="nav-item" data-page="deals">
-                <span class="icon">💰</span><span class="label">Negócios</span>
-            </a>
-            <a href="/activities" class="nav-item" data-page="activities">
-                <span class="icon">📋</span><span class="label">Atividades</span>
-            </a>
-            <a href="/outreach" class="nav-item" data-page="outreach">
-                <span class="icon">📤</span><span class="label">Outreach</span>
-            </a>
+            <a href="/dashboard" class="nav-item" data-page="dashboard"><span class="icon">📊</span><span class="label">Dashboard</span></a>
+            <a href="/crm" class="nav-item" data-page="conversations"><span class="icon">💬</span><span class="label">Atendimento</span></a>
+            <a href="/contacts" class="nav-item" data-page="contacts"><span class="icon">📇</span><span class="label">Contatos</span></a>
+            <a href="/organizations" class="nav-item active" data-page="organizations"><span class="icon">🏢</span><span class="label">Organizações</span></a>
+            <a href="/pipelines" class="nav-item" data-page="deals"><span class="icon">💰</span><span class="label">Negócios</span></a>
+            <a href="/activities" class="nav-item" data-page="activities"><span class="icon">📋</span><span class="label">Atividades</span></a>
+            <a href="/outreach" class="nav-item" data-page="outreach"><span class="icon">📤</span><span class="label">Outreach</span></a>
             <div class="nav-divider"></div>
-            <a href="/config" class="nav-item" data-page="settings">
-                <span class="icon">⚙️</span><span class="label">Configurações</span>
-            </a>
+            <a href="/config" class="nav-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Configurações</span></a>
         </div>
-        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')">
-            <span class="icon">☰</span><span class="label">Recolher</span>
-        </div>
+        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')"><span class="icon">☰</span><span class="label">Recolher</span></div>
     </nav>
 
     <div class="main">
         <div class="topbar">
-            <div class="search-trigger">
-                <span>🔍</span>
-                <span>Buscar contatos, deals, mensagens...</span>
-                <span class="shortcut">Ctrl+K</span>
-            </div>
-            <div class="topbar-right">
-                <div class="user-avatar" id="user-avatar">U</div>
-            </div>
+            <div class="search-trigger"><span>🔍</span><span>Buscar contatos, deals, mensagens...</span><span class="shortcut">Ctrl+K</span></div>
+            <div class="topbar-right"><div class="user-avatar" id="user-avatar">U</div></div>
         </div>
 
-        <div class="content" style="flex:1;overflow-y:auto;padding:24px">
-    <div class="page-header">
-      <div><h1 class="page-title">Organizações</h1><p class="page-subtitle">Gerencie suas organizações e conexões WhatsApp</p></div>
-      <button class="btn btn-primary" onclick="openCreateModal()">+ Nova Organização</button>
+        <div class="content">
+            <div class="page-header">
+                <div><h1 class="page-title">Organizações</h1><p class="page-subtitle">Gerencie suas organizações e conexões WhatsApp</p></div>
+                <button class="btn btn-primary" onclick="openCreateModal()">+ Nova Organização</button>
+            </div>
+            <div id="orgGrid" class="grid"></div>
+            <div id="emptyState" class="empty-state" style="display:none">
+                <h3>Nenhuma organização encontrada</h3>
+                <p>Crie sua primeira organização para começar.</p>
+                <button class="btn btn-primary" onclick="openCreateModal()">+ Nova Organização</button>
+            </div>
+        </div>
     </div>
-    <div id="orgGrid" class="grid"></div>
-    <div id="emptyState" class="empty-state" style="display:none">
-      <h3>Nenhuma organização encontrada</h3>
-      <p>Crie sua primeira organização para começar.</p>
-      <button class="btn btn-primary" onclick="openCreateModal()">+ Nova Organização</button>
-    </div>
-  </div>
+</div>
 
-  <!-- Create/Edit Modal -->
-  <div class="modal-overlay" id="orgModal">
+<div class="modal-overlay" id="orgModal">
     <div class="modal">
-      <h2 class="modal-title" id="orgModalTitle">Nova Organização</h2>
-      <form id="orgForm" onsubmit="saveOrg(event)">
-        <input type="hidden" id="orgId">
-        <div class="form-group"><label class="form-label">Nome *</label><input class="form-input" id="orgName" required placeholder="Ex: Barbearia do Zé"></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">CNPJ</label><input class="form-input" id="orgCnpj" placeholder="00.000.000/0000-00"></div>
-          <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="orgPhone" placeholder="+55 41 99999-9999"></div>
+        <h2 class="modal-title" id="orgModalTitle">Nova Organização</h2>
+        <form id="orgForm" onsubmit="saveOrg(event)">
+            <input type="hidden" id="orgId">
+            <div class="form-group"><label class="form-label">Nome *</label><input class="form-input" id="orgName" required placeholder="Ex: Barbearia do Zé"></div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">CNPJ</label><input class="form-input" id="orgCnpj" placeholder="00.000.000/0000-00"></div>
+                <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="orgPhone" placeholder="+55 41 99999-9999"></div>
+            </div>
+            <div class="form-group"><label class="form-label">E-mail</label><input class="form-input" id="orgEmail" type="email" placeholder="contato@empresa.com"></div>
+            <div class="form-group"><label class="form-label">Timezone</label>
+                <select class="form-input" id="orgTimezone">
+                    <option value="America/Sao_Paulo">America/Sao_Paulo (Brasília)</option>
+                    <option value="America/Manaus">America/Manaus (Manaus)</option>
+                    <option value="America/Belem">America/Belem (Belém)</option>
+                    <option value="America/Fortaleza">America/Fortaleza (Fortaleza)</option>
+                    <option value="America/Recife">America/Recife (Recife)</option>
+                    <option value="America/Bahia">America/Bahia (Salvador)</option>
+                    <option value="America/Cuiaba">America/Cuiaba (Cuiabá)</option>
+                    <option value="America/Campo_Grande">America/Campo_Grande</option>
+                    <option value="America/Porto_Velho">America/Porto_Velho</option>
+                    <option value="America/Boa_Vista">America/Boa_Vista</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">Horário início</label><input class="form-input" id="orgHourStart" type="time" value="09:00"></div>
+                <div class="form-group"><label class="form-label">Horário fim</label><input class="form-input" id="orgHourEnd" type="time" value="18:00"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Mensagem de boas-vindas</label><textarea class="form-input" id="orgWelcome" placeholder="Olá! Como posso ajudar?"></textarea></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('orgModal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="orgSaveBtn">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="qrModal">
+    <div class="modal">
+        <h2 class="modal-title">Conectar WhatsApp</h2>
+        <div class="qr-container">
+            <div id="qrLoading" style="padding:40px;color:var(--muted)">Gerando QR Code...</div>
+            <img id="qrImage" style="display:none" alt="QR Code">
+            <p class="qr-status" id="qrStatus">Escaneie o QR Code com seu WhatsApp</p>
+            <div id="qrConnected" style="display:none;color:var(--green);font-weight:600;font-size:16px">✅ WhatsApp Conectado!</div>
         </div>
-        <div class="form-group"><label class="form-label">E-mail</label><input class="form-input" id="orgEmail" type="email" placeholder="contato@empresa.com"></div>
-        <div class="form-group"><label class="form-label">Timezone</label>
-          <select class="form-input" id="orgTimezone">
-            <option value="America/Sao_Paulo">America/Sao_Paulo (Brasília)</option>
-            <option value="America/Manaus">America/Manaus (Manaus)</option>
-            <option value="America/Belem">America/Belem (Belém)</option>
-            <option value="America/Fortaleza">America/Fortaleza (Fortaleza)</option>
-            <option value="America/Recife">America/Recife (Recife)</option>
-            <option value="America/Bahia">America/Bahia (Salvador)</option>
-            <option value="America/Cuiaba">America/Cuiaba (Cuiabá)</option>
-            <option value="America/Campo_Grande">America/Campo_Grande</option>
-            <option value="America/Porto_Velho">America/Porto_Velho</option>
-            <option value="America/Boa_Vista">America/Boa_Vista</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Horário início</label><input class="form-input" id="orgHourStart" type="time" value="09:00"></div>
-          <div class="form-group"><label class="form-label">Horário fim</label><input class="form-input" id="orgHourEnd" type="time" value="18:00"></div>
-        </div>
-        <div class="form-group"><label class="form-label">Mensagem de boas-vindas</label><textarea class="form-input" id="orgWelcome" placeholder="Olá! Como posso ajudar?"></textarea></div>
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('orgModal')">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="orgSaveBtn">Salvar</button>
+            <button class="btn btn-secondary" onclick="closeQrModal()">Fechar</button>
         </div>
-      </form>
     </div>
-  </div>
+</div>
 
-  <!-- WhatsApp QR Modal -->
-  <div class="modal-overlay" id="qrModal">
-    <div class="modal">
-      <h2 class="modal-title">Conectar WhatsApp</h2>
-      <div class="qr-container">
-        <div id="qrLoading" style="padding:40px;color:var(--text3)">Gerando QR Code...</div>
-        <img id="qrImage" style="display:none" alt="QR Code">
-        <p class="qr-status" id="qrStatus">Escaneie o QR Code com seu WhatsApp</p>
-        <div id="qrConnected" style="display:none;color:var(--success);font-weight:600;font-size:16px">✅ WhatsApp Conectado!</div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="closeQrModal()">Fechar</button>
-      </div>
-    </div>
-  </div>
+<div class="toast" id="toast"></div>
 
-  <div class="toast" id="toast"></div>
+<script>
+const API = '';
+let orgs = [];
+let currentOrgId = null;
+let qrInterval = null;
 
-  <script>
-    const API = '';
-    let orgs = [];
-    let currentOrgId = null;
-    let qrInterval = null;
+async function api(path, opts = {}) {
+    const resp = await fetch(API + path, { credentials: 'include', ...opts });
+    if (resp.status === 401) { window.location.href = '/login'; return null; }
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Erro na requisição');
+    return data;
+}
 
-    async function api(path, opts = {}) {
-      const resp = await fetch(API + path, { credentials: 'include', ...opts });
-      if (resp.status === 401) { window.location.href = '/login'; return null; }
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.detail || 'Erro na requisição');
-      return data;
-    }
+function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast ' + type + ' show';
+    setTimeout(() => el.classList.remove('show'), 3000);
+}
 
-    function toast(msg, type = 'success') {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.className = 'toast ' + type + ' show';
-      setTimeout(() => el.classList.remove('show'), 3000);
-    }
+function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
 
-    function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
-
-    async function loadUser() {
-      try {
+async function loadUser() {
+    try {
         const d = await api('/crm/auth/me');
         if (d && d.user) {
-          document.getElementById('userName').textContent = d.user.name || d.user.email;
-          document.getElementById('userAvatar').textContent = (d.user.name || d.user.email || '?')[0].toUpperCase();
+            document.getElementById('userName').textContent = d.user.name || d.user.email;
+            document.getElementById('userAvatar').textContent = (d.user.name || d.user.email || '?')[0].toUpperCase();
         }
-      } catch (e) { console.error(e); }
-    }
+    } catch (e) { console.error(e); }
+}
 
-    async function loadOrgs() {
-      try {
+async function loadOrgs() {
+    try {
         const d = await api('/crm/organizations');
         orgs = d.data || [];
         renderOrgs();
-      } catch (e) { toast('Erro ao carregar organizações', 'error'); }
-    }
+    } catch (e) { toast('Erro ao carregar organizações', 'error'); }
+}
 
-    function renderOrgs() {
-      const grid = document.getElementById('orgGrid');
-      const empty = document.getElementById('emptyState');
-      if (!orgs.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-      empty.style.display = 'none';
-      grid.innerHTML = orgs.map(o => `
+function renderOrgs() {
+    const grid = document.getElementById('orgGrid');
+    const empty = document.getElementById('emptyState');
+    if (!orgs.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    grid.innerHTML = orgs.map(o => `
         <div class="org-card">
-          <div class="org-name">${esc(o.name)}</div>
-          ${o.cnpj ? `<div class="org-cnpj">CNPJ: ${esc(o.cnpj)}</div>` : '<div class="org-cnpj">&nbsp;</div>'}
-          <div class="org-status"><div class="status-dot ${o.whatsapp_connected ? 'on' : 'off'}"></div>${o.whatsapp_connected ? 'WhatsApp Conectado' : 'WhatsApp Desconectado'}</div>
-          ${o.phone_number ? `<div class="org-phone">📱 ${esc(o.phone_number)}</div>` : ''}
-          <div class="org-meta">${o.timezone || 'America/Sao_Paulo'} · ${o.business_hours_start || '09:00'}-${o.business_hours_end || '18:00'}</div>
-          <div class="org-actions">
-            ${o.whatsapp_connected
-              ? `<button class="btn btn-secondary btn-sm" onclick="disconnectWa('${o.id}')">Desconectar WA</button>`
-              : `<button class="btn btn-primary btn-sm" onclick="connectWa('${o.id}')">Conectar WhatsApp</button>`}
-            <button class="btn btn-secondary btn-sm" onclick="editOrg('${o.id}')">Editar</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteOrg('${o.id}','${esc(o.name)}')">Excluir</button>
-          </div>
+            <div class="org-name">${esc(o.name)}</div>
+            ${o.cnpj ? `<div class="org-cnpj">CNPJ: ${esc(o.cnpj)}</div>` : '<div class="org-cnpj">&nbsp;</div>'}
+            <div class="org-status"><div class="status-dot ${o.whatsapp_connected ? 'on' : 'off'}"></div>${o.whatsapp_connected ? 'WhatsApp Conectado' : 'WhatsApp Desconectado'}</div>
+            ${o.phone_number ? `<div class="org-phone">📱 ${esc(o.phone_number)}</div>` : ''}
+            <div class="org-meta">${o.timezone || 'America/Sao_Paulo'} · ${o.business_hours_start || '09:00'}-${o.business_hours_end || '18:00'}</div>
+            <div class="org-actions">
+                ${o.whatsapp_connected
+                    ? `<button class="btn btn-secondary btn-sm" onclick="disconnectWa('${o.id}')">Desconectar WA</button>`
+                    : `<button class="btn btn-primary btn-sm" onclick="connectWa('${o.id}')">Conectar WhatsApp</button>`}
+                <button class="btn btn-secondary btn-sm" onclick="editOrg('${o.id}')">Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteOrg('${o.id}','${esc(o.name)}')">Excluir</button>
+            </div>
         </div>
-      `).join('');
-    }
+    `).join('');
+}
 
-    function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-    function openCreateModal() {
-      document.getElementById('orgModalTitle').textContent = 'Nova Organização';
-      document.getElementById('orgForm').reset();
-      document.getElementById('orgId').value = '';
-      document.getElementById('orgHourStart').value = '09:00';
-      document.getElementById('orgHourEnd').value = '18:00';
-      document.getElementById('orgModal').classList.add('visible');
-    }
+function openCreateModal() {
+    document.getElementById('orgModalTitle').textContent = 'Nova Organização';
+    document.getElementById('orgForm').reset();
+    document.getElementById('orgId').value = '';
+    document.getElementById('orgHourStart').value = '09:00';
+    document.getElementById('orgHourEnd').value = '18:00';
+    document.getElementById('orgModal').classList.add('visible');
+}
 
-    function editOrg(id) {
-      const o = orgs.find(x => x.id === id);
-      if (!o) return;
-      document.getElementById('orgModalTitle').textContent = 'Editar Organização';
-      document.getElementById('orgId').value = o.id;
-      document.getElementById('orgName').value = o.name || '';
-      document.getElementById('orgCnpj').value = o.cnpj || '';
-      document.getElementById('orgPhone').value = o.phone_number || '';
-      document.getElementById('orgEmail').value = o.email || '';
-      document.getElementById('orgTimezone').value = o.timezone || 'America/Sao_Paulo';
-      document.getElementById('orgHourStart').value = o.business_hours_start || '09:00';
-      document.getElementById('orgHourEnd').value = o.business_hours_end || '18:00';
-      document.getElementById('orgWelcome').value = o.welcome_message || '';
-      document.getElementById('orgModal').classList.add('visible');
-    }
+function editOrg(id) {
+    const o = orgs.find(x => x.id === id);
+    if (!o) return;
+    document.getElementById('orgModalTitle').textContent = 'Editar Organização';
+    document.getElementById('orgId').value = o.id;
+    document.getElementById('orgName').value = o.name || '';
+    document.getElementById('orgCnpj').value = o.cnpj || '';
+    document.getElementById('orgPhone').value = o.phone_number || '';
+    document.getElementById('orgEmail').value = o.email || '';
+    document.getElementById('orgTimezone').value = o.timezone || 'America/Sao_Paulo';
+    document.getElementById('orgHourStart').value = o.business_hours_start || '09:00';
+    document.getElementById('orgHourEnd').value = o.business_hours_end || '18:00';
+    document.getElementById('orgWelcome').value = o.welcome_message || '';
+    document.getElementById('orgModal').classList.add('visible');
+}
 
-    async function saveOrg(e) {
-      e.preventDefault();
-      const id = document.getElementById('orgId').value;
-      const body = {
+async function saveOrg(e) {
+    e.preventDefault();
+    const id = document.getElementById('orgId').value;
+    const body = {
         name: document.getElementById('orgName').value,
         cnpj: document.getElementById('orgCnpj').value || null,
         phone_number: document.getElementById('orgPhone').value || null,
@@ -327,86 +287,83 @@
         business_hours_start: document.getElementById('orgHourStart').value,
         business_hours_end: document.getElementById('orgHourEnd').value,
         welcome_message: document.getElementById('orgWelcome').value || null,
-      };
-      try {
+    };
+    try {
         if (id) {
-          await api('/crm/organizations/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-          toast('Organização atualizada!');
+            await api('/crm/organizations/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            toast('Organização atualizada!');
         } else {
-          await api('/crm/organizations', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-          toast('Organização criada!');
+            await api('/crm/organizations', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            toast('Organização criada!');
         }
         closeModal('orgModal');
         loadOrgs();
-      } catch (e) { toast(e.message, 'error'); }
-    }
+    } catch (e) { toast(e.message, 'error'); }
+}
 
-    async function deleteOrg(id, name) {
-      if (!confirm('Excluir a organização "' + name + '"? Esta ação não pode ser desfeita.')) return;
-      try {
+async function deleteOrg(id, name) {
+    if (!confirm('Excluir a organização "' + name + '"? Esta ação não pode ser desfeita.')) return;
+    try {
         await api('/crm/organizations/' + id, { method: 'DELETE' });
         toast('Organização excluída!');
         loadOrgs();
-      } catch (e) { toast(e.message, 'error'); }
-    }
+    } catch (e) { toast(e.message, 'error'); }
+}
 
-    async function connectWa(orgId) {
-      currentOrgId = orgId;
-      document.getElementById('qrModal').classList.add('visible');
-      document.getElementById('qrLoading').style.display = 'block';
-      document.getElementById('qrImage').style.display = 'none';
-      document.getElementById('qrConnected').style.display = 'none';
-      document.getElementById('qrStatus').textContent = 'Gerando QR Code...';
-      try {
+async function connectWa(orgId) {
+    currentOrgId = orgId;
+    document.getElementById('qrModal').classList.add('visible');
+    document.getElementById('qrLoading').style.display = 'block';
+    document.getElementById('qrImage').style.display = 'none';
+    document.getElementById('qrConnected').style.display = 'none';
+    document.getElementById('qrStatus').textContent = 'Gerando QR Code...';
+    try {
         const d = await api('/crm/organizations/' + orgId + '/whatsapp/connect', { method: 'POST' });
         if (d.qrcode) {
-          document.getElementById('qrLoading').style.display = 'none';
-          document.getElementById('qrImage').src = 'data:image/png;base64,' + d.qrcode;
-          document.getElementById('qrImage').style.display = 'block';
-          document.getElementById('qrStatus').textContent = 'Escaneie o QR Code com seu WhatsApp';
+            document.getElementById('qrLoading').style.display = 'none';
+            document.getElementById('qrImage').src = 'data:image/png;base64,' + d.qrcode;
+            document.getElementById('qrImage').style.display = 'block';
+            document.getElementById('qrStatus').textContent = 'Escaneie o QR Code com seu WhatsApp';
         }
         qrInterval = setInterval(checkWaStatus, 10000);
-      } catch (e) {
+    } catch (e) {
         document.getElementById('qrLoading').textContent = 'Erro: ' + e.message;
-      }
     }
+}
 
-    async function checkWaStatus() {
-      if (!currentOrgId) return;
-      try {
+async function checkWaStatus() {
+    if (!currentOrgId) return;
+    try {
         const d = await api('/crm/organizations/' + currentOrgId + '/whatsapp/status');
         if (d.connected) {
-          document.getElementById('qrConnected').style.display = 'block';
-          document.getElementById('qrImage').style.display = 'none';
-          document.getElementById('qrStatus').textContent = '';
-          clearInterval(qrInterval);
-          toast('WhatsApp conectado!');
-          loadOrgs();
+            document.getElementById('qrConnected').style.display = 'block';
+            document.getElementById('qrImage').style.display = 'none';
+            document.getElementById('qrStatus').textContent = '';
+            clearInterval(qrInterval);
+            toast('WhatsApp conectado!');
+            loadOrgs();
         }
-      } catch (e) { console.error(e); }
-    }
+    } catch (e) { console.error(e); }
+}
 
-    function closeQrModal() {
-      clearInterval(qrInterval);
-      currentOrgId = null;
-      closeModal('qrModal');
-      loadOrgs();
-    }
+function closeQrModal() {
+    clearInterval(qrInterval);
+    currentOrgId = null;
+    closeModal('qrModal');
+    loadOrgs();
+}
 
-    async function disconnectWa(orgId) {
-      if (!confirm('Desconectar o WhatsApp desta organização?')) return;
-      try {
+async function disconnectWa(orgId) {
+    if (!confirm('Desconectar o WhatsApp desta organização?')) return;
+    try {
         await api('/crm/organizations/' + orgId + '/whatsapp/disconnect', { method: 'DELETE' });
         toast('WhatsApp desconectado!');
         loadOrgs();
-      } catch (e) { toast(e.message, 'error'); }
-    }
+    } catch (e) { toast(e.message, 'error'); }
+}
 
-    // Init
-    loadUser();
-    loadOrgs();
-  </script>
-    </div>
-</div>
+loadUser();
+loadOrgs();
+</script>
 </body>
 </html>

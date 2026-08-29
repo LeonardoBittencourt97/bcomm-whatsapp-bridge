@@ -7,46 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root{--bg-primary:#0b0b0c;--bg-surface:#0b0e14;--bg-card:#13161a;--bg-elevated:#1a1d21;--border:#292d30;--text-primary:#fff;--text-secondary:#a1a4a5;--text-muted:#6e727a;--accent:#3b9eff;--accent-hover:#5aadff;--success:#34c759;--danger:#ff453a;--warning:#ffd60a;--radius:12px;--radius-lg:16px}
+        :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--elevated:#1a1d21;--border:#292d30;--border-hover:#464a4d;--text:#fff;--text2:#a1a4a5;--muted:#6e727a;--accent:#3b9eff;--accent2:#5aadff;--green:#34c759;--red:#ff453a;--yellow:#ffd60a;--orange:#ff9500;--r:12px;--rl:16px;--menu-w:60px;--menu-expanded:220px}
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
-        .header{position:sticky;top:0;z-index:100;background:rgba(11,11,12,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
-        .header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
-        .logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:600;text-decoration:none;color:inherit}
-        .logo:hover{opacity:.8}
-        .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
-        .nav-tabs{display:flex;gap:4px;background:var(--bg-surface);padding:4px;border-radius:10px}
-        .nav-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-muted);border:none;background:transparent;text-decoration:none;transition:all .15s}
-        .nav-tab:hover{color:var(--text-secondary);background:var(--bg-card)}
-        .nav-tab.active{background:var(--bg-card);color:var(--text-primary)}
-        .status-badge{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:20px;font-size:13px;color:var(--text-secondary)}
-        .status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
-        .status-dot.offline{background:var(--danger);animation:none}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-        .main{max-width:1400px;margin:0 auto;padding:32px 24px}
-        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
-        .page-subtitle{font-size:15px;color:var(--text-muted);margin-bottom:32px}
-        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
-        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px}
-        .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-        .card-title{font-size:15px;font-weight:600}
-        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-        .stat{text-align:center;padding:16px;background:var(--bg-surface);border-radius:var(--radius)}
-        .stat-value{font-size:28px;font-weight:700;color:var(--accent)}
-        .stat-label{font-size:12px;color:var(--text-muted);margin-top:4px;text-transform:uppercase}
-        .paused-list{display:flex;flex-direction:column;gap:8px}
-        .paused-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-surface);border-radius:var(--radius)}
-        .paused-info{display:flex;align-items:center;gap:12px}
-        .paused-avatar{width:36px;height:36px;background:var(--danger);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
-        .paused-name{font-size:14px;font-weight:500}
-        .empty-state{text-align:center;padding:32px;color:var(--text-muted);font-size:14px}
-        .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-size:14px;display:none;z-index:1000}
-        .toast.success{border-color:var(--success)}
-        .toast.error{border-color:var(--danger)}
-        @media(max-width:768px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.nav-tabs{display:none}}
-    
-        /* ── Sidebar ── */
-        :root{--menu-w:60px;--menu-expanded:220px}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
         .app{display:flex;height:100vh}
         .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
         .sidebar.collapsed{width:var(--menu-w)}
@@ -55,29 +19,43 @@
         .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;transition:opacity .2s}
         .sidebar.collapsed .logo-text{opacity:0}
         .nav-items{flex:1;padding:8px 0;overflow-y:auto}
-        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
-        .nav-item:hover{color:var(--text,#fff);background:var(--card,#13161a)}
-        .nav-item.active{color:var(--accent,#3b9eff);border-left-color:var(--accent,#3b9eff);background:rgba(59,158,255,.08)}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text);background:var(--card)}
+        .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,158,255,.08)}
         .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
         .nav-item .label{font-size:13px;font-weight:500;transition:opacity .2s}
         .sidebar.collapsed .nav-item .label{opacity:0}
-        .nav-divider{height:1px;background:var(--border,#292d30);margin:8px 16px}
-        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted,#6e727a);transition:all .15s;border-top:1px solid var(--border,#292d30);white-space:nowrap}
-        .sidebar-toggle:hover{color:var(--text,#fff);background:var(--card,#13161a)}
+        .nav-divider{height:1px;background:var(--border);margin:8px 16px}
+        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-top:1px solid var(--border);white-space:nowrap}
+        .sidebar-toggle:hover{color:var(--text);background:var(--card)}
         .sidebar-toggle .label{font-size:13px;font-weight:500}
         .sidebar.collapsed .sidebar-toggle .label{opacity:0}
         .main{margin-left:var(--menu-expanded);flex:1;display:flex;flex-direction:column;overflow:hidden;transition:margin-left .2s}
         .sidebar.collapsed~.main{margin-left:var(--menu-w)}
-        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}}
-
-        /* ── Topbar ── */
         .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
-        .search-trigger{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r,12px);color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;min-width:300px}
+        .search-trigger{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;min-width:300px}
         .search-trigger:hover{border-color:var(--accent);color:var(--text2)}
         .search-trigger .shortcut{margin-left:auto;font-size:11px;background:var(--elevated);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
         .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
         .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer}
-
+        .content{flex:1;overflow-y:auto;padding:24px}
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--muted);margin-bottom:32px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
+        .card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:24px}
+        .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+        .card-title{font-size:15px;font-weight:600}
+        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .stat{text-align:center;padding:16px;background:var(--surface);border-radius:var(--r)}
+        .stat-value{font-size:28px;font-weight:700;color:var(--accent)}
+        .stat-label{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase}
+        .paused-list{display:flex;flex-direction:column;gap:8px}
+        .paused-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-radius:var(--r)}
+        .paused-info{display:flex;align-items:center;gap:12px}
+        .paused-avatar{width:36px;height:36px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
+        .paused-name{font-size:14px;font-weight:500}
+        .empty-state{text-align:center;padding:32px;color:var(--muted);font-size:14px}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
     </style>
 </head>
 <body>
@@ -87,132 +65,59 @@
             <a href="/dashboard" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
         </div>
         <div class="nav-items">
-            <a href="/dashboard" class="nav-item active" data-page="dashboard">
-                <span class="icon">📊</span><span class="label">Dashboard</span>
-            </a>
-            <a href="/crm" class="nav-item" data-page="conversations">
-                <span class="icon">💬</span><span class="label">Atendimento</span>
-            </a>
-            <a href="/contacts" class="nav-item" data-page="contacts">
-                <span class="icon">📇</span><span class="label">Contatos</span>
-            </a>
-            <a href="/organizations" class="nav-item" data-page="organizations">
-                <span class="icon">🏢</span><span class="label">Organizações</span>
-            </a>
-            <a href="/pipelines" class="nav-item" data-page="deals">
-                <span class="icon">💰</span><span class="label">Negócios</span>
-            </a>
-            <a href="/activities" class="nav-item" data-page="activities">
-                <span class="icon">📋</span><span class="label">Atividades</span>
-            </a>
-            <a href="/outreach" class="nav-item" data-page="outreach">
-                <span class="icon">📤</span><span class="label">Outreach</span>
-            </a>
+            <a href="/dashboard" class="nav-item active" data-page="dashboard"><span class="icon">📊</span><span class="label">Dashboard</span></a>
+            <a href="/crm" class="nav-item" data-page="conversations"><span class="icon">💬</span><span class="label">Atendimento</span></a>
+            <a href="/contacts" class="nav-item" data-page="contacts"><span class="icon">📇</span><span class="label">Contatos</span></a>
+            <a href="/organizations" class="nav-item" data-page="organizations"><span class="icon">🏢</span><span class="label">Organizações</span></a>
+            <a href="/pipelines" class="nav-item" data-page="deals"><span class="icon">💰</span><span class="label">Negócios</span></a>
+            <a href="/activities" class="nav-item" data-page="activities"><span class="icon">📋</span><span class="label">Atividades</span></a>
+            <a href="/outreach" class="nav-item" data-page="outreach"><span class="icon">📤</span><span class="label">Outreach</span></a>
             <div class="nav-divider"></div>
-            <a href="/config" class="nav-item" data-page="settings">
-                <span class="icon">⚙️</span><span class="label">Configurações</span>
-            </a>
+            <a href="/config" class="nav-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Configurações</span></a>
         </div>
-        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')">
-            <span class="icon">☰</span><span class="label">Recolher</span>
-        </div>
+        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')"><span class="icon">☰</span><span class="label">Recolher</span></div>
     </nav>
 
     <div class="main">
         <div class="topbar">
-            <div class="search-trigger">
-                <span>🔍</span>
-                <span>Buscar contatos, deals, mensagens...</span>
-                <span class="shortcut">Ctrl+K</span>
-            </div>
-            <div class="topbar-right">
-                <div class="user-avatar" id="user-avatar">U</div>
-            </div>
+            <div class="search-trigger"><span>🔍</span><span>Buscar contatos, deals, mensagens...</span><span class="shortcut">Ctrl+K</span></div>
+            <div class="topbar-right"><div class="user-avatar" id="user-avatar">U</div></div>
         </div>
 
-        <div class="content" style="flex:1;overflow-y:auto;padding:24px">
-        <h1 class="page-title">Dashboard</h1>
-        <p class="page-subtitle">Visão geral do sistema em tempo real</p>
+        <div class="content">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Visão geral do sistema em tempo real</p>
 
-        <div class="card" style="margin-bottom:24px">
-            <div class="stats">
-                <div class="stat"><div class="stat-value" id="stat-uptime">-</div><div class="stat-label">Uptime</div></div>
-                <div class="stat"><div class="stat-value" id="stat-conversations">-</div><div class="stat-label">Conversas</div></div>
-                <div class="stat"><div class="stat-value" id="stat-deals">-</div><div class="stat-label">Deals</div></div>
-                <div class="stat"><div class="stat-value" id="stat-outreach">-</div><div class="stat-label">Outreach</div></div>
+            <div class="card" style="margin-bottom:24px">
+                <div class="stats">
+                    <div class="stat"><div class="stat-value" id="stat-uptime">-</div><div class="stat-label">Uptime</div></div>
+                    <div class="stat"><div class="stat-value" id="stat-conversations">-</div><div class="stat-label">Conversas</div></div>
+                    <div class="stat"><div class="stat-value" id="stat-deals">-</div><div class="stat-label">Deals</div></div>
+                    <div class="stat"><div class="stat-value" id="stat-outreach">-</div><div class="stat-label">Outreach</div></div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card"><div class="card-header"><span class="card-title">⏸️ Clientes Pausados</span></div><div id="paused-clients" class="paused-list"><div class="empty-state">Nenhum</div></div></div>
+                <div class="card"><div class="card-header"><span class="card-title">📱 Contatos Pausados</span></div><div id="paused-contacts" class="paused-list"><div class="empty-state">Nenhum</div></div></div>
+                <div class="card"><div class="card-header"><span class="card-title">📊 Pipeline</span></div><div id="pipeline-stats" class="paused-list"><div class="empty-state">Carregando...</div></div></div>
+                <div class="card"><div class="card-header"><span class="card-title">🔗 Sessões Ativas</span></div><div id="sessions-list" class="paused-list"><div class="empty-state">Carregando...</div></div></div>
             </div>
         </div>
-
-        <div class="grid">
-            <div class="card">
-                <div class="card-header"><span class="card-title">⏸️ Clientes Pausados</span></div>
-                <div id="paused-clients" class="paused-list"><div class="empty-state">Nenhum</div></div>
-            </div>
-            <div class="card">
-                <div class="card-header"><span class="card-title">📱 Contatos Pausados</span></div>
-                <div id="paused-contacts" class="paused-list"><div class="empty-state">Nenhum</div></div>
-            </div>
-            <div class="card">
-                <div class="card-header"><span class="card-title">📊 Pipeline</span></div>
-                <div id="pipeline-stats" class="paused-list"><div class="empty-state">Carregando...</div></div>
-            </div>
-            <div class="card">
-                <div class="card-header"><span class="card-title">🔗 Sessões Ativas</span></div>
-                <div id="sessions-list" class="paused-list"><div class="empty-state">Carregando...</div></div>
-            </div>
-        </div>
-        </div>
-        </div>
-</div>
-
-    <div id="toast" class="toast"></div>
-
-    <script>
-        function showToast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'success');e.style.display='block';setTimeout(()=>{e.style.display='none'},3000)}
-        async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);try{const r=await fetch(u,o);return await r.json()}catch(e){console.error(e);return null}}
-
-        async function updateStatus(){
-            const h=await api('/health');
-            document.getElementById('status-dot').className=h?'status-dot':'status-dot offline';
-            document.getElementById('status-text').textContent=h?'Online':'Offline';
-            if(h){document.getElementById('stat-uptime').textContent=Math.floor(h.uptime_seconds/60)+'min'}
-
-            const m=await api('/admin/metrics');
-            if(m){
-                document.getElementById('stat-conversations').textContent=m.paused_contacts||0;
-            }
-
-            const pc=await api('/admin/pause');
-            const el=document.getElementById('paused-clients');
-            if(pc&&pc.paused.length){
-                el.innerHTML=pc.paused.map(c=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar">'+c[0]+'</div><div><div class="paused-name">'+c+'</div></div></div></div>').join('');
-            }else{el.innerHTML='<div class="empty-state">Nenhum</div>'}
-
-            const pt=await api('/admin/pause-contact');
-            const el2=document.getElementById('paused-contacts');
-            if(pt&&pt.paused.length){
-                el2.innerHTML=pt.paused.map(c=>{const p=c.split(':');return'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--warning);color:#000">'+(p[1]||'?')[0]+'</div><div><div class="paused-name">'+(p[1]||c)+'</div></div></div></div>'}).join('');
-            }else{el2.innerHTML='<div class="empty-state">Nenhum</div>'}
-
-            const ps=await api('/crm/pipelines/stats');
-            const psEl=document.getElementById('pipeline-stats');
-            if(ps){
-                const total=ps.total_deals||0;
-                const value=ps.total_value||0;
-                psEl.innerHTML='<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+total+'</div><div><div class="paused-name">Deals</div><div class="paused-detail">R$ '+value.toLocaleString('pt-BR')+'</div></div></div></div>';
-            }
-
-            const s=await api('/admin/sessions');
-            const sEl=document.getElementById('sessions-list');
-            if(s&&s.sessions&&s.sessions.length){
-                sEl.innerHTML=s.sessions.slice(0,5).map(sess=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+(sess.phone||'?')[0]+'</div><div><div class="paused-name">'+sess.phone+'</div></div></div></div>').join('');
-            }else{sEl.innerHTML='<div class="empty-state">Nenhuma</div>'}
-        }
-
-        updateStatus();
-        setInterval(updateStatus,30000);
-    </script>
     </div>
 </div>
+
+<script>
+async function api(u,m='GET'){try{const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'}});return await r.json()}catch(e){return null}}
+async function updateStatus(){
+    const h=await api('/health');if(h)document.getElementById('stat-uptime').textContent=Math.floor(h.uptime_seconds/60)+'min';
+    const m=await api('/admin/metrics');if(m)document.getElementById('stat-conversations').textContent=m.total_conversations||0;
+    const pc=await api('/admin/pause');const el=document.getElementById('paused-clients');if(pc&&pc.paused&&pc.paused.length){el.innerHTML=pc.paused.map(c=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar">'+c[0]+'</div><div class="paused-name">'+c+'</div></div></div>').join('')}else{el.innerHTML='<div class="empty-state">Nenhum</div>'}
+    const pt=await api('/admin/pause-contact');const el2=document.getElementById('paused-contacts');if(pt&&pt.paused&&pt.paused.length){el2.innerHTML=pt.paused.map(c=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--yellow);color:#000">'+c[0]+'</div><div class="paused-name">'+c+'</div></div></div>').join('')}else{el2.innerHTML='<div class="empty-state">Nenhum</div>'}
+    const ps=await api('/crm/pipelines/stats');const psEl=document.getElementById('pipeline-stats');if(ps)psEl.innerHTML='<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+(ps.total_deals||0)+'</div><div class="paused-name">Deals — R$ '+(ps.total_value||0).toLocaleString('pt-BR')+'</div></div></div>';
+    const s=await api('/admin/sessions');const sEl=document.getElementById('sessions-list');if(s&&s.sessions&&s.sessions.length){sEl.innerHTML=s.sessions.slice(0,5).map(sess=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+(sess.phone||'?')[0]+'</div><div class="paused-name">'+sess.phone+'</div></div></div>').join('')}else{sEl.innerHTML='<div class="empty-state">Nenhuma</div>'}
+}
+updateStatus();setInterval(updateStatus,30000);
+</script>
 </body>
 </html>
