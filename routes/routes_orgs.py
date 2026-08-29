@@ -29,7 +29,7 @@ async def list_organizations(
             filters["name"] = search
             
         result = await select(
-            table="organizations",
+            table="bcomm_inbox.organizations",
             filters=filters if filters else None,
             limit=limit,
             offset=offset,
@@ -56,7 +56,7 @@ async def get_organization(request: Request, organization_id: str):
         ensure_supabase()
         
         result = await select(
-            table="organizations",
+            table="bcomm_inbox.organizations",
             filters={"id": organization_id},
         )
         
@@ -86,8 +86,8 @@ async def create_organization(request: Request, data: dict):
         data["created_at"] = datetime.utcnow().isoformat()
         data["updated_at"] = datetime.utcnow().isoformat()
         
-        result = insert(
-            table="organizations",
+        result = await insert(
+            table="bcomm_inbox.organizations",
             data=data,
         )
         
@@ -117,8 +117,8 @@ async def update_organization(request: Request, organization_id: str, data: dict
         # Remove id from data if present
         data.pop("id", None)
         
-        result = update(
-            table="organizations",
+        result = await update(
+            table="bcomm_inbox.organizations",
             filters={"id": organization_id},
             data=data,
         )
@@ -143,8 +143,8 @@ async def delete_organization(request: Request, organization_id: str):
         await get_current_user(request)
         ensure_supabase()
         
-        result = delete(
-            table="organizations",
+        result = await delete(
+            table="bcomm_inbox.organizations",
             filters={"id": organization_id},
         )
         
