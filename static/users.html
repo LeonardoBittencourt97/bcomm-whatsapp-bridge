@@ -283,6 +283,7 @@ async function loadUsers(){
         if(role)url+='&role='+role;
         if(status)url+='&is_active='+status;
         allUsers=await api(url);
+        allUsers=allUsers.users||allUsers;
         if(search){const s=search.toLowerCase();allUsers=allUsers.filter(u=>(u.name||'').toLowerCase().includes(s)||(u.email||'').toLowerCase().includes(s))}
         renderUsers();
     }catch(e){showToast('Erro ao carregar: '+e.message,'error')}
