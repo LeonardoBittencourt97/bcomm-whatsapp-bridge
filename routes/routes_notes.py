@@ -41,7 +41,7 @@ async def list_notes(
     offset: int = Query(default=0, ge=0),
 ):
     """Lista notas com filtros opcionais por entidade."""
-    _ensure_supabase()
+    ensure_supabase()
 
     filters = {}
     if entity_type:
@@ -69,7 +69,7 @@ async def list_notes(
 @router.post("/notes", status_code=201)
 async def create_note(note: NoteCreate):
     """Cria uma nova nota."""
-    _ensure_supabase()
+    ensure_supabase()
 
     data = note.model_dump()
     now = datetime.now().isoformat()
@@ -86,7 +86,7 @@ async def create_note(note: NoteCreate):
 @router.put("/notes/{note_id}")
 async def update_note(note_id: str, note: NoteUpdate):
     """Atualiza uma nota existente."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(TABLE, filters={"id": note_id})
     if not rows:
@@ -107,7 +107,7 @@ async def update_note(note_id: str, note: NoteUpdate):
 @router.delete("/notes/{note_id}")
 async def delete_note(note_id: str):
     """Deleta uma nota."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(TABLE, filters={"id": note_id})
     if not rows:

@@ -60,7 +60,7 @@ async def list_activities(
     offset: int = Query(default=0, ge=0),
 ):
     """Lista atividades com filtros opcionais."""
-    _ensure_supabase()
+    ensure_supabase()
 
     filters = {}
     if type:
@@ -92,7 +92,7 @@ async def list_activities(
 @router.post("/activities", status_code=201)
 async def create_activity(activity: ActivityCreate):
     """Cria uma nova atividade."""
-    _ensure_supabase()
+    ensure_supabase()
 
     data = activity.model_dump()
     data["created_at"] = datetime.now().isoformat()
@@ -107,7 +107,7 @@ async def create_activity(activity: ActivityCreate):
 @router.put("/activities/{activity_id}")
 async def update_activity(activity_id: str, activity: ActivityUpdate):
     """Atualiza uma atividade existente."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(TABLE, filters={"id": activity_id})
     if not rows:
@@ -127,7 +127,7 @@ async def update_activity(activity_id: str, activity: ActivityUpdate):
 @router.put("/activities/{activity_id}/complete")
 async def complete_activity(activity_id: str):
     """Marca uma atividade como concluída."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(TABLE, filters={"id": activity_id})
     if not rows:
@@ -147,7 +147,7 @@ async def complete_activity(activity_id: str):
 @router.delete("/activities/{activity_id}")
 async def delete_activity(activity_id: str):
     """Deleta uma atividade."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(TABLE, filters={"id": activity_id})
     if not rows:

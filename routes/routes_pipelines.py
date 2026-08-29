@@ -45,7 +45,7 @@ class StageUpdate(BaseModel):
 @router.get("/pipelines")
 async def list_pipelines():
     """Lista pipelines com stages aninhados."""
-    _ensure_supabase()
+    ensure_supabase()
 
     pipelines = await select(PIPELINES_TABLE, order="created_at.asc")
     stages = await select(STAGES_TABLE, order="position.asc")
@@ -72,7 +72,7 @@ async def list_pipelines():
 @router.get("/pipelines/{pipeline_id}")
 async def get_pipeline(pipeline_id: str):
     """Retorna pipeline com deals agrupados por stage."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
     if not rows:
@@ -115,7 +115,7 @@ async def get_pipeline(pipeline_id: str):
 @router.post("/pipelines", status_code=201)
 async def create_pipeline(pipeline: PipelineCreate):
     """Cria um novo pipeline."""
-    _ensure_supabase()
+    ensure_supabase()
 
     data = pipeline.model_dump()
     data["created_at"] = datetime.now().isoformat()
@@ -130,7 +130,7 @@ async def create_pipeline(pipeline: PipelineCreate):
 @router.post("/pipelines/{pipeline_id}/stages", status_code=201)
 async def create_stage(pipeline_id: str, stage: StageCreate):
     """Cria um novo stage dentro de um pipeline."""
-    _ensure_supabase()
+    ensure_supabase()
 
     # Verify pipeline exists
     pipelines = await select(PIPELINES_TABLE, filters={"id": pipeline_id})
@@ -151,7 +151,7 @@ async def create_stage(pipeline_id: str, stage: StageCreate):
 @router.put("/stages/{stage_id}")
 async def update_stage(stage_id: str, stage: StageUpdate):
     """Atualiza um stage existente."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(STAGES_TABLE, filters={"id": stage_id})
     if not rows:
@@ -171,7 +171,7 @@ async def update_stage(stage_id: str, stage: StageUpdate):
 @router.delete("/stages/{stage_id}")
 async def delete_stage(stage_id: str):
     """Deleta um stage."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(STAGES_TABLE, filters={"id": stage_id})
     if not rows:

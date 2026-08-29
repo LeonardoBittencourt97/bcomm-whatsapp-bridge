@@ -129,9 +129,10 @@ async def select(
         if filters:
             for col, val in filters.items():
                 if isinstance(val, dict):
-                    # Operadores especiais: {"op": "value"}
                     op = list(val.keys())[0]
                     value = val[op]
+                    if op == "in":
+                        value = "(" + ",".join(str(v) for v in value) + ")"
                     query = query.filter(col, op, value)
                 else:
                     query = query.eq(col, val)

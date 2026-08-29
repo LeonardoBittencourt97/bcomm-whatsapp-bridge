@@ -59,7 +59,7 @@ async def connect_whatsapp(request: Request, org_id: str):
         # 1. Verificar autenticação
         user = await _get_current_user(request)
 
-        _ensure_supabase()
+        ensure_supabase()
 
         # 2. Verificar se organização existe
         org_rows = await select(ORGS_TABLE, filters={"id": org_id})
@@ -149,7 +149,7 @@ async def whatsapp_status(request: Request, org_id: str):
         # 1. Verificar autenticação
         user = await _get_current_user(request)
 
-        _ensure_supabase()
+        ensure_supabase()
 
         # 2. Buscar WhatsApp numbers da organização
         rows = await select(WHATSAPP_TABLE, filters={"organization_id": org_id})
@@ -203,7 +203,7 @@ async def disconnect_whatsapp(request: Request, org_id: str):
         # 1. Verificar autenticação
         user = await _get_current_user(request)
 
-        _ensure_supabase()
+        ensure_supabase()
 
         # 2. Buscar WhatsApp da organização
         rows = await select(WHATSAPP_TABLE, filters={"organization_id": org_id})
@@ -267,7 +267,7 @@ async def get_qr(request: Request, org_id: str):
         # 1. Verificar autenticação
         user = await _get_current_user(request)
 
-        _ensure_supabase()
+        ensure_supabase()
 
         # 2. Buscar instância da organização
         rows = await select(WHATSAPP_TABLE, filters={"organization_id": org_id})

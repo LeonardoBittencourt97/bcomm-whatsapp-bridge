@@ -32,7 +32,7 @@ async def list_tags(
     limit: int = Query(default=100, le=500),
 ):
     """Lista todas as tags."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(
         TABLE,
@@ -49,7 +49,7 @@ async def list_tags(
 @router.post("/tags", status_code=201)
 async def create_tag(tag: TagCreate):
     """Cria uma nova tag."""
-    _ensure_supabase()
+    ensure_supabase()
 
     # Check for duplicate name
     existing = await select(TABLE, filters={"name": tag.name})
@@ -69,7 +69,7 @@ async def create_tag(tag: TagCreate):
 @router.delete("/tags/{tag_id}")
 async def delete_tag(tag_id: str):
     """Deleta uma tag."""
-    _ensure_supabase()
+    ensure_supabase()
 
     rows = await select(TABLE, filters={"id": tag_id})
     if not rows:

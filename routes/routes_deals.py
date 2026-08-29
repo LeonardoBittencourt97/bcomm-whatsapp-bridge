@@ -22,7 +22,7 @@ async def list_deals(
 ):
     """List all deals with optional filters"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         filters = {}
         if stage_id:
@@ -57,7 +57,7 @@ async def list_deals(
 async def get_deal(deal_id: str):
     """Get a deal by ID"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         result = await select(
             table="deals",
@@ -84,7 +84,7 @@ async def get_deal(deal_id: str):
 async def create_deal(data: dict):
     """Create a new deal"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         # Add timestamps and default status
         data["created_at"] = datetime.utcnow().isoformat()
@@ -113,7 +113,7 @@ async def create_deal(data: dict):
 async def update_deal(deal_id: str, data: dict):
     """Update an existing deal"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         # Add updated timestamp
         data["updated_at"] = datetime.utcnow().isoformat()
@@ -143,7 +143,7 @@ async def update_deal(deal_id: str, data: dict):
 async def update_deal_stage(deal_id: str, data: dict):
     """Update the stage of a deal"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         stage_id = data.get("stage_id")
         if not stage_id:
@@ -176,7 +176,7 @@ async def update_deal_stage(deal_id: str, data: dict):
 async def win_deal(deal_id: str):
     """Mark a deal as won"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         result = await update(
             table="deals",
@@ -205,7 +205,7 @@ async def win_deal(deal_id: str):
 async def lose_deal(deal_id: str, data: dict):
     """Mark a deal as lost"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         lost_reason = data.get("lost_reason", "")
         
@@ -236,7 +236,7 @@ async def lose_deal(deal_id: str, data: dict):
 async def delete_deal(deal_id: str):
     """Delete a deal"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         result = await delete(
             table="deals",

@@ -21,7 +21,7 @@ async def list_contacts(
 ):
     """List all contacts with optional filters"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         filters = {}
         if organization_id:
@@ -52,7 +52,7 @@ async def list_contacts(
 async def get_contact(contact_id: str):
     """Get a contact by ID"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         result = await select(
             table="contacts",
@@ -79,7 +79,7 @@ async def get_contact(contact_id: str):
 async def create_contact(data: dict):
     """Create a new contact"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         # Add timestamps
         data["created_at"] = datetime.utcnow().isoformat()
@@ -106,7 +106,7 @@ async def create_contact(data: dict):
 async def update_contact(contact_id: str, data: dict):
     """Update an existing contact"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         # Add updated timestamp
         data["updated_at"] = datetime.utcnow().isoformat()
@@ -136,7 +136,7 @@ async def update_contact(contact_id: str, data: dict):
 async def delete_contact(contact_id: str):
     """Delete a contact"""
     try:
-        _ensure_supabase()
+        ensure_supabase()
         
         result = await delete(
             table="contacts",
