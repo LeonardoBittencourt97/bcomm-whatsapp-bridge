@@ -286,8 +286,8 @@ function editOrg(id) {
     document.getElementById('orgId').value = o.id;
     document.getElementById('orgName').value = o.name || '';
     document.getElementById('orgCnpj').value = o.cnpj || '';
-    document.getElementById('orgPhone').value = o.phone_number || '';
-    document.getElementById('orgEmail').value = o.email || '';
+        document.getElementById('orgPhone').value = o.phone || '';
+        document.getElementById('orgEmail').value = o.email || '';
     document.getElementById('orgTimezone').value = o.timezone || 'America/Sao_Paulo';
     document.getElementById('orgHourStart').value = o.business_hours_start || '09:00';
     document.getElementById('orgHourEnd').value = o.business_hours_end || '18:00';
@@ -301,12 +301,9 @@ async function saveOrg(e) {
     const body = {
         name: document.getElementById('orgName').value,
         cnpj: document.getElementById('orgCnpj').value || null,
-        phone_number: document.getElementById('orgPhone').value || null,
+        phone: document.getElementById('orgPhone').value || null,
         email: document.getElementById('orgEmail').value || null,
-        timezone: document.getElementById('orgTimezone').value,
-        business_hours_start: document.getElementById('orgHourStart').value,
-        business_hours_end: document.getElementById('orgHourEnd').value,
-        welcome_message: document.getElementById('orgWelcome').value || null,
+        notes: document.getElementById('orgWelcome').value || null,
     };
     try {
         if (id) {
