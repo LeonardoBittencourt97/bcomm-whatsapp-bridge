@@ -332,6 +332,13 @@ function toggleOrgDropdown() {
     setTimeout(() => document.addEventListener('click', close), 0);
 }
 
+function applyTheme(theme) { if (!theme) return; Object.entries(theme).forEach(([k, v]) => document.documentElement.style.setProperty("--" + k, v)); }
+
+
+
+async function loadTheme() { try { const r = await api("/crm/themes/current"); if (r && r.theme) applyTheme(r.theme); } catch (e) {} }
+
+
 async function loadUserOrgs() {
     try {
         const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
@@ -345,6 +352,7 @@ async function loadUserOrgs() {
                 if (name === 'bcomm_org_id') { selectedOrgId = decodeURIComponent(val) || null; break; }
             }
             renderOrgSelector();
+            loadTheme();
         }
     } catch (e) {}
 }

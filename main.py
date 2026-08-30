@@ -949,3 +949,6 @@ from routes.routes_whatsapp import router as whatsapp_router
 app.include_router(search_router)
 app.include_router(whatsapp_router)
 
+
+from routes.routes_themes import router as themes_router
+app.include_router(themes_router)
