@@ -395,19 +395,6 @@
                 </div>
             </div>
 
-            <!-- Contacts -->
-            <div class="page" id="page-contacts">
-                <div class="card-header">
-                    <span class="card-title">📇 Contatos</span>
-                    <button class="btn btn-primary" onclick="showContactModal()">+ Novo Contato</button>
-                </div>
-                <div style="margin-bottom:16px"><input class="input" placeholder="Buscar contatos..." oninput="searchContacts(this.value)" style="max-width:400px"></div>
-                <div class="card"><div class="table-wrap"><table>
-                    <thead><tr><th>Nome</th><th>Phone</th><th>Email</th><th>Organização</th><th>Stage</th><th>Ações</th></tr></thead>
-                    <tbody id="contacts-table"></tbody>
-                </table></div></div>
-            </div>
-
             <!-- Organizations -->
             <div class="page" id="page-organizations">
                 <div class="card-header">
@@ -428,29 +415,6 @@
                     <button class="btn btn-primary" onclick="showDealModal()">+ Novo Deal</button>
                 </div>
                 <div class="kanban" id="kanban"></div>
-            </div>
-
-            <!-- Activities -->
-            <!-- Notes -->
-            <div class="page" id="page-notes" style="display:none">
-                <div style="padding:24px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                        <h2 style="font-size:20px;font-weight:600">Notas</h2>
-                        <button class="btn btn-primary" onclick="openNewNoteModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">+ Nova Nota</button>
-                    </div>
-                    <div id="notes-list" style="display:flex;flex-direction:column;gap:12px"></div>
-                </div>
-            </div>
-
-            <!-- Activities -->
-            <div class="page" id="page-activities" style="display:none">
-                <div style="padding:24px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                        <h2 style="font-size:20px;font-weight:600">Atividades</h2>
-                        <button class="btn btn-primary" onclick="openNewActivityModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">+ Nova Atividade</button>
-                    </div>
-                    <div id="activities-list" style="display:flex;flex-direction:column;gap:12px"></div>
-                </div>
             </div>
 
             <!-- Settings -->
@@ -530,44 +494,7 @@
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
 
-<!-- Note Modal -->
-<div class="modal-overlay" id="note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rl);width:500px">
-        <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:16px;font-weight:600">Nova Nota</span>
-            <button onclick="document.getElementById('note-modal').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px">&times;</button>
-        </div>
-        <div style="padding:24px">
-            <input type="hidden" id="note-id">
-            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Conteúdo *</label><textarea id="note-content" rows="4" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;resize:vertical" placeholder="Escreva sua nota..."></textarea></div>
-            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Tipo</label><select id="note-entity-type" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px"><option value="deal">Deal</option><option value="contact">Contato</option><option value="conversation">Conversa</option><option value="organization">Organização</option></select></div>
-        </div>
-        <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
-            <button onclick="document.getElementById('note-modal').style.display='none'" style="padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);cursor:pointer">Cancelar</button>
-            <button onclick="saveNote()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">Salvar</button>
-        </div>
-    </div>
-</div>
 
-<!-- Activity Modal -->
-<div class="modal-overlay" id="activity-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rl);width:500px">
-        <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:16px;font-weight:600">Nova Atividade</span>
-            <button onclick="document.getElementById('activity-modal').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px">&times;</button>
-        </div>
-        <div style="padding:24px">
-            <input type="hidden" id="activity-id">
-            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Tipo *</label><select id="activity-type" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px"><option value="task">Tarefa</option><option value="call">Ligação</option><option value="meeting">Reunião</option><option value="email">Email</option><option value="note">Nota</option></select></div>
-            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Assunto *</label><input type="text" id="activity-subject" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px" placeholder="Ex: Ligação com cliente"></div>
-            <div style="margin-bottom:12px"><label style="display:block;font-size:13px;color:var(--text2);margin-bottom:4px">Descrição</label><textarea id="activity-desc" rows="3" style="width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;resize:vertical"></textarea></div>
-        </div>
-        <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
-            <button onclick="document.getElementById('activity-modal').style.display='none'" style="padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);cursor:pointer">Cancelar</button>
-            <button onclick="saveActivityModal()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer">Salvar</button>
-        </div>
-    </div>
-</div>
 
 <script>
 // ── Global State ──
@@ -606,7 +533,7 @@ async function doSearch(q){
         const r=await api(`/crm/search?q=${encodeURIComponent(q)}`);
         if(!r)return;
         let html='';
-        if(r.contacts&&r.contacts.length){html+='<div class="search-group-label">Contatos</div>';r.contacts.forEach(c=>{html+=`<div class="search-result" onclick="closeSearch();navigate('contacts');showContactDetail('${c.id}')"><div class="sr-icon">📇</div><div class="sr-info"><div class="sr-title">${c.name||c.phone}</div><div class="sr-sub">${c.phone}</div></div></div>`})}
+        if(r.contacts&&r.contacts.length){html+='<div class="search-group-label">Contatos</div>';r.contacts.forEach(c=>{html+=`<div class="search-result" onclick="closeSearch();window.location.href='/contacts'"><div class="sr-icon">📇</div><div class="sr-info"><div class="sr-title">${c.name||c.phone}</div><div class="sr-sub">${c.phone}</div></div></div>`})}
         if(r.deals&&r.deals.length){html+='<div class="search-group-label">Negócios</div>';r.deals.forEach(d=>{html+=`<div class="search-result" onclick="closeSearch();navigate('deals')"><div class="sr-icon">💰</div><div class="sr-info"><div class="sr-title">${d.title}</div><div class="sr-sub">R$ ${parseFloat(d.value||0).toLocaleString('pt-BR')}</div></div></div>`})}
         if(r.organizations&&r.organizations.length){html+='<div class="search-group-label">Organizações</div>';r.organizations.forEach(o=>{html+=`<div class="search-result" onclick="closeSearch();navigate('organizations');showOrgDetail('${o.id}')"><div class="sr-icon">🏢</div><div class="sr-info"><div class="sr-title">${o.name}</div><div class="sr-sub">${o.cnpj||''}</div></div></div>`})}
         if(r.messages&&r.messages.length){html+='<div class="search-group-label">Mensagens</div>';r.messages.forEach(m=>{html+=`<div class="search-result" onclick="closeSearch();navigate('conversations')"><div class="sr-icon">💬</div><div class="sr-info"><div class="sr-title">${(m.content||'').substring(0,60)}</div><div class="sr-sub">${m.sender}</div></div></div>`})}
@@ -632,13 +559,10 @@ function loadPage(page){
     switch(page){
         case'dashboard':loadDashboard();break;
         case'conversations':loadConversations();break;
-        case'contacts':loadContacts();break;
         case'organizations':loadOrgs();break;
         case'deals':loadPipeline();break;
-        case'activities':loadActivitiesList();break;
         case'settings':loadSettings();break;
         case'outreach':loadOutreach();break;
-        case'notes':loadNotes();break;
     }
 }
 document.addEventListener('DOMContentLoaded',()=>{
@@ -813,30 +737,6 @@ async function transferToHuman(){
     }
 }
 
-// ── Contacts ──
-async function loadContacts(){
-    const d=await api('/crm/contacts');if(!d)return;contacts=d;
-    document.getElementById('contacts-table').innerHTML=contacts.map(c=>`<tr onclick="showContactDetail('${c.id}')"><td>${c.name||'-'}</td><td>${c.phone}</td><td>${c.email||'-'}</td><td>${c.organization_id||'-'}</td><td><span class="badge badge-accent">${c.lifecycle_stage||'lead'}</span></td><td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showContactModal('${c.id}')">✏️</button></td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum contato</td></tr>';
-}
-function searchContacts(q){
-    const filtered=contacts.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase())||c.phone.includes(q));
-    document.getElementById('contacts-table').innerHTML=filtered.map(c=>`<tr onclick="showContactDetail('${c.id}')"><td>${c.name||'-'}</td><td>${c.phone}</td><td>${c.email||'-'}</td><td>${c.organization_id||'-'}</td><td><span class="badge badge-accent">${c.lifecycle_stage||'lead'}</span></td><td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showContactModal('${c.id}')">✏️</button></td></tr>`).join('');
-}
-function showContactModal(id){
-    const c=id?contacts.find(x=>x.id===id):null;
-    showModal(`<div class="modal-header"><span class="modal-title">${c?'Editar':'Novo'} Contato</span><button class="modal-close" onclick="hideModal()">✕</button></div>
-        <div class="form-group"><label class="form-label">Nome</label><input class="input" id="c-name" value="${c?.name||''}"></div>
-        <div class="form-group"><label class="form-label">Phone</label><input class="input" id="c-phone" value="${c?.phone||''}" ${c?'disabled':''}></div>
-        <div class="form-group"><label class="form-label">Email</label><input class="input" id="c-email" value="${c?.email||''}"></div>
-        <div class="form-group"><label class="form-label">Lifecycle Stage</label><select class="input" id="c-stage"><option value="lead" ${c?.lifecycle_stage==='lead'?'selected':''}>Lead</option><option value="prospect" ${c?.lifecycle_stage==='prospect'?'selected':''}>Prospect</option><option value="customer" ${c?.lifecycle_stage==='customer'?'selected':''}>Customer</option><option value="churned" ${c?.lifecycle_stage==='churned'?'selected':''}>Churned</option></select></div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="hideModal()">Cancelar</button><button class="btn btn-primary" onclick="saveContact('${id||''}')">Salvar</button></div>`);
-}
-async function saveContact(id){
-    const data={name:document.getElementById('c-name').value,phone:document.getElementById('c-phone').value,email:document.getElementById('c-email').value,lifecycle_stage:document.getElementById('c-stage').value};
-    if(id){await api(`/crm/contacts/${id}`,'PUT',data)}else{await api('/crm/contacts','POST',data)}
-    hideModal();loadContacts();showToast('Contato salvo');
-}
-
 // ── Organizations ──
 async function loadOrgs(){
     const d=await api('/crm/organizations');if(!d)return;organizations=d;
@@ -899,28 +799,6 @@ async function saveDeal(){
     const data={title:document.getElementById('d-title').value,value:parseFloat(document.getElementById('d-value').value)||0,pipeline_id:'a0000000-0000-0000-0000-000000000001'};
     await api('/crm/deals','POST',data);hideModal();loadPipeline();showToast('Deal criado');
 }
-
-// ── Activities ──
-async function loadActivities(type=''){
-    let url='/crm/activities?limit=50';if(type)url+='&type='+type;
-    const d=await api(url);if(!d)return;activities=d;
-    const icons={call:'📞',meeting:'📅',task:'✅',note:'📝',whatsapp:'💬',system:'⚙️',email:'📧'};
-    document.getElementById('activities-table').innerHTML=activities.map(a=>`<tr><td>${icons[a.type]||'📋'}</td><td>${a.subject}</td><td>${a.deal_id||a.contact_id||'-'}</td><td>${a.due_date?formatTime(a.due_date):'-'}</td><td><span class="badge ${a.status==='completed'?'badge-green':'badge-yellow'}">${a.status}</span></td><td><button class="btn btn-secondary btn-sm" onclick="completeActivity('${a.id}')">✓</button></td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhuma atividade</td></tr>';
-}
-function filterActivities(type){loadActivities(type)}
-function showActivityModal(){
-    showModal(`<div class="modal-header"><span class="modal-title">Nova Atividade</span><button class="modal-close" onclick="hideModal()">✕</button></div>
-        <div class="form-group"><label class="form-label">Tipo</label><select class="input" id="a-type"><option value="call">Chamada</option><option value="meeting">Reunião</option><option value="task">Tarefa</option><option value="note">Nota</option><option value="whatsapp">WhatsApp</option></select></div>
-        <div class="form-group"><label class="form-label">Assunto</label><input class="input" id="a-subject"></div>
-        <div class="form-group"><label class="form-label">Descrição</label><textarea class="input" id="a-desc"></textarea></div>
-        <div class="form-group"><label class="form-label">Prazo</label><input class="input" id="a-due" type="datetime-local"></div>
-        <div class="modal-footer"><button class="btn btn-secondary" onclick="hideModal()">Cancelar</button><button class="btn btn-primary" onclick="saveActivity()">Criar</button></div>`);
-}
-async function saveActivity(){
-    const data={type:document.getElementById('a-type').value,subject:document.getElementById('a-subject').value,description:document.getElementById('a-desc').value,due_date:document.getElementById('a-due').value||null};
-    await api('/crm/activities','POST',data);hideModal();loadActivities();showToast('Atividade criada');
-}
-async function completeActivity(id){await api(`/crm/activities/${id}/complete`,'PUT');loadActivities();showToast('Atividade concluída')}
 
 // ── Settings ──
 function showSettingsTab(tab,el){
@@ -1139,73 +1017,6 @@ async function startOutreach(){
 async function outPause(id){try{await api('/outreach/'+id+'/pause','POST');toast('Pausado');loadOutreach()}catch(e){toast(e.message,'error')}}
 async function outResume(id){try{await api('/outreach/'+id+'/resume','POST');toast('Retomado');loadOutreach()}catch(e){toast(e.message,'error')}}
 async function outStop(id){try{await api('/outreach/'+id+'/stop','POST');toast('Parado');loadOutreach()}catch(e){toast(e.message,'error')}}
-
-// ── Notes ──
-async function loadNotes() {
-    const r = await api('/crm/notes');
-    const notes = r || [];
-    const el = document.getElementById('notes-list');
-    if (!notes.length) { el.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted)">Nenhuma nota</div>'; return; }
-    el.innerHTML = notes.map(n => `
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;justify-content:space-between;align-items:start">
-            <div style="flex:1">
-                <div style="font-size:14px;white-space:pre-wrap">${n.content || ''}</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:8px">${n.entity_type || ''} · ${n.created_at ? new Date(n.created_at).toLocaleString('pt-BR') : ''}</div>
-            </div>
-            <div style="display:flex;gap:4px">
-                <button onclick="editNote('${n.id}','${(n.content||'').replace(/'/g,"\\'").replace(/\n/g,"\\n")}','${n.entity_type||''}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">✏️</button>
-                <button onclick="deleteNote('${n.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">🗑️</button>
-            </div>
-        </div>
-    `).join('');
-}
-function openNewNoteModal() { document.getElementById('note-id').value = ''; document.getElementById('note-content').value = ''; document.getElementById('note-entity-type').value = 'deal'; document.getElementById('note-modal').style.display = 'flex'; }
-function editNote(id, content, type) { document.getElementById('note-id').value = id; document.getElementById('note-content').value = content.replace(/\\n/g, '\n').replace(/\\'/g, "'"); document.getElementById('note-entity-type').value = type; document.getElementById('note-modal').style.display = 'flex'; }
-async function saveNote() {
-    const id = document.getElementById('note-id').value;
-    const data = { content: document.getElementById('note-content').value, entity_type: document.getElementById('note-entity-type').value, entity_id: '00000000-0000-0000-0000-000000000000' };
-    if (!data.content) return showToast('Preencha o conteúdo', 'error');
-    if (id) { await api(`/crm/notes/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
-    else { await api('/crm/notes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
-    document.getElementById('note-modal').style.display = 'none';
-    loadNotes();
-    showToast(id ? 'Nota atualizada!' : 'Nota criada!');
-}
-async function deleteNote(id) { if (!confirm('Excluir esta nota?')) return; await api(`/crm/notes/${id}`, {method:'DELETE'}); loadNotes(); showToast('Nota excluída'); }
-
-// ── Activities (Management) ──
-async function loadActivitiesList() {
-    const r = await api('/crm/activities');
-    const acts = r || [];
-    const el = document.getElementById('activities-list');
-    if (!acts.length) { el.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted)">Nenhuma atividade</div>'; return; }
-    el.innerHTML = acts.map(a => `
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;justify-content:space-between;align-items:start">
-            <div style="flex:1">
-                <div style="font-size:14px;font-weight:500">${a.subject || a.type}</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:4px">${a.description || ''}</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:4px">${a.type} · ${a.status || 'pending'} · ${a.created_at ? new Date(a.created_at).toLocaleString('pt-BR') : ''}</div>
-            </div>
-            <div style="display:flex;gap:4px">
-                ${a.status !== 'completed' ? `<button onclick="completeActivityMgmt('${a.id}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">✓</button>` : ''}
-                <button onclick="deleteActivityMgmt('${a.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">🗑️</button>
-            </div>
-        </div>
-    `).join('');
-}
-function openNewActivityModal() { document.getElementById('activity-id').value = ''; document.getElementById('activity-type').value = 'task'; document.getElementById('activity-subject').value = ''; document.getElementById('activity-desc').value = ''; document.getElementById('activity-modal').style.display = 'flex'; }
-async function saveActivityModal() {
-    const id = document.getElementById('activity-id').value;
-    const data = { type: document.getElementById('activity-type').value, subject: document.getElementById('activity-subject').value, description: document.getElementById('activity-desc').value };
-    if (!data.subject) return showToast('Preencha o assunto', 'error');
-    if (id) { await api(`/crm/activities/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
-    else { await api('/crm/activities', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); }
-    document.getElementById('activity-modal').style.display = 'none';
-    loadActivitiesList();
-    showToast(id ? 'Atividade atualizada!' : 'Atividade criada!');
-}
-async function completeActivityMgmt(id) { await api(`/crm/activities/${id}/complete`, {method:'PUT'}); loadActivitiesList(); showToast('Atividade concluída!'); }
-async function deleteActivityMgmt(id) { if (!confirm('Excluir esta atividade?')) return; await api(`/crm/activities/${id}`, {method:'DELETE'}); loadActivitiesList(); showToast('Atividade excluída'); }
 
 </script>
 </body>

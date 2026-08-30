@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM - Atividades</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--elevated:#1a1d21;--border:#292d30;--border-hover:#464a4d;--text:#fff;--text2:#a1a4a5;--muted:#6e727a;--accent:#3b9eff;--accent2:#5aadff;--green:#34c759;--red:#ff453a;--yellow:#ffd60a;--orange:#ff9500;--r:12px;--rl:16px;--menu-w:60px;--menu-expanded:220px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--border-hover)}
+
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar.collapsed{width:var(--menu-w)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;transition:opacity .2s}
+        .sidebar.collapsed .logo-text{opacity:0}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text);background:var(--card)}
+        .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;transition:opacity .2s}
+        .sidebar.collapsed .nav-item .label{opacity:0}
+        .nav-divider{height:1px;background:var(--border);margin:8px 16px}
+        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-top:1px solid var(--border);white-space:nowrap}
+        .sidebar-toggle:hover{color:var(--text);background:var(--card)}
+        .sidebar-toggle .label{font-size:13px;font-weight:500}
+        .sidebar.collapsed .sidebar-toggle .label{opacity:0}
+
+        .main{margin-left:var(--menu-expanded);flex:1;display:flex;flex-direction:column;overflow:hidden;transition:margin-left .2s}
+        .sidebar.collapsed~.main{margin-left:var(--menu-w)}
+        .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+        .search-trigger{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-size:13px;cursor:pointer;transition:all .15s;min-width:300px}
+        .search-trigger:hover{border-color:var(--accent);color:var(--text2)}
+        .search-trigger .shortcut{margin-left:auto;font-size:11px;background:var(--elevated);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
+        .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+        .org-selector{position:relative;display:flex;align-items:center}
+        .org-select-btn{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+        .org-select-btn:hover{border-color:var(--accent)}
+        .org-select-btn .org-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+        .org-dropdown{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+        .org-dropdown.show{display:block}
+        .org-dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:var(--text2);font-size:13px;transition:background .15s}
+        .org-dropdown-item:hover{background:var(--surface);color:var(--text)}
+        .org-dropdown-item.active{color:var(--accent);font-weight:500}
+        .org-dropdown-divider{height:1px;background:var(--border)}
+        .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;position:relative}
+        .user-menu-wrap{position:relative;display:inline-block}
+        .user-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+        .user-menu.show{display:block}
+        .user-menu-header{padding:12px 16px;border-bottom:1px solid var(--border)}
+        .user-menu-name{font-size:14px;font-weight:600}
+        .user-menu-email{font-size:12px;color:var(--muted)}
+        .user-menu-item{display:flex;align-items:center;gap:8px;padding:10px 16px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;text-decoration:none}
+        .user-menu-item:hover{background:var(--surface);color:var(--text)}
+        .user-menu-divider{height:1px;background:var(--border)}
+        .content{flex:1;overflow-y:auto;padding:24px}
+
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--muted);margin-bottom:32px}
+
+        .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+        .toolbar .filter-group{display:flex;align-items:center;gap:8px}
+        .toolbar select{padding:8px 32px 8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e727a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+        .toolbar select:hover{border-color:var(--accent)}
+        .toolbar select:focus{outline:none;border-color:var(--accent)}
+        .btn{padding:8px 16px;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit}
+        .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+        .btn-success{background:var(--green);color:#fff}.btn-success:hover{filter:brightness(1.1)}
+        .btn-danger{background:var(--red);color:#fff}.btn-danger:hover{filter:brightness(1.1)}
+        .btn-secondary{background:var(--elevated);color:var(--text);border:1px solid var(--border)}
+        .btn-secondary:hover{border-color:var(--border-hover)}
+        .btn-sm{padding:6px 12px;font-size:12px}
+
+        .activities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px}
+        .activity-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:20px;transition:all .15s;display:flex;flex-direction:column;gap:12px}
+        .activity-card:hover{border-color:var(--border-hover);transform:translateY(-1px)}
+        .activity-card.completed{opacity:.6}
+        .activity-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .activity-type{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--elevated);border-radius:20px;font-size:12px;font-weight:500;color:var(--text2)}
+        .activity-type.task{background:rgba(59,158,255,.15);color:var(--accent)}
+        .activity-type.call{background:rgba(52,199,89,.15);color:var(--green)}
+        .activity-type.meeting{background:rgba(255,149,0,.15);color:var(--orange)}
+        .activity-type.email{background:rgba(255,214,10,.15);color:var(--yellow)}
+        .activity-type.note{background:var(--elevated);color:var(--text2)}
+        .activity-status{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+        .activity-status.completed{background:rgba(52,199,89,.15);color:var(--green)}
+        .activity-status.pending{background:rgba(255,214,10,.15);color:var(--yellow)}
+        .activity-subject{font-size:16px;font-weight:600;line-height:1.4}
+        .activity-desc{font-size:13px;color:var(--text2);line-height:1.5;flex:1}
+        .activity-desc.empty{color:var(--muted);font-style:italic}
+        .activity-meta{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted);padding-top:12px;border-top:1px solid var(--border)}
+        .activity-actions{display:flex;gap:6px}
+        .activity-actions button{background:var(--elevated);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:14px;padding:6px 10px;border-radius:6px;transition:all .15s}
+        .activity-actions button:hover{border-color:var(--accent);color:var(--accent)}
+        .activity-actions button.complete:hover{border-color:var(--green);color:var(--green)}
+        .activity-actions button.delete:hover{border-color:var(--red);color:var(--red)}
+
+        .empty{text-align:center;padding:60px 20px;color:var(--muted);grid-column:1/-1}
+        .empty-icon{font-size:48px;margin-bottom:16px}
+        .empty-text{font-size:16px;margin-bottom:8px}
+        .empty-sub{font-size:13px}
+
+        .toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
+        .toast{padding:14px 20px;background:var(--elevated);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;animation:slideIn .3s;max-width:400px}
+        .toast.success{border-color:var(--green)}.toast.error{border-color:var(--red)}.toast.info{border-color:var(--accent)}
+        @keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+        .modal-overlay.show{display:flex}
+        .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+        .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+        .modal-title{font-size:18px;font-weight:600}
+        .modal-close{width:28px;height:28px;border-radius:6px;border:none;background:var(--elevated);color:var(--text2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+        .modal-close:hover{background:var(--red);color:#fff}
+        .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+        .form-group{margin-bottom:16px}
+        .form-label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
+        .input{padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;transition:border-color .15s;width:100%}
+        .input:focus{outline:none;border-color:var(--accent)}
+        .input::placeholder{color:var(--muted)}
+        textarea.input{resize:vertical;min-height:80px}
+        select.input{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e727a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}.activities-grid{grid-template-columns:1fr}.toolbar{flex-direction:column;align-items:stretch}}
+    </style>
+</head>
+<body>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/dashboard" class="logo" style="text-decoration:none;color:inherit">
+                <div class="logo-icon">B</div>
+                <span class="logo-text">BCOMM</span>
+            </a>
+        </div>
+        <div class="nav-items">
+            <a href="/dashboard" class="nav-item" data-page="dashboard"><span class="icon">📊</span><span class="label">Dashboard</span></a>
+            <a href="/crm" class="nav-item" data-page="conversations"><span class="icon">💬</span><span class="label">Atendimento</span></a>
+            <a href="/contacts" class="nav-item" data-page="contacts"><span class="icon">📇</span><span class="label">Contatos</span></a>
+            <a href="/organizations" class="nav-item" data-page="organizations"><span class="icon">🏢</span><span class="label">Organizações</span></a>
+            <a href="/pipelines" class="nav-item" data-page="deals"><span class="icon">💰</span><span class="label">Negócios</span></a>
+            <a href="/activities" class="nav-item active" data-page="activities"><span class="icon">📋</span><span class="label">Atividades</span></a>
+            <a href="/notes" class="nav-item" data-page="notes"><span class="icon">📝</span><span class="label">Notas</span></a>
+            <a href="/outreach" class="nav-item" data-page="outreach"><span class="icon">📤</span><span class="label">Outreach</span></a>
+            <div class="nav-divider"></div>
+            <a href="/users" class="nav-item" data-page="users"><span class="icon">👥</span><span class="label">Usuários</span></a>
+            <a href="/config" class="nav-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Configurações</span></a>
+        </div>
+        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')">
+            <span class="icon">☰</span><span class="label">Recolher</span>
+        </div>
+    </nav>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="search-trigger"><span>🔍</span><span>Buscar contatos, deals, mensagens...</span><span class="shortcut">Ctrl+K</span></div>
+            <div class="topbar-right">
+                <div class="org-selector" id="org-selector" style="display:none">
+                    <button class="org-select-btn" onclick="toggleOrgDropdown()">
+                        <span class="org-dot"></span>
+                        <span id="org-current-name">Todas</span>
+                        <span style="font-size:10px">▼</span>
+                    </button>
+                    <div class="org-dropdown" id="org-dropdown">
+                        <div class="org-dropdown-item active" onclick="selectOrg(null)">Todas</div>
+                    </div>
+                </div>
+                <div class="user-menu-wrap">
+                    <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()">U</div>
+                    <div class="user-menu" id="user-menu">
+                        <div class="user-menu-header"><div class="user-menu-name" id="menu-user-name">Carregando...</div><div class="user-menu-email" id="menu-user-email"></div></div>
+                        <div class="user-menu-item" onclick="showChangePasswordModal()">🔑 Trocar Senha</div>
+                        <div class="user-menu-divider"></div>
+                        <div class="user-menu-item" onclick="logout()" style="color:var(--red)">🚪 Sair</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <h1 class="page-title">Atividades</h1>
+            <p class="page-subtitle">Tarefas, ligações, reuniões e mais</p>
+
+            <div class="toolbar">
+                <div class="filter-group">
+                    <select id="filter-type" onchange="loadActivities()">
+                        <option value="">Todos os tipos</option>
+                        <option value="task">✅ Tarefa</option>
+                        <option value="call">📞 Ligação</option>
+                        <option value="meeting">📅 Reunião</option>
+                        <option value="email">📧 Email</option>
+                        <option value="note">📝 Nota</option>
+                    </select>
+                    <select id="filter-status" onchange="loadActivities()">
+                        <option value="">Todos os status</option>
+                        <option value="pending">Pendente</option>
+                        <option value="completed">Concluída</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" style="margin-left:auto" onclick="openNewActivityModal()">+ Nova Atividade</button>
+            </div>
+
+            <div id="activities-list" class="activities-grid"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="activity-modal" onclick="if(event.target===this)closeActivityModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="activity-modal-title">Nova Atividade</span>
+            <button class="modal-close" onclick="closeActivityModal()">&times;</button>
+        </div>
+        <input type="hidden" id="activity-id">
+        <div class="form-group">
+            <label class="form-label">Tipo *</label>
+            <select class="input" id="activity-type">
+                <option value="task">✅ Tarefa</option>
+                <option value="call">📞 Ligação</option>
+                <option value="meeting">📅 Reunião</option>
+                <option value="email">📧 Email</option>
+                <option value="note">📝 Nota</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Assunto *</label>
+            <input class="input" type="text" id="activity-subject" placeholder="Ex: Ligação com cliente">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Descrição</label>
+            <textarea class="input" id="activity-desc" rows="3" placeholder="Detalhes da atividade..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeActivityModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveActivity()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+async function api(url, method='GET', body=null) {
+    try {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const r = await fetch(url, opts);
+        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || r.statusText); }
+        return await r.json();
+    } catch (e) { showToast(e.message, 'error'); return null; }
+}
+
+function showToast(msg, type='info') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+async function loadUserInfo() {
+    try {
+        const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { window.location.href = '/login'; return; }
+        const data = await r.json();
+        if (r.ok && data) {
+            const initial = (data.user.name || data.user.email || 'U')[0].toUpperCase();
+            document.getElementById('user-avatar').textContent = initial;
+            const nameEl = document.getElementById('menu-user-name');
+            const emailEl = document.getElementById('menu-user-email');
+            if (nameEl) nameEl.textContent = data.user.name || 'Usuário';
+            if (emailEl) emailEl.textContent = data.user.email || '';
+            const role = data.user.role || 'agent';
+            const usersNavItem = document.querySelector('[data-page="users"]');
+            if (usersNavItem && role !== 'master' && role !== 'admin_geral') { usersNavItem.style.display = 'none'; }
+        }
+    } catch (e) { window.location.href = '/login'; }
+    loadUserOrgs();
+}
+
+let userOrgs = [];
+let selectedOrgId = null;
+
+function toggleOrgDropdown() {
+    const d = document.getElementById('org-dropdown');
+    d.classList.toggle('show');
+    const close = (e) => { if (!d.contains(e.target) && !e.target.closest('.org-select-btn')) { d.classList.remove('show'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+async function loadUserOrgs() {
+    try {
+        const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { window.location.href = '/login'; return; }
+        const data = await r.json();
+        if (r.ok && data.user) {
+            userOrgs = data.organizations || [];
+            const cookies = document.cookie.split(';');
+            for (const c of cookies) {
+                const [name, val] = c.trim().split('=');
+                if (name === 'bcomm_org_id') { selectedOrgId = decodeURIComponent(val) || null; break; }
+            }
+            renderOrgSelector();
+        }
+    } catch (e) {}
+}
+
+function renderOrgSelector() {
+    const selector = document.getElementById('org-selector');
+    if (!selector) return;
+    if (userOrgs.length <= 1) { selector.style.display = 'none'; return; }
+    selector.style.display = 'flex';
+    const dd = document.getElementById('org-dropdown');
+    dd.innerHTML = '<div class="org-dropdown-item ' + (!selectedOrgId ? 'active' : '') + '" onclick="selectOrg(null)">Todas</div><div class="org-dropdown-divider"></div>';
+    dd.innerHTML += userOrgs.map(o => '<div class="org-dropdown-item ' + (selectedOrgId === o.id ? 'active' : '') + '" onclick="selectOrg(\'' + o.id + '\')">' + (o.name || o.id) + '</div>').join('');
+    document.getElementById('org-current-name').textContent = selectedOrgId ? (userOrgs.find(o => o.id === selectedOrgId) || {}).name || 'Org' : 'Todas';
+}
+
+async function selectOrg(orgId) {
+    document.getElementById('org-dropdown').classList.remove('show');
+    try {
+        await fetch('/crm/auth/select-org', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ organization_id: orgId })
+        });
+    } catch (e) {}
+    window.location.reload();
+}
+
+function toggleUserMenu() {
+    const m = document.getElementById('user-menu');
+    m.classList.toggle('show');
+    const close = (e) => { if (!m.contains(e.target) && e.target.id !== 'user-avatar') { m.classList.remove('show'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function showChangePasswordModal() {
+    document.getElementById('user-menu').classList.remove('show');
+    const cp = prompt('Digite sua senha atual:');
+    if (!cp) return;
+    const pw = prompt('Digite sua nova senha (mínimo 6 caracteres):');
+    if (pw && pw.length >= 6) {
+        fetch('/crm/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current_password: cp, new_password: pw }) })
+            .then(r => r.json()).then(d => { if (d.status === 'ok') alert('Senha alterada com sucesso!'); else alert('Erro: ' + d.detail); }).catch(() => alert('Erro ao alterar senha'));
+    } else if (pw) { alert('A senha deve ter pelo menos 6 caracteres'); }
+}
+
+async function logout() {
+    try { await fetch('/crm/auth/logout', { method: 'POST' }); } catch (e) {}
+    window.location.href = '/login';
+}
+
+const TYPE_ICONS = { task: '✅', call: '📞', meeting: '📅', email: '📧', note: '📝' };
+const TYPE_LABELS = { task: 'Tarefa', call: 'Ligação', meeting: 'Reunião', email: 'Email', note: 'Nota' };
+
+function formatDate(s) {
+    if (!s) return '-';
+    const d = new Date(s);
+    if (isNaN(d)) return '-';
+    const now = new Date();
+    const diff = (now - d) / 1000;
+    if (diff < 60) return 'agora';
+    if (diff < 3600) return `há ${Math.floor(diff / 60)}min`;
+    if (diff < 86400) return `há ${Math.floor(diff / 3600)}h`;
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+async function loadActivities() {
+    const list = document.getElementById('activities-list');
+    list.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><div class="empty-text">Carregando...</div></div>';
+
+    const typeFilter = document.getElementById('filter-type').value;
+    const statusFilter = document.getElementById('filter-status').value;
+
+    const r = await api('/crm/activities');
+    let acts = r || [];
+
+    if (typeFilter) acts = acts.filter(a => a.type === typeFilter);
+    if (statusFilter) acts = acts.filter(a => a.status === statusFilter);
+
+    if (!acts.length) {
+        list.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhuma atividade</div><div class="empty-sub">Clique em "+ Nova Atividade" para criar</div></div>';
+        return;
+    }
+
+    list.innerHTML = acts.map(a => {
+        const completed = a.status === 'completed';
+        const type = a.type || 'task';
+        const desc = (a.description || '').trim();
+        return `
+        <div class="activity-card ${completed ? 'completed' : ''}">
+            <div class="activity-head">
+                <span class="activity-type ${type}">${TYPE_ICONS[type] || '📋'} ${TYPE_LABELS[type] || type}</span>
+                <span class="activity-status ${completed ? 'completed' : 'pending'}">${completed ? '✓ Concluída' : '● Pendente'}</span>
+            </div>
+            <div class="activity-subject">${escapeHtml(a.subject || '(sem assunto)')}</div>
+            <div class="activity-desc ${desc ? '' : 'empty'}">${desc ? escapeHtml(desc) : 'Sem descrição'}</div>
+            <div class="activity-meta">
+                <span title="${escapeHtml(a.created_at || '')}">${formatDate(a.created_at)}</span>
+                <div class="activity-actions">
+                    ${!completed ? `<button class="complete" onclick="completeActivity('${a.id}')" title="Marcar como concluída">✓</button>` : ''}
+                    <button class="delete" onclick="deleteActivity('${a.id}')" title="Excluir">🗑️</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function openNewActivityModal() {
+    document.getElementById('activity-id').value = '';
+    document.getElementById('activity-type').value = 'task';
+    document.getElementById('activity-subject').value = '';
+    document.getElementById('activity-desc').value = '';
+    document.getElementById('activity-modal-title').textContent = 'Nova Atividade';
+    document.getElementById('activity-modal').classList.add('show');
+}
+
+function closeActivityModal() {
+    document.getElementById('activity-modal').classList.remove('show');
+}
+
+async function saveActivity() {
+    const subject = document.getElementById('activity-subject').value.trim();
+    if (!subject) { showToast('Assunto é obrigatório', 'error'); return; }
+    const data = {
+        type: document.getElementById('activity-type').value,
+        subject,
+        description: document.getElementById('activity-desc').value.trim()
+    };
+    const r = await api('/crm/activities', 'POST', data);
+    if (r) {
+        closeActivityModal();
+        showToast('Atividade criada!', 'success');
+        loadActivities();
+    }
+}
+
+async function completeActivity(id) {
+    const r = await api(`/crm/activities/${id}/complete`, 'PUT');
+    if (r) {
+        showToast('Atividade concluída!', 'success');
+        loadActivities();
+    }
+}
+
+async function deleteActivity(id) {
+    if (!confirm('Excluir esta atividade?')) return;
+    const r = await api(`/crm/activities/${id}`, 'DELETE');
+    if (r) {
+        showToast('Atividade excluída', 'success');
+        loadActivities();
+    }
+}
+
+loadUserInfo();
+loadActivities();
+</script>
+</body>
+</html>

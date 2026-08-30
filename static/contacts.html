@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM - Contatos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--elevated:#1a1d21;--border:#292d30;--border-hover:#464a4d;--text:#fff;--text2:#a1a4a5;--muted:#6e727a;--accent:#3b9eff;--accent2:#5aadff;--green:#34c759;--red:#ff453a;--yellow:#ffd60a;--orange:#ff9500;--r:12px;--rl:16px;--menu-w:60px;--menu-expanded:220px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar.collapsed{width:var(--menu-w)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;transition:opacity .2s}
+        .sidebar.collapsed .logo-text{opacity:0}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text);background:var(--card)}
+        .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;transition:opacity .2s}
+        .sidebar.collapsed .nav-item .label{opacity:0}
+        .nav-divider{height:1px;background:var(--border);margin:8px 16px}
+        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-top:1px solid var(--border);white-space:nowrap}
+        .sidebar-toggle:hover{color:var(--text);background:var(--card)}
+        .sidebar-toggle .label{font-size:13px;font-weight:500}
+        .sidebar.collapsed .sidebar-toggle .label{opacity:0}
+        .main{margin-left:var(--menu-expanded);flex:1;display:flex;flex-direction:column;overflow:hidden;transition:margin-left .2s}
+        .sidebar.collapsed~.main{margin-left:var(--menu-w)}
+        .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+        .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+        .org-selector{position:relative;display:flex;align-items:center}
+        .org-select-btn{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+        .org-select-btn:hover{border-color:var(--accent)}
+        .org-select-btn .org-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+        .org-dropdown{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+        .org-dropdown.show{display:block}
+        .org-dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:var(--text2);font-size:13px;transition:background .15s}
+        .org-dropdown-item:hover{background:var(--surface);color:var(--text)}
+        .org-dropdown-item.active{color:var(--accent);font-weight:500}
+        .org-dropdown-divider{height:1px;background:var(--border)}
+        .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;position:relative}
+        .user-menu-wrap{position:relative;display:inline-block}
+        .user-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+        .user-menu.show{display:block}
+        .user-menu-header{padding:12px 16px;border-bottom:1px solid var(--border)}
+        .user-menu-name{font-size:14px;font-weight:600}
+        .user-menu-email{font-size:12px;color:var(--muted)}
+        .user-menu-item{display:flex;align-items:center;gap:8px;padding:10px 16px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;text-decoration:none}
+        .user-menu-item:hover{background:var(--surface);color:var(--text)}
+        .user-menu-divider{height:1px;background:var(--border)}
+        .content{flex:1;overflow-y:auto;padding:24px}
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--muted);margin-bottom:24px}
+        .toolbar{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+        .toolbar .search{position:relative;flex:1;min-width:240px;max-width:420px}
+        .toolbar .search input{width:100%;padding:10px 12px 10px 36px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;outline:none;transition:all .15s;font-family:inherit}
+        .toolbar .search input:focus{border-color:var(--accent)}
+        .toolbar .search::before{content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.6}
+        .toolbar select{padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;outline:none;cursor:pointer;font-family:inherit}
+        .toolbar select:focus{border-color:var(--accent)}
+        .btn{padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+        .btn-primary{background:var(--accent);color:#fff}
+        .btn-primary:hover{background:var(--accent2)}
+        .btn-secondary{background:var(--card);color:var(--text2);border:1px solid var(--border)}
+        .btn-secondary:hover{border-color:var(--border-hover);color:var(--text)}
+        .btn-danger{background:transparent;color:var(--red);border:1px solid var(--border)}
+        .btn-danger:hover{background:var(--red);color:#fff;border-color:var(--red)}
+        .btn-sm{padding:6px 10px;font-size:12px}
+        .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+        table{width:100%;border-collapse:collapse}
+        th{text-align:left;padding:14px 16px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;background:var(--surface);border-bottom:1px solid var(--border)}
+        td{padding:14px 16px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text2)}
+        tr:last-child td{border-bottom:none}
+        tbody tr{transition:background .12s}
+        tbody tr:hover{background:var(--surface)}
+        .name-cell{display:flex;align-items:center;gap:10px;font-weight:500;color:var(--text)}
+        .name-avatar{width:30px;height:30px;border-radius:50%;background:var(--elevated);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0}
+        .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;text-transform:capitalize}
+        .badge-lead{background:rgba(108,117,125,.18);color:#a1a4a5}
+        .badge-prospect{background:rgba(59,158,255,.15);color:var(--accent)}
+        .badge-customer{background:rgba(52,199,89,.15);color:var(--green)}
+        .badge-churned{background:rgba(255,69,58,.15);color:var(--red)}
+        .actions{display:flex;gap:6px;justify-content:flex-end}
+        .empty-state{text-align:center;padding:48px;color:var(--muted);font-size:14px}
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;padding:20px}
+        .modal-overlay.show{display:flex}
+        .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+        .modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border)}
+        .modal-title{font-size:16px;font-weight:600}
+        .modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0;line-height:1}
+        .modal-close:hover{color:var(--text)}
+        .modal-body{padding:24px}
+        .modal-footer{display:flex;gap:8px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border)}
+        .form-group{margin-bottom:16px}
+        .form-label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+        .form-input{width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;outline:none;transition:all .15s;font-family:inherit}
+        .form-input:focus{border-color:var(--accent)}
+        .form-input:disabled{opacity:.5;cursor:not-allowed}
+        textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 20px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:600;opacity:0;transform:translateY(8px);transition:all .25s}
+        .toast.show{opacity:1;transform:translateY(0)}
+        .toast.success{border-color:var(--green)}
+        .toast.error{border-color:var(--red)}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}.toolbar{flex-direction:column;align-items:stretch}.toolbar .search{max-width:none}.table-wrap{overflow-x:auto}table{min-width:640px}}
+    </style>
+</head>
+<body>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/dashboard" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
+        </div>
+        <div class="nav-items">
+            <a href="/dashboard" class="nav-item" data-page="dashboard"><span class="icon">📊</span><span class="label">Dashboard</span></a>
+            <a href="/crm" class="nav-item" data-page="conversations"><span class="icon">💬</span><span class="label">Atendimento</span></a>
+            <a href="/contacts" class="nav-item active" data-page="contacts"><span class="icon">📇</span><span class="label">Contatos</span></a>
+            <a href="/organizations" class="nav-item" data-page="organizations"><span class="icon">🏢</span><span class="label">Organizações</span></a>
+            <a href="/pipelines" class="nav-item" data-page="deals"><span class="icon">💰</span><span class="label">Negócios</span></a>
+            <a href="/activities" class="nav-item" data-page="activities"><span class="icon">📋</span><span class="label">Atividades</span></a>
+            <a href="/notes" class="nav-item" data-page="notes"><span class="icon">📝</span><span class="label">Notas</span></a>
+            <a href="/outreach" class="nav-item" data-page="outreach"><span class="icon">📤</span><span class="label">Outreach</span></a>
+            <div class="nav-divider"></div>
+            <a href="/users" class="nav-item" data-page="users"><span class="icon">👥</span><span class="label">Usuários</span></a>
+            <a href="/config" class="nav-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Configurações</span></a>
+        </div>
+        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')"><span class="icon">☰</span><span class="label">Recolher</span></div>
+    </nav>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-right">
+                <div class="org-selector" id="org-selector" style="display:none">
+                    <button class="org-select-btn" onclick="toggleOrgDropdown()">
+                        <span class="org-dot"></span>
+                        <span id="org-current-name">Todas</span>
+                        <span style="font-size:10px">▼</span>
+                    </button>
+                    <div class="org-dropdown" id="org-dropdown">
+                        <div class="org-dropdown-item active" onclick="selectOrg(null)">Todas</div>
+                    </div>
+                </div>
+                <div class="user-menu-wrap">
+                    <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()">U</div>
+                    <div class="user-menu" id="user-menu">
+                        <div class="user-menu-header"><div class="user-menu-name" id="menu-user-name">Carregando...</div><div class="user-menu-email" id="menu-user-email"></div></div>
+                        <div class="user-menu-item" onclick="showChangePasswordModal()">🔑 Trocar Senha</div>
+                        <div class="user-menu-divider"></div>
+                        <div class="user-menu-item" onclick="logout()" style="color:var(--red)">🚪 Sair</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <h1 class="page-title">Contatos</h1>
+            <p class="page-subtitle">Gerencie seus contatos e leads</p>
+
+            <div class="toolbar">
+                <div class="search">
+                    <input type="text" id="search-input" placeholder="Buscar por nome, telefone ou email..." oninput="onSearch(this.value)">
+                </div>
+                <select id="filter-role" onchange="onFilterChange()">
+                    <option value="">Todas Organizações</option>
+                </select>
+                <select id="filter-status" onchange="onFilterChange()">
+                    <option value="">Todos Status</option>
+                    <option value="lead">Lead</option>
+                    <option value="prospect">Prospect</option>
+                    <option value="customer">Customer</option>
+                    <option value="churned">Churned</option>
+                </select>
+                <button class="btn btn-primary" onclick="openNewContactModal()">+ Novo Contato</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Organização</th>
+                            <th>Stage</th>
+                            <th style="text-align:right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contacts-table">
+                        <tr><td colspan="6" class="empty-state">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="modal-title">Novo Contato</span>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Nome</label>
+                <input class="form-input" id="c-name" placeholder="Nome completo">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phone</label>
+                <input class="form-input" id="c-phone" placeholder="5541999999999">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-input" id="c-email" placeholder="email@example.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Empresa</label>
+                <input class="form-input" id="c-company" placeholder="Nome da empresa">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Lifecycle Stage</label>
+                <select class="form-input" id="c-stage">
+                    <option value="lead">Lead</option>
+                    <option value="prospect">Prospect</option>
+                    <option value="customer">Customer</option>
+                    <option value="churned">Churned</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notas</label>
+                <textarea class="form-input" id="c-notes" placeholder="Observações..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveContact()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let contacts = [];
+let currentContactId = null;
+let userOrgs = [];
+let selectedOrgId = null;
+
+async function api(url, options = {}) {
+    const defaults = { headers: { 'Accept': 'application/json' } };
+    const opts = { ...defaults, ...options };
+    if (options.body) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(options.body);
+    }
+    const r = await fetch(url, opts);
+    if (r.status === 401) { window.location.href = '/login'; return; }
+    return r;
+}
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function stageClass(stage) {
+    return 'badge badge-' + (stage || 'lead');
+}
+
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadContacts() {
+    const tbody = document.getElementById('contacts-table');
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Carregando...</td></tr>';
+    try {
+        const r = await api('/crm/contacts');
+        const data = await r.json();
+        if (!r.ok) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Erro ao carregar contatos</td></tr>'; return; }
+        contacts = data.users || data.contacts || data || [];
+        renderContacts();
+        populateOrgFilter();
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Erro de conexão</td></tr>';
+    }
+}
+
+function getFilteredContacts() {
+    const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+    const role = document.getElementById('filter-role').value;
+    const status = document.getElementById('filter-status').value;
+    return contacts.filter(c => {
+        if (q) {
+            const hay = ((c.name || '') + ' ' + (c.phone || '') + ' ' + (c.email || '')).toLowerCase();
+            if (!hay.includes(q)) return false;
+        }
+        if (role && c.organization_id !== role) return false;
+        if (status && (c.lifecycle_stage || 'lead') !== status) return false;
+        return true;
+    });
+}
+
+function renderContacts() {
+    const tbody = document.getElementById('contacts-table');
+    const filtered = getFilteredContacts();
+    if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Nenhum contato encontrado</td></tr>';
+        return;
+    }
+    tbody.innerHTML = filtered.map(c => {
+        const initial = (c.name || c.phone || '?')[0].toUpperCase();
+        return `<tr>
+            <td><div class="name-cell"><div class="name-avatar">${escapeHtml(initial)}</div>${escapeHtml(c.name || '-')}</div></td>
+            <td>${escapeHtml(c.phone || '-')}</td>
+            <td>${escapeHtml(c.email || '-')}</td>
+            <td>${escapeHtml(c.organization_id || '-')}</td>
+            <td><span class="${stageClass(c.lifecycle_stage)}">${escapeHtml(c.lifecycle_stage || 'lead')}</span></td>
+            <td><div class="actions">
+                <button class="btn btn-secondary btn-sm" onclick="editContact('${escapeHtml(c.id)}')">✏️ Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteContact('${escapeHtml(c.id)}')">🗑️</button>
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+function populateOrgFilter() {
+    const sel = document.getElementById('filter-role');
+    const current = sel.value;
+    const orgs = [...new Set(contacts.map(c => c.organization_id).filter(Boolean))];
+    sel.innerHTML = '<option value="">Todas Organizações</option>' +
+        orgs.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+    sel.value = current;
+}
+
+function onSearch(q) { renderContacts(); }
+function onFilterChange() { renderContacts(); }
+
+function openNewContactModal() {
+    currentContactId = null;
+    document.getElementById('modal-title').textContent = 'Novo Contato';
+    document.getElementById('c-name').value = '';
+    document.getElementById('c-phone').value = '';
+    document.getElementById('c-phone').disabled = false;
+    document.getElementById('c-email').value = '';
+    document.getElementById('c-company').value = '';
+    document.getElementById('c-stage').value = 'lead';
+    document.getElementById('c-notes').value = '';
+    document.getElementById('modal-overlay').classList.add('show');
+}
+
+function editContact(id) {
+    const c = contacts.find(x => x.id === id);
+    if (!c) return;
+    currentContactId = id;
+    document.getElementById('modal-title').textContent = 'Editar Contato';
+    document.getElementById('c-name').value = c.name || '';
+    document.getElementById('c-phone').value = c.phone || '';
+    document.getElementById('c-phone').disabled = true;
+    document.getElementById('c-email').value = c.email || '';
+    document.getElementById('c-company').value = c.company || '';
+    document.getElementById('c-stage').value = c.lifecycle_stage || 'lead';
+    document.getElementById('c-notes').value = c.notes || '';
+    document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+    currentContactId = null;
+}
+
+async function saveContact() {
+    const data = {
+        name: document.getElementById('c-name').value.trim(),
+        phone: document.getElementById('c-phone').value.trim(),
+        email: document.getElementById('c-email').value.trim() || null,
+        company: document.getElementById('c-company').value.trim() || null,
+        lifecycle_stage: document.getElementById('c-stage').value,
+        notes: document.getElementById('c-notes').value.trim() || null
+    };
+    if (!data.name || !data.phone) { showToast('Nome e telefone são obrigatórios', 'error'); return; }
+    try {
+        let r;
+        if (currentContactId) {
+            r = await api('/crm/contacts/' + currentContactId, { method: 'PUT', body: data });
+        } else {
+            r = await api('/crm/contacts', { method: 'POST', body: data });
+        }
+        if (r && r.ok) {
+            closeModal();
+            showToast('Contato salvo com sucesso');
+            await loadContacts();
+        } else {
+            const err = r ? await r.json().catch(() => ({})) : {};
+            showToast('Erro: ' + (err.detail || 'falha ao salvar'), 'error');
+        }
+    } catch (e) {
+        showToast('Erro de conexão', 'error');
+    }
+}
+
+async function deleteContact(id) {
+    const c = contacts.find(x => x.id === id);
+    const name = c ? (c.name || c.phone) : id;
+    if (!confirm('Excluir o contato "' + name + '"? Esta ação não pode ser desfeita.')) return;
+    try {
+        const r = await api('/crm/contacts/' + id, { method: 'DELETE' });
+        if (r && r.ok) {
+            showToast('Contato excluído');
+            await loadContacts();
+        } else {
+            showToast('Erro ao excluir', 'error');
+        }
+    } catch (e) {
+        showToast('Erro de conexão', 'error');
+    }
+}
+
+async function loadUserInfo() {
+    try {
+        const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { window.location.href = '/login'; return; }
+        const data = await r.json();
+        if (r.ok && data && data.user) {
+            const initial = (data.user.name || data.user.email || 'U')[0].toUpperCase();
+            document.getElementById('user-avatar').textContent = initial;
+            const nameEl = document.getElementById('menu-user-name');
+            const emailEl = document.getElementById('menu-user-email');
+            if (nameEl) nameEl.textContent = data.user.name || 'Usuário';
+            if (emailEl) emailEl.textContent = data.user.email || '';
+            const role = data.user.role || 'agent';
+            const usersNavItem = document.querySelector('[data-page="users"]');
+            if (usersNavItem && role !== 'master' && role !== 'admin_geral') usersNavItem.style.display = 'none';
+        }
+    } catch (e) { window.location.href = '/login'; }
+    loadUserOrgs();
+}
+
+async function loadUserOrgs() {
+    try {
+        const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { window.location.href = '/login'; return; }
+        const data = await r.json();
+        if (r.ok && data.user) {
+            userOrgs = data.organizations || [];
+            const cookies = document.cookie.split(';');
+            for (const c of cookies) {
+                const [name, val] = c.trim().split('=');
+                if (name === 'bcomm_org_id') { selectedOrgId = decodeURIComponent(val) || null; break; }
+            }
+            renderOrgSelector();
+        }
+    } catch (e) {}
+}
+
+function renderOrgSelector() {
+    const selector = document.getElementById('org-selector');
+    if (!selector) return;
+    if (userOrgs.length <= 1) { selector.style.display = 'none'; return; }
+    selector.style.display = 'flex';
+    const dd = document.getElementById('org-dropdown');
+    dd.innerHTML = '<div class="org-dropdown-item ' + (!selectedOrgId ? 'active' : '') + '" onclick="selectOrg(null)">Todas</div><div class="org-dropdown-divider"></div>';
+    dd.innerHTML += userOrgs.map(o => '<div class="org-dropdown-item ' + (selectedOrgId === o.id ? 'active' : '') + '" onclick="selectOrg(\'' + o.id + '\')">' + escapeHtml(o.name || o.id) + '</div>').join('');
+    document.getElementById('org-current-name').textContent = selectedOrgId ? (userOrgs.find(o => o.id === selectedOrgId) || {}).name || 'Org' : 'Todas';
+}
+
+async function selectOrg(orgId) {
+    document.getElementById('org-dropdown').classList.remove('show');
+    try {
+        await fetch('/crm/auth/select-org', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ organization_id: orgId })
+        });
+    } catch (e) {}
+    window.location.reload();
+}
+
+function toggleOrgDropdown() {
+    const d = document.getElementById('org-dropdown');
+    d.classList.toggle('show');
+    const close = (e) => { if (!d.contains(e.target) && !e.target.closest('.org-select-btn')) { d.classList.remove('show'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function toggleUserMenu() {
+    const m = document.getElementById('user-menu');
+    m.classList.toggle('show');
+    const close = (e) => { if (!m.contains(e.target) && e.target.id !== 'user-avatar') { m.classList.remove('show'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function showChangePasswordModal() {
+    document.getElementById('user-menu').classList.remove('show');
+    const cp = prompt('Digite sua senha atual:');
+    if (!cp) return;
+    const pw = prompt('Digite sua nova senha (mínimo 6 caracteres):');
+    if (pw && pw.length >= 6) {
+        fetch('/crm/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current_password: cp, new_password: pw }) })
+            .then(r => r.json()).then(d => { if (d.status === 'ok') alert('Senha alterada com sucesso!'); else alert('Erro: ' + d.detail); }).catch(() => alert('Erro ao alterar senha'));
+    } else if (pw) { alert('A senha deve ter pelo menos 6 caracteres'); }
+}
+
+async function logout() {
+    try { await fetch('/crm/auth/logout', { method: 'POST' }); } catch (e) {}
+    window.location.href = '/login';
+}
+
+loadUserInfo();
+loadContacts();
+</script>
+</body>
+</html>

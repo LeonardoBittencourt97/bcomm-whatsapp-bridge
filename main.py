@@ -823,9 +823,9 @@ async def crm_page():
 async def contacts_page():
     """Página de contatos."""
     from fastapi.responses import HTMLResponse
-    crm_path = os.path.join(os.path.dirname(__file__), "static", "crm.html")
-    if os.path.exists(crm_path):
-        with open(crm_path, "r") as f:
+    path = os.path.join(os.path.dirname(__file__), "static", "contacts.html")
+    if os.path.exists(path):
+        with open(path, "r") as f:
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
@@ -834,9 +834,9 @@ async def contacts_page():
 async def activities_page():
     """Página de atividades."""
     from fastapi.responses import HTMLResponse
-    crm_path = os.path.join(os.path.dirname(__file__), "static", "crm.html")
-    if os.path.exists(crm_path):
-        with open(crm_path, "r") as f:
+    path = os.path.join(os.path.dirname(__file__), "static", "activities.html")
+    if os.path.exists(path):
+        with open(path, "r") as f:
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
@@ -856,9 +856,9 @@ async def users_page():
 async def notes_page():
     """Página de notas."""
     from fastapi.responses import HTMLResponse
-    crm_path = os.path.join(os.path.dirname(__file__), "static", "crm.html")
-    if os.path.exists(crm_path):
-        with open(crm_path, "r") as f:
+    path = os.path.join(os.path.dirname(__file__), "static", "notes.html")
+    if os.path.exists(path):
+        with open(path, "r") as f:
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 

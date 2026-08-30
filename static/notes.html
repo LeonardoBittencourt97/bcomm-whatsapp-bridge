@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCOMM - Notas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#0b0b0c;--surface:#0b0e14;--card:#13161a;--elevated:#1a1d21;--border:#292d30;--border-hover:#464a4d;--text:#fff;--text2:#a1a4a5;--muted:#6e727a;--accent:#3b9eff;--accent2:#5aadff;--green:#34c759;--red:#ff453a;--yellow:#ffd60a;--orange:#ff9500;--r:12px;--rl:16px;--menu-w:60px;--menu-expanded:220px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+        .app{display:flex;height:100vh}
+        .sidebar{width:var(--menu-expanded);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;overflow:hidden;z-index:50;flex-shrink:0;position:fixed;top:0;left:0;bottom:0}
+        .sidebar.collapsed{width:var(--menu-w)}
+        .sidebar-logo{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:12px;overflow:hidden}
+        .sidebar-logo .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+        .sidebar-logo .logo-text{font-size:14px;font-weight:600;white-space:nowrap;transition:opacity .2s}
+        .sidebar.collapsed .logo-text{opacity:0}
+        .nav-items{flex:1;padding:8px 0;overflow-y:auto}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-left:3px solid transparent;white-space:nowrap;text-decoration:none}
+        .nav-item:hover{color:var(--text);background:var(--card)}
+        .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,158,255,.08)}
+        .nav-item .icon{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+        .nav-item .label{font-size:13px;font-weight:500;transition:opacity .2s}
+        .sidebar.collapsed .nav-item .label{opacity:0}
+        .nav-divider{height:1px;background:var(--border);margin:8px 16px}
+        .sidebar-toggle{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;color:var(--muted);transition:all .15s;border-top:1px solid var(--border);white-space:nowrap}
+        .sidebar-toggle:hover{color:var(--text);background:var(--card)}
+        .sidebar-toggle .label{font-size:13px;font-weight:500}
+        .sidebar.collapsed .sidebar-toggle .label{opacity:0}
+        .main{margin-left:var(--menu-expanded);flex:1;display:flex;flex-direction:column;overflow:hidden;transition:margin-left .2s}
+        .sidebar.collapsed~.main{margin-left:var(--menu-w)}
+        .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+        .topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+        .org-selector{position:relative;display:flex;align-items:center}
+        .org-select-btn{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+        .org-select-btn:hover{border-color:var(--accent)}
+        .org-select-btn .org-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+        .org-dropdown{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+        .org-dropdown.show{display:block}
+        .org-dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;color:var(--text2);font-size:13px;transition:background .15s}
+        .org-dropdown-item:hover{background:var(--surface);color:var(--text)}
+        .org-dropdown-item.active{color:var(--accent);font-weight:500}
+        .org-dropdown-divider{height:1px;background:var(--border)}
+        .user-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;position:relative}
+        .user-menu-wrap{position:relative;display:inline-block}
+        .user-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);min-width:200px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+        .user-menu.show{display:block}
+        .user-menu-header{padding:12px 16px;border-bottom:1px solid var(--border)}
+        .user-menu-name{font-size:14px;font-weight:600}
+        .user-menu-email{font-size:12px;color:var(--muted)}
+        .user-menu-item{display:flex;align-items:center;gap:8px;padding:10px 16px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;text-decoration:none}
+        .user-menu-item:hover{background:var(--surface);color:var(--text)}
+        .user-menu-divider{height:1px;background:var(--border)}
+        .content{flex:1;overflow-y:auto;padding:24px}
+        .page-title{font-size:28px;font-weight:600;margin-bottom:8px}
+        .page-subtitle{font-size:15px;color:var(--muted);margin-bottom:24px}
+        .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+        .toolbar .spacer{flex:1}
+        .filter-select{padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;cursor:pointer;transition:all .15s;font-family:inherit}
+        .filter-select:hover{border-color:var(--accent)}
+        .btn{padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+        .btn:hover{background:var(--accent2)}
+        .btn-secondary{background:var(--card);color:var(--text2);border:1px solid var(--border)}
+        .btn-secondary:hover{background:var(--elevated);color:var(--text);border-color:var(--accent)}
+        .notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+        .note-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:20px;display:flex;flex-direction:column;gap:12px;transition:all .15s}
+        .note-card:hover{border-color:var(--border-hover)}
+        .note-content{font-size:14px;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-word;flex:1}
+        .note-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+        .note-type{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase}
+        .note-actions{display:flex;gap:6px}
+        .icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 8px;border-radius:6px;transition:all .15s}
+        .icon-btn:hover{background:var(--surface);color:var(--text)}
+        .icon-btn.danger:hover{color:var(--red);background:rgba(255,69,58,.1)}
+        .empty-state{text-align:center;padding:64px 32px;color:var(--muted);font-size:14px;background:var(--card);border:1px dashed var(--border);border-radius:var(--rl)}
+        .empty-state-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+        .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;align-items:center;justify-content:center;padding:24px}
+        .modal-backdrop.show{display:flex}
+        .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+        .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .modal-title{font-size:17px;font-weight:600}
+        .modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px}
+        .modal-close:hover{color:var(--text);background:var(--surface)}
+        .modal-body{padding:24px;display:flex;flex-direction:column;gap:16px}
+        .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+        .form-group{display:flex;flex-direction:column;gap:6px}
+        .form-label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+        .form-input,.form-textarea,.form-select{padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;font-family:inherit;transition:all .15s;width:100%}
+        .form-input:focus,.form-textarea:focus,.form-select:focus{outline:none;border-color:var(--accent)}
+        .form-textarea{resize:vertical;min-height:120px;line-height:1.5;font-family:inherit}
+        .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.3);transform:translateY(100px);opacity:0;transition:all .25s}
+        .toast.show{transform:translateY(0);opacity:1}
+        .toast.success{border-color:var(--green)}
+        .toast.error{border-color:var(--red)}
+        @media(max-width:768px){.sidebar{width:0}.main{margin-left:0}.notes-grid{grid-template-columns:1fr}.toolbar{flex-direction:column;align-items:stretch}}
+    </style>
+</head>
+<body>
+<div class="app">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <a href="/dashboard" class="logo" style="text-decoration:none;color:inherit"><div class="logo-icon">B</div><span class="logo-text">BCOMM</span></a>
+        </div>
+        <div class="nav-items">
+            <a href="/dashboard" class="nav-item" data-page="dashboard"><span class="icon">📊</span><span class="label">Dashboard</span></a>
+            <a href="/crm" class="nav-item" data-page="conversations"><span class="icon">💬</span><span class="label">Atendimento</span></a>
+            <a href="/contacts" class="nav-item" data-page="contacts"><span class="icon">📇</span><span class="label">Contatos</span></a>
+            <a href="/organizations" class="nav-item" data-page="organizations"><span class="icon">🏢</span><span class="label">Organizações</span></a>
+            <a href="/pipelines" class="nav-item" data-page="deals"><span class="icon">💰</span><span class="label">Negócios</span></a>
+            <a href="/activities" class="nav-item" data-page="activities"><span class="icon">📋</span><span class="label">Atividades</span></a>
+            <a href="/notes" class="nav-item active" data-page="notes"><span class="icon">📝</span><span class="label">Notas</span></a>
+            <a href="/outreach" class="nav-item" data-page="outreach"><span class="icon">📤</span><span class="label">Outreach</span></a>
+            <div class="nav-divider"></div>
+            <a href="/users" class="nav-item" data-page="users"><span class="icon">👥</span><span class="label">Usuários</span></a>
+            <a href="/config" class="nav-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Configurações</span></a>
+        </div>
+        <div class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')"><span class="icon">☰</span><span class="label">Recolher</span></div>
+    </nav>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-right">
+                <div class="org-selector" id="org-selector" style="display:none">
+                    <button class="org-select-btn" onclick="toggleOrgDropdown()">
+                        <span class="org-dot"></span>
+                        <span id="org-current-name">Todas</span>
+                        <span style="font-size:10px">▼</span>
+                    </button>
+                    <div class="org-dropdown" id="org-dropdown">
+                        <div class="org-dropdown-item active" onclick="selectOrg(null)">Todas</div>
+                    </div>
+                </div>
+                <div class="user-menu-wrap">
+                    <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()">U</div>
+                    <div class="user-menu" id="user-menu">
+                        <div class="user-menu-header"><div class="user-menu-name" id="menu-user-name">Carregando...</div><div class="user-menu-email" id="menu-user-email"></div></div>
+                        <div class="user-menu-item" onclick="showChangePasswordModal()">🔑 Trocar Senha</div>
+                        <div class="user-menu-divider"></div>
+                        <div class="user-menu-item" onclick="logout()" style="color:var(--red)">🚪 Sair</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <h1 class="page-title">Notas</h1>
+            <p class="page-subtitle">Anotações vinculadas a contatos, negócios, conversas e organizações</p>
+
+            <div class="toolbar">
+                <select class="filter-select" id="filter-entity-type" onchange="loadNotes()">
+                    <option value="">Todos os tipos</option>
+                    <option value="deal">Negócio</option>
+                    <option value="contact">Contato</option>
+                    <option value="conversation">Conversa</option>
+                    <option value="organization">Organização</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn" onclick="openNewNoteModal()">+ Nova Nota</button>
+            </div>
+
+            <div id="notes-list" class="notes-grid"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="note-modal" onclick="if(event.target===this)closeNoteModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title" id="note-modal-title">Nova Nota</div>
+            <button class="modal-close" onclick="closeNoteModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="note-id">
+            <div class="form-group">
+                <label class="form-label">Conteúdo</label>
+                <textarea class="form-textarea" id="note-content" placeholder="Escreva sua nota aqui..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo de entidade</label>
+                <select class="form-select" id="note-entity-type">
+                    <option value="deal">Negócio</option>
+                    <option value="contact">Contato</option>
+                    <option value="conversation">Conversa</option>
+                    <option value="organization">Organização</option>
+                </select>
+            </div>
+            <input type="hidden" id="note-entity-id" value="00000000-0000-0000-0000-000000000000">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeNoteModal()">Cancelar</button>
+            <button class="btn" onclick="saveNote()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+async function api(u, m = 'GET') {
+    try {
+        const opts = { method: m, headers: { 'Content-Type': 'application/json' } };
+        if (m !== 'GET' && m !== 'DELETE') opts.body = JSON.stringify({});
+        const r = await fetch(u, opts);
+        return await r.json();
+    } catch (e) { return null; }
+}
+
+async function loadNotes() {
+    const r = await api('/crm/notes');
+    const notes = r || [];
+    const filterType = document.getElementById('filter-entity-type').value;
+    const filtered = filterType ? notes.filter(n => n.entity_type === filterType) : notes;
+    const el = document.getElementById('notes-list');
+    if (!filtered.length) {
+        el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">📝</div><div>Nenhuma nota encontrada</div></div>';
+        return;
+    }
+    const typeLabels = { deal: 'Negócio', contact: 'Contato', conversation: 'Conversa', organization: 'Organização' };
+    el.innerHTML = filtered.map(n => {
+        const safeContent = (n.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const jsContent = (n.content || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+        const dateStr = n.created_at ? new Date(n.created_at).toLocaleString('pt-BR') : '';
+        const typeKey = n.entity_type || '';
+        const typeLabel = typeLabels[typeKey] || typeKey;
+        return `
+            <div class="note-card">
+                <div class="note-content">${safeContent}</div>
+                <div class="note-meta">
+                    <span class="note-type">${typeLabel}</span>
+                    <span>${dateStr}</span>
+                </div>
+                <div class="note-actions">
+                    <button class="icon-btn" onclick="editNote('${n.id}','${jsContent}','${typeKey}')" title="Editar">✏️</button>
+                    <button class="icon-btn danger" onclick="deleteNote('${n.id}')" title="Excluir">🗑️</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openNewNoteModal() {
+    document.getElementById('note-modal-title').textContent = 'Nova Nota';
+    document.getElementById('note-id').value = '';
+    document.getElementById('note-content').value = '';
+    document.getElementById('note-entity-type').value = 'deal';
+    document.getElementById('note-modal').classList.add('show');
+}
+
+function editNote(id, content, type) {
+    document.getElementById('note-modal-title').textContent = 'Editar Nota';
+    document.getElementById('note-id').value = id;
+    document.getElementById('note-content').value = String(content || '').replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+    document.getElementById('note-entity-type').value = type || 'deal';
+    document.getElementById('note-modal').classList.add('show');
+}
+
+function closeNoteModal() {
+    document.getElementById('note-modal').classList.remove('show');
+}
+
+async function saveNote() {
+    const id = document.getElementById('note-id').value;
+    const content = document.getElementById('note-content').value.trim();
+    if (!content) { showToast('Preencha o conteúdo', 'error'); return; }
+    const data = {
+        content,
+        entity_type: document.getElementById('note-entity-type').value,
+        entity_id: document.getElementById('note-entity-id').value
+    };
+    try {
+        if (id) {
+            await api('/crm/notes/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        } else {
+            await api('/crm/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        }
+        closeNoteModal();
+        showToast(id ? 'Nota atualizada!' : 'Nota criada!', 'success');
+        loadNotes();
+    } catch (e) {
+        showToast('Erro ao salvar nota', 'error');
+    }
+}
+
+async function deleteNote(id) {
+    if (!confirm('Excluir esta nota?')) return;
+    try {
+        await api('/crm/notes/' + id, { method: 'DELETE' });
+        showToast('Nota excluída', 'success');
+        loadNotes();
+    } catch (e) {
+        showToast('Erro ao excluir nota', 'error');
+    }
+}
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function loadUserInfo() {
+    try {
+        const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { window.location.href = '/login'; return; }
+        const data = await r.json();
+        if (r.ok && data) {
+            const initial = (data.user.name || data.user.email || 'U')[0].toUpperCase();
+            document.getElementById('user-avatar').textContent = initial;
+            const nameEl = document.getElementById('menu-user-name');
+            const emailEl = document.getElementById('menu-user-email');
+            if (nameEl) nameEl.textContent = data.user.name || 'Usuário';
+            if (emailEl) emailEl.textContent = data.user.email || '';
+            const role = data.user.role || 'agent';
+            const usersNavItem = document.querySelector('[data-page="users"]');
+            if (usersNavItem && role !== 'master' && role !== 'admin_geral') usersNavItem.style.display = 'none';
+        }
+    } catch (e) { window.location.href = '/login'; }
+    loadUserOrgs();
+}
+
+let userOrgs = [];
+let selectedOrgId = null;
+
+function toggleOrgDropdown() {
+    const d = document.getElementById('org-dropdown');
+    d.classList.toggle('show');
+    const close = (e) => { if (!d.contains(e.target) && !e.target.closest('.org-select-btn')) { d.classList.remove('show'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+async function loadUserOrgs() {
+    try {
+        const r = await fetch('/crm/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (r.status === 401) { window.location.href = '/login'; return; }
+        const data = await r.json();
+        if (r.ok && data.user) {
+            userOrgs = data.organizations || [];
+            const cookies = document.cookie.split(';');
+            for (const c of cookies) {
+                const [name, val] = c.trim().split('=');
+                if (name === 'bcomm_org_id') { selectedOrgId = decodeURIComponent(val) || null; break; }
+            }
+            renderOrgSelector();
+        }
+    } catch (e) {}
+}
+
+function renderOrgSelector() {
+    const selector = document.getElementById('org-selector');
+    if (!selector) return;
+    if (userOrgs.length <= 1) { selector.style.display = 'none'; return; }
+    selector.style.display = 'flex';
+    const dd = document.getElementById('org-dropdown');
+    dd.innerHTML = '<div class="org-dropdown-item ' + (!selectedOrgId ? 'active' : '') + '" onclick="selectOrg(null)">Todas</div><div class="org-dropdown-divider"></div>';
+    dd.innerHTML += userOrgs.map(o => '<div class="org-dropdown-item ' + (selectedOrgId === o.id ? 'active' : '') + '" onclick="selectOrg(\'' + o.id + '\')">' + (o.name || o.id) + '</div>').join('');
+    document.getElementById('org-current-name').textContent = selectedOrgId ? (userOrgs.find(o => o.id === selectedOrgId) || {}).name || 'Org' : 'Todas';
+}
+
+async function selectOrg(orgId) {
+    document.getElementById('org-dropdown').classList.remove('show');
+    try {
+        await fetch('/crm/auth/select-org', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ organization_id: orgId }) });
+    } catch (e) {}
+    window.location.reload();
+}
+
+function toggleUserMenu() {
+    const m = document.getElementById('user-menu');
+    m.classList.toggle('show');
+    const close = (e) => { if (!m.contains(e.target) && e.target.id !== 'user-avatar') { m.classList.remove('show'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function showChangePasswordModal() {
+    document.getElementById('user-menu').classList.remove('show');
+    const cp = prompt('Digite sua senha atual:');
+    if (!cp) return;
+    const pw = prompt('Digite sua nova senha (mínimo 6 caracteres):');
+    if (pw && pw.length >= 6) {
+        fetch('/crm/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current_password: cp, new_password: pw }) })
+            .then(r => r.json()).then(d => { if (d.status === 'ok') alert('Senha alterada com sucesso!'); else alert('Erro: ' + d.detail); }).catch(() => alert('Erro ao alterar senha'));
+    } else if (pw) { alert('A senha deve ter pelo menos 6 caracteres'); }
+}
+
+async function logout() {
+    try { await fetch('/crm/auth/logout', { method: 'POST' }); } catch (e) {}
+    window.location.href = '/login';
+}
+
+loadUserInfo();
+loadNotes();
+</script>
+</body>
+</html>
