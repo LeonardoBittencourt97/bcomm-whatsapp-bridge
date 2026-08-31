@@ -952,3 +952,14 @@ app.include_router(whatsapp_router)
 
 from routes.routes_themes import router as themes_router
 app.include_router(themes_router)
+
+@app.get("/realtime.js")
+async def realtime_js():
+    from fastapi.responses import FileResponse, HTMLResponse
+    import os
+    path = os.path.join(os.path.dirname(__file__), "static", "realtime.js")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            content = f.read()
+        return HTMLResponse(content=content, media_type="application/javascript")
+    return HTMLResponse(content="// not found", status_code=404, media_type="application/javascript")
