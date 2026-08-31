@@ -396,7 +396,7 @@ async function loadActivities() {
     const statusFilter = document.getElementById('filter-status').value;
 
     const r = await api('/crm/activities');
-    let acts = r || [];
+    let acts = (r && r.activities) || r || [];
 
     if (typeFilter) acts = acts.filter(a => a.type === typeFilter);
     if (statusFilter) acts = acts.filter(a => a.status === statusFilter);

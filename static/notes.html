@@ -218,7 +218,7 @@ async function api(u, m = 'GET') {
 
 async function loadNotes() {
     const r = await api('/crm/notes');
-    const notes = r || [];
+    const notes = (r && r.notes) || r || [];
     const filterType = document.getElementById('filter-entity-type').value;
     const filtered = filterType ? notes.filter(n => n.entity_type === filterType) : notes;
     const el = document.getElementById('notes-list');
