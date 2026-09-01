@@ -807,6 +807,42 @@ async def get_stats(http_request: Request):
     # Agentes ativos
     active_agents = sum(1 for c in conv_list if c.get("agent_enabled", True))
 
+    # Avg response time: average seconds between first user msg and first agent reply per conversation
+    avg_response_time = 0
+    response_times = []
+    all_msgs_sorted = sorted(all_msgs or [], key=lambda x: x.get("created_at", ""))
+    conv_id_to_first_user_msg = {}
+    conv_id_to_first_agent_msg = {}
+    for msg in all_msgs_sorted:
+        cid = msg.get("conversation_id", "")
+        if not cid:
+            continue
+        is_agent = msg.get("sender_type") == "agent" or msg.get("role") == "agent"
+        is_user = msg.get("sender_type") == "user" or msg.get("role") == "user"
+        if is_user and cid not in conv_id_to_first_user_msg:
+            conv_id_to_first_user_msg[cid] = msg.get("created_at", "")
+        elif is_agent and cid not in conv_id_to_first_agent_msg:
+            conv_id_to_first_agent_msg[cid] = msg.get("created_at", "")
+    for cid, user_time in conv_id_to_first_user_msg.items():
+        agent_time = conv_id_to_first_agent_msg.get(cid)
+        if user_time and agent_time:
+            try:
+                from datetime import datetime as _dt
+                t1 = _dt.fromisoformat(user_time.replace("Z", "+00:00"))
+                t2 = _dt.fromisoformat(agent_time.replace("Z", "+00:00"))
+                diff = (t2 - t1).total_seconds()
+                if diff >= 0:
+                    response_times.append(diff)
+            except (ValueError, TypeError):
+                pass
+    if response_times:
+        avg_response_time = round(sum(response_times) / len(response_times), 1)
+
+    # Resolution rate: closed conversations / total conversations * 100
+    resolution_rate = 0
+    if total > 0:
+        resolution_rate = round((closed_count / total) * 100, 1)
+
     return {
         "total_conversations": total,
         "open": open_count,
@@ -814,7 +850,9 @@ async def get_stats(http_request: Request):
         "closed": closed_count,
         "total_messages": total_messages,
         "messages_today": messages_today,
-        "active_agents": active_agents
+        "active_agents": active_agents,
+        "avg_response_time": avg_response_time,
+        "resolution_rate": resolution_rate
     }
 
 

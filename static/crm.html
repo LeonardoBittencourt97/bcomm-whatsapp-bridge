@@ -174,8 +174,31 @@
         .conv-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
         .conv-dot.open{background:var(--green)}.conv-dot.paused{background:var(--yellow)}.conv-dot.closed{background:var(--muted)}
 
+        /* ── Processing Status ── */
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        .status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite;flex-shrink:0;margin-left:4px}
+        .processing-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(59,158,255,.15);color:var(--accent);animation:pulse 1.5s infinite}
+        .processing-badge.ready{background:rgba(52,199,89,.15);color:var(--green);animation:none}
+
         /* ── Chat Area ── */
-        .chat-area{flex:1;display:flex;flex-direction:column;background:var(--bg)}
+        .chat-area{flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0}
+
+        /* ── Conversation Detail Panel (right) ── */
+        .conv-detail-panel{width:260px;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width .2s}
+        .conv-detail-panel.collapsed{width:0;border-left:none;overflow:hidden}
+        .conv-detail-toggle{position:absolute;top:8px;right:8px;z-index:10;width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+        .conv-detail-toggle:hover{border-color:var(--accent);color:var(--accent)}
+        .conv-detail-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .conv-detail-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+        .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
+        .summary-stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+        .summary-stat .stat-icon{font-size:14px;margin-bottom:2px}
+        .summary-stat .stat-value{font-size:18px;font-weight:700;line-height:1.2}
+        .summary-stat .stat-label{font-size:11px;color:var(--muted);line-height:1.2}
+        .summary-stat.highlight{border-color:var(--accent);background:rgba(59,158,255,.06)}
+        .summary-status{padding:8px 16px 16px;display:flex;gap:6px;flex-wrap:wrap}
+        .summary-status .badge{font-size:10px;padding:3px 8px}
+        .conv-detail-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px}
         .chat-header{padding:12px 20px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
         .chat-header-info{flex:1}
         .chat-header-name{font-size:15px;font-weight:600}
@@ -382,8 +405,9 @@
                                 <div class="chat-header-name" id="chat-name">-</div>
                                 <div class="chat-header-status" id="chat-status">-</div>
                             </div>
+                            <span class="processing-badge" id="processing-badge" style="display:none">⏳ Processando...</span>
                             <div class="chat-actions">
-                                <button class="btn btn-ghost btn-sm" id="btn-transfer" onclick="transferToHuman()" style="display:none;margin-right:8px">🧑 Transferir</button>
+                                <button class="btn btn-danger btn-sm" id="btn-transfer" onclick="showTransferModal()" style="display:none;margin-right:8px">🧑 Transferir</button>
                                 <button class="btn btn-warning btn-sm" id="btn-pause" onclick="pauseAgent()">⏸ Pausar</button>
                                 <button class="btn btn-success btn-sm" id="btn-resume" onclick="resumeAgent()" style="display:none">▶ Retomar</button>
                                 <button class="btn btn-secondary btn-sm" onclick="closeConversation()">✕ Encerrar</button>
@@ -396,6 +420,15 @@
                         <div class="chat-input" id="chat-input" style="display:none">
                             <textarea id="msg-input" placeholder="Digite sua mensagem..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
                             <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+                        </div>
+                    </div>
+                    <!-- ── Detail Panel (right) ── -->
+                    <div class="conv-detail-panel" id="conv-detail-panel">
+                        <div class="conv-detail-header">
+                            <span class="conv-detail-title">Resumo</span>
+                        </div>
+                        <div id="conv-summary-content">
+                            <div class="conv-detail-empty">Selecione uma conversa</div>
                         </div>
                     </div>
                 </div>
@@ -479,6 +512,8 @@
 <script>
 // ── Global State ──
 let currentPage='dashboard',currentPhone=null,currentFilter='all',conversations=[],contacts=[],organizations=[],deals=[],activities=[],users=[],tags=[],pipelines=[],audioPlayers={};
+// ── Processing Status ──
+let processingPollInterval=null,processingStatus={},statusPollStart=0;
 
 // ── API Helper ──
 async function api(url,method='GET',body=null){
@@ -596,7 +631,7 @@ function renderConvList(){
     el.innerHTML=conversations.map(cv=>`
         <div class="conv-item ${currentPhone===cv.phone?'active':''}" onclick="selectConv('${cv.phone}')">
             <div class="conv-avatar"><img src="/crm/profile-picture/${cv.phone}" onerror="this.style.display='none';this.parentElement.textContent='${(cv.client_name||cv.phone).charAt(0).toUpperCase()}'"></div>
-            <div class="conv-info"><div class="conv-name">${cv.client_name||cv.phone}</div><div class="conv-preview">${cv.last_message||'Sem mensagens'}</div></div>
+            <div class="conv-info"><div class="conv-name">${cv.client_name||cv.phone}${processingStatus[cv.phone]==='processing'?'<span class="status-dot"></span>':''}</div><div class="conv-preview">${cv.last_message||'Sem mensagens'}</div></div>
             <div class="conv-meta"><div class="conv-time">${formatTime(cv.last_message_time)}</div>${cv.unanswered_count>0?`<div class="conv-badge">${cv.unanswered_count}</div>`:''}<div class="conv-dot ${cv.status}"></div></div>
         </div>`).join('');
 }
@@ -612,6 +647,7 @@ function filterConv(f,el){
 }
 async function selectConv(phone){
     currentPhone=phone;
+    startProcessingPoll();
     document.getElementById('chat-header').style.display='flex';
     document.getElementById('chat-input').style.display='flex';
     document.getElementById('chat-name').textContent=phone;
@@ -630,6 +666,7 @@ async function selectConv(phone){
         document.getElementById('btn-transfer').style.display=cv.status!=='closed'?'inline-flex':'none';
     }
     renderMessages(msgs);
+    loadConversationSummary(phone);
 }
 function renderMessages(msgs){
     const el=document.getElementById('messages-container');
@@ -705,14 +742,25 @@ async function sendMessage(){
 // ── Agent Actions ──
 async function pauseAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/pause`,'POST');showToast('Agente pausado');selectConv(currentPhone);loadConversations()}
 async function resumeAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/resume`,'POST');showToast('Agente retomado');selectConv(currentPhone);loadConversations()}
-async function closeConversation(){if(!currentPhone)return;if(!confirm('Encerrar esta conversa?'))return;await api(`/crm/conversations/${currentPhone}/close`,'POST');showToast('Conversa encerrada');currentPhone=null;document.getElementById('chat-header').style.display='none';document.getElementById('chat-input').style.display='none';loadConversations()}
-async function transferToHuman(){
+async function closeConversation(){if(!currentPhone)return;if(!confirm('Encerrar esta conversa?'))return;await api(`/crm/conversations/${currentPhone}/close`,'POST');showToast('Conversa encerrada');currentPhone=null;stopProcessingPoll();document.getElementById('chat-header').style.display='none';document.getElementById('chat-input').style.display='none';loadConversations()}
+function showTransferModal(){
     if(!currentPhone)return;
-    if(!confirm('Transferir esta conversa para um atendente humano?'))return;
-    const result=await api('/admin/transfer-to-human','POST',{phone:currentPhone});
+    const cv=conversations.find(c=>c.phone===currentPhone);
+    const name=cv?cv.client_name||currentPhone:currentPhone;
+    showModal(`<div class="modal-header"><span class="modal-title">🧑 Transferir para Humano</span><button class="modal-close" onclick="hideModal()">✕</button></div>
+        <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Transferir a conversa de <strong>${name}</strong> para um atendente humano. O agente será pausado automaticamente.</p>
+        <div class="form-group"><label class="form-label">Motivo (opcional)</label><textarea class="input" id="transfer-reason" placeholder="Descreva o motivo da transferência..." rows="3"></textarea></div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="hideModal()">Cancelar</button><button class="btn btn-danger" onclick="confirmTransfer()">🧑 Transferir</button></div>`);
+}
+async function confirmTransfer(){
+    const reason=document.getElementById('transfer-reason')?.value||'';
+    hideModal();
+    const result=await api('/admin/transfer-to-human','POST',{phone:currentPhone,reason:reason,client:'BCOMM'});
     if(result){
-        showToast('Conversa transferida para humano!');
+        showToast('Conversa transferida para humano!','success');
         document.getElementById('btn-transfer').style.display='none';
+        loadConversations();
+        selectConv(currentPhone);
     }
 }
 
@@ -841,10 +889,106 @@ async function saveDealFromChat(){
     await api('/crm/deals','POST',data);hideModal();showToast('Deal criado');
 }
 
+// ── Conversation Summary ──
+async function loadConversationSummary(phone){
+    const el=document.getElementById('conv-summary-content');
+    if(!phone){el.innerHTML='<div class="conv-detail-empty">Selecione uma conversa</div>';return}
+    el.innerHTML='<div style="padding:16px"><div class="skeleton" style="height:80px"></div><div class="skeleton" style="height:80px"></div></div>';
+    const d=await api(`/crm/conversations/${phone}/summary`);
+    if(!d){el.innerHTML='<div class="conv-detail-empty">Erro ao carregar resumo</div>';return}
+    const statusMap={open:'🟢 Aberta',paused:'⏸ Pausada',closed:'✕ Encerrada'};
+    const statusClass={open:'badge-green',paused:'badge-yellow',closed:'badge-muted'};
+    const dur=d.duration||0;
+    const durMin=Math.floor(dur/60);
+    const durHrs=Math.floor(durMin/60);
+    const durText=durHrs>0?`${durHrs}h ${durMin%60}m`:`${durMin}m`;
+    el.innerHTML=`
+        <div class="summary-grid">
+            <div class="summary-stat highlight">
+                <span class="stat-icon">💬</span>
+                <span class="stat-value">${d.total_messages||0}</span>
+                <span class="stat-label">Total</span>
+            </div>
+            <div class="summary-stat">
+                <span class="stat-icon">👤</span>
+                <span class="stat-value">${d.user_messages||0}</span>
+                <span class="stat-label">Do Usuário</span>
+            </div>
+            <div class="summary-stat">
+                <span class="stat-icon">🤖</span>
+                <span class="stat-value">${d.agent_messages||0}</span>
+                <span class="stat-label">Do Agente</span>
+            </div>
+            <div class="summary-stat">
+                <span class="stat-icon">✍️</span>
+                <span class="stat-value">${d.manual_messages||0}</span>
+                <span class="stat-label">Manuais</span>
+            </div>
+            <div class="summary-stat"${(d.unanswered||0)>0?' style="border-color:var(--red);background:rgba(255,69,58,.06)"':''}>
+                <span class="stat-icon">❗</span>
+                <span class="stat-value"${(d.unanswered||0)>0?' style="color:var(--red)"':''}>${d.unanswered||0}</span>
+                <span class="stat-label">Não Respondidas</span>
+            </div>
+            <div class="summary-stat">
+                <span class="stat-icon">⏱️</span>
+                <span class="stat-value">${durText}</span>
+                <span class="stat-label">Duração</span>
+            </div>
+        </div>
+        <div class="summary-status">
+            <span class="badge ${statusClass[d.status]||'badge-muted'}">${statusMap[d.status]||d.status||'?'}</span>
+            ${d.agent_enabled?'<span class="badge badge-accent">🤖 Agente Ativo</span>':'<span class="badge badge-muted">👤 Agente Pausado</span>'}
+        </div>`;
+}
+
 // ── Helpers ──
 function formatTime(ts){if(!ts)return'';try{const d=new Date(ts);const now=new Date();const diff=now-d;if(diff<86400000)return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}catch(e){return''}}
 function formatDuration(s){const m=Math.floor(s/60);const sec=Math.floor(s%60);return`${m}:${sec.toString().padStart(2,'0')}`}
 function daysSince(ts){if(!ts)return 0;return Math.floor((Date.now()-new Date(ts).getTime())/86400000)}
+
+// ── Processing Status Polling ──
+function startProcessingPoll(){
+    stopProcessingPoll();
+    if(!currentPhone)return;
+    statusPollStart=Date.now();
+    checkProcessingStatus();
+    processingPollInterval=setInterval(checkProcessingStatus,3000);
+}
+function stopProcessingPoll(){
+    if(processingPollInterval){clearInterval(processingPollInterval);processingPollInterval=null}
+    processingStatus={};
+    updateProcessingBadge(null);
+    renderConvList();
+}
+async function checkProcessingStatus(){
+    if(!currentPhone)return;
+    const d=await api(`/crm/status/${currentPhone}`);
+    if(!d)return;
+    const prev=processingStatus[currentPhone];
+    processingStatus[currentPhone]=d.status;
+    if(d.status==='processing'){
+        const elapsed=Math.floor(d.elapsed_seconds||((Date.now()-statusPollStart)/1000));
+        updateProcessingBadge('processing',elapsed);
+    }else{
+        updateProcessingBadge('idle');
+    }
+    renderConvList();
+}
+function updateProcessingBadge(status,elapsed){
+    const badge=document.getElementById('processing-badge');
+    if(!badge)return;
+    if(!status||status==='idle'){
+        badge.style.display='none';
+        badge.className='processing-badge';
+        badge.textContent='';
+    }else{
+        badge.style.display='inline-flex';
+        badge.className='processing-badge';
+        const m=Math.floor(elapsed/60);
+        const s=Math.floor(elapsed%60);
+        badge.textContent=`⏳ Processando... ${m}:${s.toString().padStart(2,'0')}`;
+    }
+}
 
 // ── Keyboard Shortcuts ──
 document.addEventListener('keydown',e=>{

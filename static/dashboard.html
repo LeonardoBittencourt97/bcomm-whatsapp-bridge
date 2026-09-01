@@ -141,7 +141,9 @@
                     <div class="stat"><div class="stat-value" id="stat-uptime">-</div><div class="stat-label">Uptime</div></div>
                     <div class="stat"><div class="stat-value" id="stat-conversations">-</div><div class="stat-label">Conversas</div></div>
                     <div class="stat"><div class="stat-value" id="stat-deals">-</div><div class="stat-label">Deals</div></div>
-
+                    <div class="stat"><div class="stat-value" id="stat-messages-today">-</div><div class="stat-label">Mensagens Hoje</div></div>
+                    <div class="stat"><div class="stat-value" id="stat-avg-response">-</div><div class="stat-label">Tempo Médio Resposta</div></div>
+                    <div class="stat"><div class="stat-value" id="stat-resolution-rate">-</div><div class="stat-label">Taxa de Resolução</div></div>
                 </div>
             </div>
 
@@ -164,6 +166,13 @@ async function updateStatus(){
     const pt=await api('/admin/pause-contact');const el2=document.getElementById('paused-contacts');if(pt&&pt.paused&&pt.paused.length){el2.innerHTML=pt.paused.map(c=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--yellow);color:#000">'+c[0]+'</div><div class="paused-name">'+c+'</div></div></div>').join('')}else{el2.innerHTML='<div class="empty-state">Nenhum</div>'}
     const ps=await api('/crm/pipelines/stats');const psEl=document.getElementById('pipeline-stats');if(ps)psEl.innerHTML='<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+(ps.total_deals||0)+'</div><div class="paused-name">Deals — R$ '+(ps.total_value||0).toLocaleString('pt-BR')+'</div></div></div>';
     const s=await api('/admin/sessions');const sEl=document.getElementById('sessions-list');if(s&&s.sessions&&s.sessions.length){sEl.innerHTML=s.sessions.slice(0,5).map(sess=>'<div class="paused-item"><div class="paused-info"><div class="paused-avatar" style="background:var(--accent)">'+(sess.phone||'?')[0]+'</div><div class="paused-name">'+sess.phone+'</div></div></div>').join('')}else{sEl.innerHTML='<div class="empty-state">Nenhuma</div>'}
+    // CRM stats: messages today, avg response time, resolution rate
+    const cs=await api('/crm/stats');
+    if(cs){
+        document.getElementById('stat-messages-today').textContent=cs.messages_today||0;
+        document.getElementById('stat-avg-response').textContent=(cs.avg_response_time||0)+'s';
+        document.getElementById('stat-resolution-rate').textContent=(cs.resolution_rate||0)+'%';
+    }
 }
 updateStatus();setInterval(updateStatus,30000);
 async function loadUserInfo(){

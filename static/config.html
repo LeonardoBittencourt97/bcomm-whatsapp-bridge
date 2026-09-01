@@ -92,6 +92,11 @@
         .log-entry.info{color:var(--accent)}
         .log-entry.error{color:var(--red)}
         .log-entry.success{color:var(--green)}
+        .badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
+        .badge-connected{background:rgba(52,199,89,.15);color:var(--green);border:1px solid rgba(52,199,89,.3)}
+        .badge-disconnected{background:rgba(255,69,58,.15);color:var(--red);border:1px solid rgba(255,69,58,.3)}
+        .badge-connecting{background:rgba(255,214,10,.15);color:var(--yellow);border:1px solid rgba(255,214,10,.3)}
+        .qr-container{display:flex;flex-direction:column;align-items:center;padding:16px 0}
         .paused-list{display:flex;flex-direction:column;gap:8px}
         .paused-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-radius:var(--r)}
         .paused-info{display:flex;align-items:center;gap:12px}
@@ -209,6 +214,12 @@
                     </a>
                     <a href="#sobre" class="config-submenu-item" data-section="sobre" onclick="showSection('sobre')">
                         <span class="icon">ℹ️</span> Sobre
+                    </a>
+                    <a href="#agent" class="config-submenu-item" data-section="agent" onclick="showSection('agent')">
+                        <span class="icon">🤖</span> Agente
+                    </a>
+                    <a href="#whatsapp" class="config-submenu-item" data-section="whatsapp" onclick="showSection('whatsapp')">
+                        <span class="icon">📱</span> WhatsApp
                     </a>
                 </nav>
 
@@ -383,6 +394,110 @@
                         </div>
                     </div>
 
+                    <!-- AGENTE -->
+                    <div data-page="agent" style="display:none">
+                        <h1 class="page-title">Agente</h1>
+                        <p class="page-subtitle">Configurações do agente de atendimento</p>
+
+                        <div class="section">
+                            <div class="card">
+                                <div class="card-header"><span class="card-title">🤖 Configuração do Agente</span></div>
+                                <div class="config-row">
+                                    <span class="config-label">Delay Humano</span>
+                                    <div id="agent-toggle-delay" class="toggle" onclick="toggleAgentDelay()"></div>
+                                </div>
+                                <div class="config-row">
+                                    <span class="config-label">Rate Limit (msgs/min)</span>
+                                    <input type="number" class="config-input" id="agent-rate-limit" value="20">
+                                </div>
+                                <div class="config-row">
+                                    <span class="config-label">Typing Min (seg)</span>
+                                    <input type="number" class="config-input" id="agent-delay-min" value="4" step="0.5">
+                                </div>
+                                <div class="config-row">
+                                    <span class="config-label">Typing Max (seg)</span>
+                                    <input type="number" class="config-input" id="agent-delay-max" value="15" step="0.5">
+                                </div>
+                                <div class="config-row">
+                                    <span class="config-label">Batch Wait (seg)</span>
+                                    <input type="number" class="config-input" id="agent-batch-wait" value="10">
+                                </div>
+                                <div class="config-row">
+                                    <span class="config-label">Batch Max Wait (seg)</span>
+                                    <input type="number" class="config-input" id="agent-batch-max" value="150">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveAgentConfig()">Salvar</button>
+                        </div>
+                    </div>
+
+                    <!-- WHATSAPP -->
+                    <div data-page="whatsapp" style="display:none">
+                        <h1 class="page-title">WhatsApp</h1>
+                        <p class="page-subtitle">Conecte sua organização ao WhatsApp via QR Code</p>
+
+                        <div class="section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <span class="card-title">📱 Status da Conexão</span>
+                                    <span id="whatsapp-status-badge" class="badge badge-disconnected">Desconectado</span>
+                                </div>
+                                <div class="config-row">
+                                    <span class="config-label">Status</span>
+                                    <span id="whatsapp-status-text" style="color:var(--text2)">Verificando...</span>
+                                </div>
+                                <div class="config-row" id="whatsapp-phone-row" style="display:none">
+                                    <span class="config-label">Telefone</span>
+                                    <span id="whatsapp-phone" style="color:var(--text)">-</span>
+                                </div>
+                                <div class="config-row" id="whatsapp-instance-row" style="display:none">
+                                    <span class="config-label">Instância</span>
+                                    <span id="whatsapp-instance" style="color:var(--text2);font-family:monospace;font-size:13px">-</span>
+                                </div>
+                                <div class="btn-group" style="margin-top:16px">
+                                    <button id="whatsapp-connect-btn" class="btn btn-success" onclick="connectWhatsApp()" style="display:none">
+                                        🔗 Conectar
+                                    </button>
+                                    <button id="whatsapp-disconnect-btn" class="btn btn-danger" onclick="disconnectWhatsApp()" style="display:none">
+                                        🔌 Desconectar
+                                    </button>
+                                    <button id="whatsapp-refresh-btn" class="btn btn-secondary" onclick="loadWhatsAppStatus()">
+                                        🔄 Atualizar Status
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- QR Code Section -->
+                            <div class="card" id="whatsapp-qr-card" style="display:none">
+                                <div class="card-header">
+                                    <span class="card-title">📷 QR Code</span>
+                                    <span id="qr-timer" style="color:var(--muted);font-size:12px"></span>
+                                </div>
+                                <div class="qr-container">
+                                    <div id="qr-loading" class="empty-state">
+                                        <div style="margin-bottom:8px">⏳</div>
+                                        <div>Gerando QR Code...</div>
+                                        <div style="font-size:12px;margin-top:4px;color:var(--muted)">Isso pode levar alguns segundos</div>
+                                    </div>
+                                    <div id="qr-image-container" style="display:none;text-align:center">
+                                        <img id="qr-image" style="max-width:300px;max-height:300px;border-radius:12px;border:1px solid var(--border)">
+                                        <div style="margin-top:12px;color:var(--muted);font-size:12px">
+                                            Escaneie com seu WhatsApp (Configurações → Aparelhos conectados → Vincular aparelho)
+                                        </div>
+                                    </div>
+                                    <div id="qr-error" class="empty-state" style="display:none;color:var(--red)">
+                                        <div style="margin-bottom:8px">❌</div>
+                                        <div id="qr-error-text">Erro ao carregar QR Code</div>
+                                        <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="refreshQR()">Tentar Novamente</button>
+                                    </div>
+                                </div>
+                                <div class="btn-group" style="margin-top:16px;justify-content:center">
+                                    <button class="btn btn-secondary btn-sm" onclick="refreshQR()">🔄 Atualizar QR</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -420,6 +535,8 @@ function showSection(name) {
     else if (name === 'logs') refreshLogs();
     else if (name === 'sobre') updateStatus();
     else if (name === 'geral') loadConfig();
+    else if (name === 'agent') loadAgentConfig();
+    else if (name === 'whatsapp') loadWhatsAppStatus();
 }
 
 // Ler secao da URL
@@ -455,6 +572,226 @@ async function saveConfig(){
     const p=new URLSearchParams({rate_limit_per_minute:document.getElementById('config-rate').value,human_delay_enabled:_delayEnabled,human_delay_min:document.getElementById('config-delay-min').value,human_delay_max:document.getElementById('config-delay-max').value,batch_wait_seconds:document.getElementById('config-batch').value,batch_max_wait:document.getElementById('config-batch-max').value,log_level:document.getElementById('config-log').value});
     await api('/admin/config?'+p,'POST');
     showToast('Configurações salvas!');
+}
+
+// === Configuracoes do Agente ===
+let _agentDelayEnabled = false;
+
+function toggleAgentDelay() {
+    _agentDelayEnabled = !_agentDelayEnabled;
+    document.getElementById('agent-toggle-delay').className = 'toggle ' + (_agentDelayEnabled ? 'active' : '');
+}
+
+async function loadAgentConfig() {
+    const c = await api('/admin/config');
+    if (!c) return;
+    _agentDelayEnabled = c.human_delay_enabled;
+    document.getElementById('agent-toggle-delay').className = 'toggle ' + (c.human_delay_enabled ? 'active' : '');
+    document.getElementById('agent-rate-limit').value = c.rate_limit_per_minute;
+    document.getElementById('agent-delay-min').value = c.human_delay_min;
+    document.getElementById('agent-delay-max').value = c.human_delay_max;
+    document.getElementById('agent-batch-wait').value = c.batch_wait_seconds;
+    document.getElementById('agent-batch-max').value = c.batch_max_wait;
+}
+
+async function saveAgentConfig() {
+    const p = new URLSearchParams({
+        rate_limit_per_minute: document.getElementById('agent-rate-limit').value,
+        human_delay_enabled: _agentDelayEnabled,
+        human_delay_min: document.getElementById('agent-delay-min').value,
+        human_delay_max: document.getElementById('agent-delay-max').value,
+        batch_wait_seconds: document.getElementById('agent-batch-wait').value,
+        batch_max_wait: document.getElementById('agent-batch-max').value,
+        log_level: document.getElementById('config-log') ? document.getElementById('config-log').value : 'INFO'
+    });
+    await api('/admin/config?' + p, 'POST');
+    showToast('Configurações do agente salvas!');
+}
+
+// === WHATSAPP QR/CONNECT ===
+let _whatsappQrTimer = null;
+
+function getOrgId() {
+    const cookies = document.cookie.split(';');
+    for (const c of cookies) {
+        const [name, val] = c.trim().split('=');
+        if (name === 'bcomm_org_id') return decodeURIComponent(val);
+    }
+    return selectedOrgId;
+}
+
+function updateWhatsAppUI(data) {
+    const badge = document.getElementById('whatsapp-status-badge');
+    const statusText = document.getElementById('whatsapp-status-text');
+    const connectBtn = document.getElementById('whatsapp-connect-btn');
+    const disconnectBtn = document.getElementById('whatsapp-disconnect-btn');
+    const phoneRow = document.getElementById('whatsapp-phone-row');
+    const instanceRow = document.getElementById('whatsapp-instance-row');
+    const phoneEl = document.getElementById('whatsapp-phone');
+    const instanceEl = document.getElementById('whatsapp-instance');
+    const qrCard = document.getElementById('whatsapp-qr-card');
+
+    if (!data || data.connected === false) {
+        badge.textContent = 'Desconectado';
+        badge.className = 'badge badge-disconnected';
+        statusText.textContent = data?.message || 'Nenhum WhatsApp conectado';
+        connectBtn.style.display = '';
+        disconnectBtn.style.display = 'none';
+        phoneRow.style.display = 'none';
+        instanceRow.style.display = 'none';
+        qrCard.style.display = 'none';
+        clearQrTimer();
+    } else if (data.connected === true) {
+        badge.textContent = 'Conectado';
+        badge.className = 'badge badge-connected';
+        statusText.textContent = 'WhatsApp conectado e funcionando';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = '';
+        phoneRow.style.display = '';
+        instanceRow.style.display = '';
+        phoneEl.textContent = data.phone || '-';
+        instanceEl.textContent = data.instance || '-';
+        qrCard.style.display = 'none';
+        clearQrTimer();
+    } else {
+        badge.textContent = 'Conectando...';
+        badge.className = 'badge badge-connecting';
+        statusText.textContent = 'Aguardando escaneamento do QR Code...';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = '';
+        instanceRow.style.display = '';
+        instanceEl.textContent = data.instance || '-';
+        phoneRow.style.display = 'none';
+    }
+}
+
+async function loadWhatsAppStatus() {
+    const orgId = getOrgId();
+    if (!orgId) {
+        showToast('Selecione uma organização primeiro', 'error');
+        return;
+    }
+
+    const data = await api(`/crm/organizations/${orgId}/whatsapp/status`);
+    updateWhatsAppUI(data);
+    return data;
+}
+
+async function connectWhatsApp() {
+    const orgId = getOrgId();
+    if (!orgId) {
+        showToast('Selecione uma organização primeiro', 'error');
+        return;
+    }
+
+    try {
+        const data = await api(`/crm/organizations/${orgId}/whatsapp/connect`, 'POST');
+        if (data && data.status) {
+            showToast('Instância criada! Carregando QR Code...', 'success');
+            updateWhatsAppUI({ connected: false, status: data.status, instance: data.instance });
+            // Wait a moment then load QR
+            setTimeout(() => refreshQR(), 2000);
+        }
+    } catch (e) {
+        showToast('Erro ao conectar: ' + (e.message || 'Tente novamente'), 'error');
+    }
+}
+
+async function disconnectWhatsApp() {
+    const orgId = getOrgId();
+    if (!orgId) {
+        showToast('Selecione uma organização primeiro', 'error');
+        return;
+    }
+
+    if (!confirm('Tem certeza que deseja desconectar o WhatsApp?')) return;
+
+    try {
+        const data = await api(`/crm/organizations/${orgId}/whatsapp/disconnect`, 'DELETE');
+        if (data && data.status === 'ok') {
+            showToast('WhatsApp desconectado com sucesso');
+            loadWhatsAppStatus();
+        }
+    } catch (e) {
+        showToast('Erro ao desconectar: ' + (e.message || 'Tente novamente'), 'error');
+    }
+}
+
+async function refreshQR() {
+    const orgId = getOrgId();
+    if (!orgId) return;
+
+    const qrCard = document.getElementById('whatsapp-qr-card');
+    const qrLoading = document.getElementById('qr-loading');
+    const qrImageContainer = document.getElementById('qr-image-container');
+    const qrError = document.getElementById('qr-error');
+    const qrImage = document.getElementById('qr-image');
+
+    // Show QR card and loading state
+    qrCard.style.display = '';
+    qrLoading.style.display = '';
+    qrImageContainer.style.display = 'none';
+    qrError.style.display = 'none';
+
+    try {
+        const data = await api(`/crm/organizations/${orgId}/whatsapp/qr`);
+
+        if (!data) {
+            throw new Error('Resposta vazia do servidor');
+        }
+
+        if (data.status === 'connected') {
+            // Already connected
+            qrCard.style.display = 'none';
+            showToast('WhatsApp já conectado!', 'success');
+            loadWhatsAppStatus();
+            clearQrTimer();
+            return;
+        }
+
+        if (!data.qrcode) {
+            // QR not ready yet, retry in 3s
+            setTimeout(() => refreshQR(), 3000);
+            return;
+        }
+
+        // Show QR code
+        qrLoading.style.display = 'none';
+        qrImageContainer.style.display = '';
+        qrImage.src = 'data:image/png;base64,' + data.qrcode;
+
+        // Start auto-refresh timer (30 seconds)
+        startQrTimer();
+
+    } catch (e) {
+        qrLoading.style.display = 'none';
+        qrError.style.display = '';
+        document.getElementById('qr-error-text').textContent = e.message || 'Erro ao carregar QR Code';
+    }
+}
+
+function startQrTimer() {
+    clearQrTimer();
+    let seconds = 30;
+    const timerEl = document.getElementById('qr-timer');
+    timerEl.textContent = `Atualiza em ${seconds}s`;
+    _whatsappQrTimer = setInterval(() => {
+        seconds--;
+        timerEl.textContent = `Atualiza em ${seconds}s`;
+        if (seconds <= 0) {
+            clearQrTimer();
+            refreshQR();
+        }
+    }, 1000);
+}
+
+function clearQrTimer() {
+    if (_whatsappQrTimer) {
+        clearInterval(_whatsappQrTimer);
+        _whatsappQrTimer = null;
+    }
+    const timerEl = document.getElementById('qr-timer');
+    if (timerEl) timerEl.textContent = '';
 }
 
 async function pauseClient(){const c=document.getElementById('client-name').value;if(!c)return showToast('Informe cliente','error');await api('/admin/pause?client='+c,'POST');showToast('Cliente pausado');loadPaused()}

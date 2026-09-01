@@ -85,6 +85,11 @@ function handleMessage(payload) {
         clearTimeout(window._reloadConversations);
         window._reloadConversations = setTimeout(() => window.loadConversations(), 500);
     }
+    // Atualizar resumo da conversa aberta
+    if (typeof window.loadConversationSummary === 'function' && window.currentPhone) {
+        clearTimeout(window._reloadSummary);
+        window._reloadSummary = setTimeout(() => window.loadConversationSummary(window.currentPhone), 500);
+    }
 }
 
 function handleConversation(payload) {
@@ -98,6 +103,11 @@ function handleConversation(payload) {
     if (typeof window.loadConversations === 'function') {
         clearTimeout(window._reloadConversations);
         window._reloadConversations = setTimeout(() => window.loadConversations(), 500);
+    }
+    // Atualizar resumo se conversa aberta mudou
+    if (typeof window.loadConversationSummary === 'function' && window.currentPhone) {
+        clearTimeout(window._reloadSummary);
+        window._reloadSummary = setTimeout(() => window.loadConversationSummary(window.currentPhone), 500);
     }
 }
 
