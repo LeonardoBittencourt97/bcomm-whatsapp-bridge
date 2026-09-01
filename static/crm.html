@@ -512,6 +512,8 @@
 <script>
 // ── Global State ──
 let currentPage='dashboard',currentPhone=null,currentFilter='all',conversations=[],contacts=[],organizations=[],deals=[],activities=[],users=[],tags=[],pipelines=[],audioPlayers={};
+// Expose currentPhone to window for realtime.js
+Object.defineProperty(window, 'currentPhone', {get: () => currentPhone, set: (v) => { currentPhone = v; }});
 // ── Processing Status ──
 let processingPollInterval=null,processingStatus={},statusPollStart=0;
 

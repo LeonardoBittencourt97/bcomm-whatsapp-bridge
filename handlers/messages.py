@@ -466,13 +466,27 @@ async def _process_batch(
                 # Salvar resposta do agente
                 if response_content:
                     agent_msg_id = send_result.get("message_id", "") if send_result else ""
-                    await _insert_msg(MESSAGES_TABLE, {
-                        "conversation_id": conv_id,
-                        "sender": "agent",
-                        "content": response_content,
-                        "message_id": agent_msg_id if agent_msg_id else None,
-                        "created_at": now_iso,
-                    })
+                    # Dedup check for agent messages
+                    if agent_msg_id:
+                        _agent_dup = await select(MESSAGES_TABLE, filters={"message_id": agent_msg_id})
+                        if _agent_dup:
+                            logger.debug(f"Agent msg {agent_msg_id} already saved (skipped duplicate)")
+                        else:
+                            await _insert_msg(MESSAGES_TABLE, {
+                                "conversation_id": conv_id,
+                                "sender": "agent",
+                                "content": response_content,
+                                "message_id": agent_msg_id,
+                                "created_at": now_iso,
+                            })
+                    else:
+                        await _insert_msg(MESSAGES_TABLE, {
+                            "conversation_id": conv_id,
+                            "sender": "agent",
+                            "content": response_content,
+                            "message_id": None,
+                            "created_at": now_iso,
+                        })
 
                 # Atualizar updated_at da conversa
                 from services.database import update as _update_conv

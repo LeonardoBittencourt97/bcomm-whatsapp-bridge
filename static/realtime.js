@@ -73,7 +73,7 @@ function queueToast(opts) {
 /* === Handlers de eventos === */
 function handleMessage(payload) {
     const m = payload.new || {};
-    const phone = m.sender_phone || m.phone || '';
+    const phone = m.sender_phone || m.phone || m.conversation_id || '';
     queueToast({
         icon: PHONE_ICON,
         title: 'Nova mensagem',
@@ -84,6 +84,11 @@ function handleMessage(payload) {
     if (typeof window.loadConversations === 'function') {
         clearTimeout(window._reloadConversations);
         window._reloadConversations = setTimeout(() => window.loadConversations(), 500);
+    }
+    // Atualizar mensagens do chat se conversa aberta
+    if (typeof window.selectConv === 'function' && window.currentPhone) {
+        clearTimeout(window._reloadChat);
+        window._reloadChat = setTimeout(() => window.selectConv(window.currentPhone), 500);
     }
     // Atualizar resumo da conversa aberta
     if (typeof window.loadConversationSummary === 'function' && window.currentPhone) {

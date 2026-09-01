@@ -117,9 +117,6 @@ class HermesClient:
 
         logger.info(f"Hermes (phone={phone}): {message[:80]}...")
         self._processing_status[phone] = {"status": "processing", "started_at": __import__("time").time()}
-        # Skip user message tracking if caller handles it (e.g. audio messages saved as [audioMessage])
-        if not skip_user_tracking:
-            await self._track_message(phone, "user", message, message_id=message_id)
 
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -163,7 +160,6 @@ class HermesClient:
 
             logger.info(f"Hermes respondeu ({len(response)} chars)")
             self._processing_status.pop(phone, None)
-            await self._track_message(phone, "agent", response)
             return response
 
         except asyncio.TimeoutError:
