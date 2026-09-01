@@ -220,7 +220,7 @@ async def auth_middleware(request: Request, call_next):
 
     # Rotas públicas (não precisam de auth)
     public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/",
-                    "/dashboard", "/outreach", "/config", "/pipelines", "/organizations",
+                    "/dashboard", "/config", "/pipelines", "/organizations",
                     "/setup-master", "/crm", "/contacts", "/activities", "/users"}
     public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc", "/invite/", "/crm/auth/accept-invite")
     crm_auth_exact = {"/crm/auth/login"}
@@ -874,20 +874,7 @@ async def invite_page(token: str):
     return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
 
-# ── Outreach Routes ─────────────────────────────────────────────
-from outreach import router as outreach_router
-app.include_router(outreach_router)
 
-
-@app.get("/outreach")
-async def outreach_page():
-    """Página de outreach"""
-    from fastapi.responses import HTMLResponse
-    outreach_path = os.path.join(os.path.dirname(__file__), "static", "outreach.html")
-    if os.path.exists(outreach_path):
-        with open(outreach_path, "r") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
 
 
 
@@ -911,9 +898,6 @@ async def pipelines_page():
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Pipelines não encontrado</h1>", status_code=404)
 
-# ── Sales Routes ─────────────────────────────────────────────
-from sales_routes import router as sales_router
-app.include_router(sales_router)
 
 # ── Novos módulos CRM ─────────────────────────────────────────
 from routes.routes_auth import router as auth_router

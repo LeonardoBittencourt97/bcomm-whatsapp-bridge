@@ -1,6 +1,6 @@
 """
 Rotas do CRM - BCOMM Atendimento
-Endpoints para gerenciamento de conversas tipo Chatwoot
+Endpoints para gerenciamento de conversas
 Endpoints para gerenciamento de pipeline de deals
 Usa Supabase para persistência (tabelas bcomm_inbox.*)
 """
@@ -595,19 +595,11 @@ async def receive_message(phone: str, request: SendMessageRequest):
     # Verificar se agente está habilitado
     agent_enabled = conv.get("agent_enabled", True)
 
-    # Limpar prefixo de contexto outreach do conteúdo
-    clean_content = request.content
-    if clean_content.startswith("[CONTEXTO OUTREACH"):
-        import re
-        match = re.search(r"diz: (.+)", clean_content, re.DOTALL)
-        if match:
-            clean_content = match.group(1).strip()
-
     # Inserir mensagem
     message = await _insert_message(
         conversation_id=conv["id"],
         sender="user",
-        content=clean_content,
+        content=request.content,
         responded=agent_enabled,  # Se agente desabilitado, não respondida
         message_id=request.message_id or "",
     )

@@ -99,7 +99,7 @@ class HermesClient:
             if old_session:
                 await _delete_session(phone)
                 logger.info(f"Sessão anterior {old_session} removida (force_new_session) para {phone}")
-            logger.info(f"Forçando nova sessão para {phone} (outreach)")
+            logger.info(f"Forçando nova sessão para {phone}")
         else:
             # Se já tem sessão, retomar
             session_id = sessions.get(phone)

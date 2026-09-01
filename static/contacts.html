@@ -82,7 +82,6 @@
         .name-cell{display:flex;align-items:center;gap:10px;font-weight:500;color:var(--text)}
         .name-avatar{width:30px;height:30px;border-radius:50%;background:var(--elevated);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0}
         .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;text-transform:capitalize}
-        .badge-lead{background:rgba(108,117,125,.18);color:#a1a4a5}
         .badge-prospect{background:rgba(59,158,255,.15);color:var(--accent)}
         .badge-customer{background:rgba(52,199,89,.15);color:var(--green)}
         .badge-churned{background:rgba(255,69,58,.15);color:var(--red)}
@@ -132,7 +131,6 @@
             <a href="/pipelines" class="nav-item" data-page="deals"><span class="icon">💰</span><span class="label">Negócios</span></a>
             <a href="/activities" class="nav-item" data-page="activities"><span class="icon">📋</span><span class="label">Atividades</span></a>
             <a href="/notes" class="nav-item" data-page="notes"><span class="icon">📝</span><span class="label">Notas</span></a>
-            <a href="/outreach" class="nav-item" data-page="outreach"><span class="icon">📤</span><span class="label">Outreach</span></a>
             <div class="nav-divider"></div>
             <a href="/users" class="nav-item" data-page="users"><span class="icon">👥</span><span class="label">Usuários</span></a>
             <a href="/config" class="nav-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Configurações</span></a>
@@ -178,7 +176,6 @@
                 </select>
                 <select id="filter-status" onchange="onFilterChange()">
                     <option value="">Todos Status</option>
-                    <option value="lead">Lead</option>
                     <option value="prospect">Prospect</option>
                     <option value="customer">Customer</option>
                     <option value="churned">Churned</option>
@@ -233,7 +230,6 @@
             <div class="form-group">
                 <label class="form-label">Lifecycle Stage</label>
                 <select class="form-input" id="c-stage">
-                    <option value="lead">Lead</option>
                     <option value="prospect">Prospect</option>
                     <option value="customer">Customer</option>
                     <option value="churned">Churned</option>
@@ -279,7 +275,7 @@ function showToast(msg, type = 'success') {
 }
 
 function stageClass(stage) {
-    return 'badge badge-' + (stage || 'lead');
+    return 'badge badge-' + (stage || 'prospect');
 }
 
 function escapeHtml(s) {
@@ -312,7 +308,7 @@ function getFilteredContacts() {
             if (!hay.includes(q)) return false;
         }
         if (role && c.organization_id !== role) return false;
-        if (status && (c.lifecycle_stage || 'lead') !== status) return false;
+        if (status && (c.lifecycle_stage || 'prospect') !== status) return false;
         return true;
     });
 }
@@ -331,7 +327,7 @@ function renderContacts() {
             <td>${escapeHtml(c.phone || '-')}</td>
             <td>${escapeHtml(c.email || '-')}</td>
             <td>${escapeHtml(c.organization_id || '-')}</td>
-            <td><span class="${stageClass(c.lifecycle_stage)}">${escapeHtml(c.lifecycle_stage || 'lead')}</span></td>
+            <td><span class="${stageClass(c.lifecycle_stage)}">${escapeHtml(c.lifecycle_stage || 'prospect')}</span></td>
             <td><div class="actions">
                 <button class="btn btn-secondary btn-sm" onclick="editContact('${escapeHtml(c.id)}')">✏️ Editar</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteContact('${escapeHtml(c.id)}')">🗑️</button>
@@ -360,7 +356,7 @@ function openNewContactModal() {
     document.getElementById('c-phone').disabled = false;
     document.getElementById('c-email').value = '';
     document.getElementById('c-company').value = '';
-    document.getElementById('c-stage').value = 'lead';
+    document.getElementById('c-stage').value = 'prospect';
     document.getElementById('c-notes').value = '';
     document.getElementById('modal-overlay').classList.add('show');
 }
@@ -375,7 +371,7 @@ function editContact(id) {
     document.getElementById('c-phone').disabled = true;
     document.getElementById('c-email').value = c.email || '';
     document.getElementById('c-company').value = c.company || '';
-    document.getElementById('c-stage').value = c.lifecycle_stage || 'lead';
+    document.getElementById('c-stage').value = c.lifecycle_stage || 'prospect';
     document.getElementById('c-notes').value = c.notes || '';
     document.getElementById('modal-overlay').classList.add('show');
 }

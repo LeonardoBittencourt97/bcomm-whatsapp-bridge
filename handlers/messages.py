@@ -240,35 +240,6 @@ async def _send_typing_indicator(
 # ── Processamento de batch ─────────────────────────────────────────
 
 
-async def _get_outreach_instructions(phone: str) -> str:
-    """Busca instruções de outreach para um contato no Supabase."""
-    from services.database import select as _select
-
-    try:
-        _ensure_supabase()
-        rows = await _select(
-            "bcomm_inbox.outreach_tasks",
-            filters={"status": "active"},
-            limit=100,
-        )
-        if not rows:
-            return ""
-
-        normalized = phone.replace("+", "").replace("-", "").replace(" ", "")
-
-        for task in rows:
-            task_phone = task.get("contact_phone", "").replace("+", "").replace("-", "").replace(" ", "")
-            if task_phone == normalized:
-                return task.get("instructions", "")
-            if task_phone.endswith(normalized) or normalized.endswith(task_phone):
-                return task.get("instructions", "")
-            if len(task_phone) >= 8 and len(normalized) >= 8:
-                if task_phone[-8:] == normalized[-8:]:
-                    return task.get("instructions", "")
-    except Exception as e:
-        logger.error(f"Erro ao buscar instruções de outreach: {e}")
-
-    return ""
 
 async def _process_batch(
     phone: str,
@@ -315,12 +286,9 @@ async def _process_batch(
                 content = "[audioMessage]"
                 logger.warning("Falha na transcrição do áudio")
 
-        # Verificar se há instruções de outreach para este contato
-    outreach_instructions = await _get_outreach_instructions(phone)
-
     # ── Injetar contexto de histórico para sessões novas ──
     history_context = None
-    if use_hermes and not outreach_instructions:
+    if use_hermes:
         try:
             from services.hermes import _load_sessions
             sessions = await _load_sessions()
@@ -350,11 +318,7 @@ async def _process_batch(
             logger.debug(f"Não foi possível carregar histórico: {e}")
 
     # Carregar prompt apropriado
-    if outreach_instructions:
-        system_prompt = _load_prompt("outreach")
-        logger.info(f"Usando prompt de outreach para {phone}")
-    else:
-        system_prompt = _load_prompt("atendimento")
+    system_prompt = _load_prompt("atendimento")
 
     response_content = None
     source = MessageSource.LLM
@@ -364,15 +328,12 @@ async def _process_batch(
     if use_hermes:
         # Para áudio, usar transcrição (não [audioMessage]) para o agente entender
         hermes_content = transcription_note if is_audio_msg and transcription_note else content
-        # Construir mensagem com contexto do outreach
         full_message = f"Usuário WhatsApp {phone} diz: {hermes_content}"
-        if outreach_instructions:
-            full_message = f"[CONTEXTO OUTREACH - Instruções: {outreach_instructions}]\n\n{full_message}"
-        elif history_context:
+        if history_context:
             full_message = f"[Histórico da conversa com este cliente]\n{history_context}\n\n[Mensagem atual]\n{full_message}"
         
         hermes_response = await hermes.chat(
-            full_message, phone=phone, force_new_session=bool(outreach_instructions),
+            full_message, phone=phone,
             message_id=messages[0].message_id if messages else "",
             skip_user_tracking=is_audio_msg  # Skip tracking for audio - we save [audioMessage] directly
         )
@@ -453,13 +414,10 @@ async def _process_batch(
         logger.error(f"Falha ao enviar resposta: {send_result.get('error')}")
 
     # ── Salvar mensagens no Supabase ────────────────────────────────
-    # Nota: mensagens de outreach já são salvas pelo crm_routes._insert_message
-    # Só salvamos aqui mensagens NÃO-outreach (respostas normais do agente)
-    if not outreach_instructions:
-        try:
-            _ensure_supabase()
-            from services.database import get_client as _gc3
-            if _gc3() is not None:
+    try:
+        _ensure_supabase()
+        from services.database import get_client as _gc3
+        if _gc3() is not None:
                 # Buscar ou criar conversa
                 conv_rows = await select(CONVERSATIONS_TABLE, filters={"phone": phone})
                 if conv_rows:
@@ -523,8 +481,8 @@ async def _process_batch(
                 }, filters={"id": conv_id})
 
                 logger.debug(f"Mensagens salvas no Supabase para {phone}")
-        except Exception as e:
-            logger.error(f"Erro ao salvar mensagens no Supabase: {e}")
+    except Exception as e:
+        logger.error(f"Erro ao salvar mensagens no Supabase: {e}")
 
     logger.info(f"Mensagem processada em {elapsed_ms:.0f}ms (source={source.value}, sent={send_result['success']})")
 
