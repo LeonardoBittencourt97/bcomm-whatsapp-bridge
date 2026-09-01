@@ -135,12 +135,17 @@ class STTClient:
         """Verifica se a API STT está acessível."""
         client = await self._get_client()
         try:
-            # A API Whisper não tem endpoint /models, então testamos com um request leve
-            resp = await client.get("/models")
+            # Usar endpoint /health se existir, senão assumir disponível
+            resp = await client.get("/health")
             return resp.status_code == 200
         except Exception:
-            # Se o endpoint /models não existir, assumir disponível
-            return True
+            # Se o endpoint não existir, verificar com outro request
+            try:
+                resp = await client.get("/v1/audio/transcriptions")
+                # 405 ou422 = servidor rodando (só não aceita GET)
+                return resp.status_code in (200, 405, 422)
+            except Exception:
+                return False
 
     async def close(self):
         """Fecha o cliente HTTP."""
