@@ -15,7 +15,7 @@
             </div>
             <div class="search-results" id="search-results"></div>
         </div>`;
-    modal.onclick=e=>{if(e.target===modal)closeSearch()};
+    modal.onclick=e=>{if(e.target===modal)window.closeSearch()};
     document.body.appendChild(modal);
 
     // Inject CSS for search-overlay (matches crm.html styles)
