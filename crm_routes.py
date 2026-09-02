@@ -1365,3 +1365,31 @@ async def import_conversation_history(
 
     logger.info(f"Importadas {imported} mensagens do histórico para {phone}")
     return {"status": "imported", "count": imported, "phone": phone}
+
+
+# ── Cleanup ──────────────────────────────────────────────────────
+
+AUDIO_DIR = "/app/data/audio"
+
+
+@router.post("/cleanup/audio")
+async def cleanup_old_audio(days: int = Query(default=30, ge=1, le=365)):
+    """Remove arquivos de áudio e transcrições mais antigos que N dias."""
+    _ensure_supabase()
+    if not os.path.isdir(AUDIO_DIR):
+        return {"removed": 0, "reason": "audio dir não existe"}
+
+    cutoff = datetime.now().timestamp() - (days * 86400)
+    removed = 0
+    try:
+        for name in os.listdir(AUDIO_DIR):
+            path = os.path.join(AUDIO_DIR, name)
+            if os.path.isfile(path) and os.path.getmtime(path) < cutoff:
+                os.remove(path)
+                removed += 1
+    except Exception as e:
+        logger.error(f"Erro no cleanup de áudio: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    logger.info(f"Cleanup de áudio: {removed} arquivos removidos (> {days} dias)")
+    return {"removed": removed, "days": days}
