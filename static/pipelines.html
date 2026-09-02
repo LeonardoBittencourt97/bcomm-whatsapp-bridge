@@ -630,6 +630,18 @@ let _createContactModal=null;
 async function openCreateContactFromDeal(){
     const phone=document.getElementById('deal-phone').value||'';
     const name=document.getElementById('deal-contact-search').value||'';
+    const dealStage=document.getElementById('deal-stage').value||'lead';
+    
+    // Mapear estágio do deal para lifecycle_stage do contato
+    const stageMap={
+        'lead':'lead',
+        'qualified':'prospect',
+        'proposal':'prospect',
+        'negotiation':'prospect',
+        'closed_won':'customer',
+        'closed_lost':'churned'
+    };
+    const contactStage=stageMap[dealStage]||'lead';
     
     // Create modal dynamically
     const modalHtml=`
@@ -657,10 +669,12 @@ async function openCreateContactFromDeal(){
                     <input type="email" id="new-contact-email" style="width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
                 </div>
                 <div style="margin-bottom:16px">
-                    <label style="display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px">ESTÁGIO</label>
+                    <label style="display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px">ESTÁGIO (definido pelo negócio)</label>
                     <select id="new-contact-stage" style="width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
-                        <option value="lead">Lead</option>
-                        <option value="prospect">Prospect</option>
+                        <option value="lead" ${contactStage==='lead'?'selected':''}>Lead</option>
+                        <option value="prospect" ${contactStage==='prospect'?'selected':''}>Prospect</option>
+                        <option value="customer" ${contactStage==='customer'?'selected':''}>Customer</option>
+                        <option value="churned" ${contactStage==='churned'?'selected':''}>Churned</option>
                     </select>
                 </div>
             </div>
