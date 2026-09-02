@@ -111,6 +111,12 @@ async def _verify_supabase_token(token: str) -> Optional[dict]:
         if not supabase_jwt_secret:
             from config import settings as cfg
             supabase_jwt_secret = cfg.jwt_secret
+        if not supabase_jwt_secret:
+            logger.error(
+                "SUPABASE_JWT_SECRET e settings.jwt_secret estão ambos vazios. "
+                "Tokens não podem ser verificados — autenticação ficará comprometida."
+            )
+            return None
         payload = jwt.decode(
             token,
             supabase_jwt_secret,
