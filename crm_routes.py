@@ -1116,6 +1116,72 @@ async def delete_deal(deal_id: str):
     return {"status": "deleted", "deal_id": deal_id}
 
 
+@router.put("/pipelines/deals/{deal_id}/win")
+async def win_deal(request: Request, deal_id: str):
+    """Mark deal as won."""
+    user = await get_current_user(request)
+    try:
+        _ensure_supabase()
+
+        existing = await select(DEALS_TABLE, filters={"id": deal_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Deal não encontrado")
+
+        if not is_unrestricted(user):
+            deal_org = existing[0].get("organization_id")
+            if deal_org:
+                org_ids = await get_user_org_ids(user["id"])
+                if deal_org not in org_ids:
+                    raise HTTPException(status_code=403, detail="Sem acesso")
+
+        now = datetime.now().isoformat()
+        await update(DEALS_TABLE, filters={"id": deal_id}, data={
+            "stage": "closed_won",
+            "closed_at": now,
+            "updated_at": now,
+        })
+
+        return {"status": "success", "message": "Deal marcado como ganho"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error winning deal: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/pipelines/deals/{deal_id}/lose")
+async def lose_deal(request: Request, deal_id: str):
+    """Mark deal as lost."""
+    user = await get_current_user(request)
+    try:
+        _ensure_supabase()
+
+        existing = await select(DEALS_TABLE, filters={"id": deal_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Deal não encontrado")
+
+        if not is_unrestricted(user):
+            deal_org = existing[0].get("organization_id")
+            if deal_org:
+                org_ids = await get_user_org_ids(user["id"])
+                if deal_org not in org_ids:
+                    raise HTTPException(status_code=403, detail="Sem acesso")
+
+        now = datetime.now().isoformat()
+        await update(DEALS_TABLE, filters={"id": deal_id}, data={
+            "stage": "closed_lost",
+            "closed_at": now,
+            "updated_at": now,
+        })
+
+        return {"status": "success", "message": "Deal marcado como perdido"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error losing deal: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/pipelines/stats")
 async def get_pipeline_stats(http_request: Request):
     """
