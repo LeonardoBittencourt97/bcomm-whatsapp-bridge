@@ -285,55 +285,57 @@ async def search_messages(q: str, http_request: Request, phone: Optional[str] = 
     user = await get_current_user(http_request)
     user_org_ids = set() if is_unrestricted(user) else await get_user_org_ids(user["id"])
 
-    # Search in messages table
-    all_msgs = await select(MESSAGES_TABLE, order="created_at.desc", limit=500)
+    if not q or not q.strip():
+        return {"results": [], "total": 0, "query": q}
+
+    # SQL ilike: evita carregar 500 mensagens e filtrar em Python
+    msgs = await select(
+        MESSAGES_TABLE,
+        filters={"content": {"ilike": f"%{q}%"}},
+        order="created_at.desc",
+        limit=limit * 2,
+    )
+
+    if not msgs:
+        return {"results": [], "total": 0, "query": q}
+
+    # Batch fetch de todas as conversas referenciadas
+    conv_ids = list({m.get("conversation_id") for m in msgs if m.get("conversation_id")})
+    conv_map = {}
+    if conv_ids:
+        convs = await select(CONVERSATIONS_TABLE, filters={"id": {"in": conv_ids}})
+        conv_map = {c["id"]: c for c in (convs or [])}
+
     results = []
-
-    for msg in (all_msgs or []):
+    for msg in msgs:
         content = msg.get("content", "")
-        # Skip empty or audio placeholder messages
         if not content or content.startswith("[audioMessage"):
-            # Check for transcription file
-            msg_id = msg.get("message_id", "")
-            if msg_id:
-                txt_path = f"/app/data/audio/{msg_id}.txt"
-                if os.path.exists(txt_path):
-                    with open(txt_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-                else:
-                    continue
-            else:
+            continue
+
+        conv_id = msg.get("conversation_id", "")
+        conv = conv_map.get(conv_id)
+        if not conv:
+            continue
+
+        if phone and conv.get("phone") != phone:
+            continue
+
+        if not is_unrestricted(user) and user_org_ids:
+            conv_org = conv.get("organization_id")
+            if conv_org and conv_org not in user_org_ids:
                 continue
 
-        # Filter by phone if specified
-        if phone:
-            conv = await select(CONVERSATIONS_TABLE, filters={"id": msg.get("conversation_id", "")})
-            if not conv or conv[0].get("phone") != phone:
-                continue
+        results.append({
+            "message_id": msg.get("message_id", ""),
+            "phone": conv.get("phone", ""),
+            "sender": msg.get("sender", ""),
+            "content": content[:200],
+            "created_at": msg.get("created_at", ""),
+            "conversation_id": conv_id,
+        })
 
-        # Check if search term matches
-        if q.lower() in content.lower():
-            # Get conversation info for context
-            conv = await select(CONVERSATIONS_TABLE, filters={"id": msg.get("conversation_id", "")})
-            if not conv:
-                continue
-            # Filter by user's orgs
-            if not is_unrestricted(user) and user_org_ids:
-                conv_org = conv[0].get("organization_id")
-                if conv_org and conv_org not in user_org_ids:
-                    continue
-            phone_num = conv[0].get("phone", "")
-            results.append({
-                "message_id": msg.get("message_id", ""),
-                "phone": phone_num,
-                "sender": msg.get("sender", ""),
-                "content": content[:200],
-                "created_at": msg.get("created_at", ""),
-                "conversation_id": msg.get("conversation_id", ""),
-            })
-
-            if len(results) >= limit:
-                break
+        if len(results) >= limit:
+            break
 
     return {"results": results, "total": len(results), "query": q}
 
