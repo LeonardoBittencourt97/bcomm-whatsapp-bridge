@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from services.database import select, insert, update, delete, ensure_supabase
-from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids
+from routes.deps import get_current_user, apply_org_filter, is_unrestricted, get_user_org_ids, get_active_org_id
 
 logger = logging.getLogger("bridge")
 
@@ -128,10 +128,19 @@ async def create_pipeline(request: Request, pipeline: PipelineCreate):
     ensure_supabase()
 
     data = pipeline.model_dump()
-    if not is_unrestricted(user):
-        org_ids = await get_user_org_ids(user["id"])
-        if org_ids:
-            data["organization_id"] = data.get("organization_id") or list(org_ids)[0]
+    
+    # Get organization_id from: 1) body, 2) cookie, 3) user's orgs
+    if not data.get("organization_id"):
+        # Try to get from cookie first
+        selected_org = get_active_org_id(request)
+        if selected_org:
+            data["organization_id"] = selected_org
+        elif not is_unrestricted(user):
+            # For non-unrestricted users, get from their orgs
+            org_ids = await get_user_org_ids(user["id"])
+            if org_ids:
+                data["organization_id"] = list(org_ids)[0]
+    
     data["created_at"] = datetime.now().isoformat()
 
     result = await insert(PIPELINES_TABLE, data)
