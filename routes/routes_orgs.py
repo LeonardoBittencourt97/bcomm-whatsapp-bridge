@@ -11,6 +11,16 @@ router = APIRouter(prefix="/crm")
 logger = logging.getLogger(__name__)
 
 
+def _require_org_admin(user: dict):
+    """Apenas master e admin_geral podem modificar organizações."""
+    role = user.get("role")
+    if role not in ("master", "admin_geral"):
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas master ou admin_geral podem gerenciar organizações",
+        )
+
+
 # GET /crm/organizations - List organizations
 @router.get("/organizations")
 async def list_organizations(
@@ -79,13 +89,14 @@ async def get_organization(request: Request, organization_id: str):
 async def create_organization(request: Request, data: dict):
     """Create a new organization"""
     try:
-        await get_current_user(request)
+        user = await get_current_user(request)
+        _require_org_admin(user)
         ensure_supabase()
-        
+
         # Add timestamps
         data["created_at"] = datetime.utcnow().isoformat()
         data["updated_at"] = datetime.utcnow().isoformat()
-        
+
         result = await insert(
             table="bcomm_inbox.organizations",
             data=data,
@@ -108,7 +119,8 @@ async def create_organization(request: Request, data: dict):
 async def update_organization(request: Request, organization_id: str, data: dict):
     """Update an existing organization"""
     try:
-        await get_current_user(request)
+        user = await get_current_user(request)
+        _require_org_admin(user)
         ensure_supabase()
         
         # Add updated timestamp
@@ -140,7 +152,8 @@ async def update_organization(request: Request, organization_id: str, data: dict
 async def delete_organization(request: Request, organization_id: str):
     """Delete an organization"""
     try:
-        await get_current_user(request)
+        user = await get_current_user(request)
+        _require_org_admin(user)
         ensure_supabase()
         
         result = await delete(
