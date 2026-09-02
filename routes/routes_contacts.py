@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 async def list_contacts(
     request: Request,
     organization_id: Optional[str] = Query(None, description="Filter by organization ID"),
+    source_id: Optional[str] = Query(None, description="Filter by WhatsApp source"),
+    source_type: Optional[str] = Query(None, description="Filter by source type (manual, whatsapp, import)"),
     lifecycle_stage: Optional[str] = Query(None, description="Filter by lifecycle stage"),
     search: Optional[str] = Query(None, description="Search by name, email, or phone"),
     limit: int = Query(100, ge=1, le=1000),
@@ -29,6 +31,10 @@ async def list_contacts(
         filters = {}
         if organization_id:
             filters["organization_id"] = organization_id
+        if source_id:
+            filters["source_id"] = source_id
+        if source_type:
+            filters["source_type"] = source_type
         if lifecycle_stage:
             filters["lifecycle_stage"] = lifecycle_stage
         filters = await apply_org_filter(user, filters, request)
@@ -38,13 +44,37 @@ async def list_contacts(
             filters=filters if filters else None,
             limit=limit,
             offset=offset,
-            
         )
+        
+        # Enrich with source name and deals count
+        enriched = []
+        for contact in (result or []):
+            # Get source name
+            if contact.get("source_id"):
+                source_rows = await select(
+                    table="whatsapp_numbers",
+                    filters={"id": contact["source_id"]}
+                )
+                if source_rows:
+                    contact["source_name"] = f"{source_rows[0].get('phone_number', '')}"
+                else:
+                    contact["source_name"] = "Desconhecido"
+            else:
+                contact["source_name"] = "Manual"
+            
+            # Get deals count
+            deals_rows = await select(
+                table="deals",
+                filters={"contact_id": contact["id"]}
+            )
+            contact["deals_count"] = len(deals_rows) if deals_rows else 0
+            
+            enriched.append(contact)
         
         return {
             "status": "success",
-            "data": result,
-            "count": len(result) if result else 0
+            "data": enriched,
+            "count": len(enriched)
         }
     except Exception as e:
         logger.error(f"Error listing contacts: {e}")

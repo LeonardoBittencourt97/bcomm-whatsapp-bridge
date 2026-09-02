@@ -234,11 +234,12 @@
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="deal-id">
+                        <input type="hidden" id="deal-contact-id">
                         <div class="input-group"><label class="input-label">Título *</label><input type="text" class="input" id="deal-title" placeholder="Ex: Consultoria BCOMM"></div>
                         <div class="input-group"><label class="input-label">Pipeline *</label><select class="input" id="deal-pipeline" onchange="loadStagesForDeal(this.value)"></select></div>
                         <div class="input-group"><label class="input-label">Estágio *</label><select class="input" id="deal-stage"></select></div>
+                        <div class="input-group"><label class="input-label">Contato</label><input type="text" class="input" id="deal-contact-search" placeholder="Buscar por nome ou telefone..." oninput="searchContactForDeal(this.value)"><div id="deal-contact-results" style="display:none;position:absolute;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:150px;overflow-y:auto;width:calc(100% - 48px);z-index:10;margin-top:4px"></div></div>
                         <div class="input-group"><label class="input-label">Telefone</label><input type="text" class="input" id="deal-phone" placeholder="554197054071"></div>
-                        <div class="input-group"><label class="input-label">Nome do Contato</label><input type="text" class="input" id="deal-contact" placeholder="João Silva"></div>
                         <div class="input-group"><label class="input-label">Valor (R$)</label><input type="number" class="input" id="deal-value" placeholder="0.00" step="0.01"></div>
                         <div class="input-group"><label class="input-label">Tags (separadas por vírgula)</label><input type="text" class="input" id="deal-tags" placeholder="quente, estética"></div>
                         <div class="input-group"><label class="input-label">Notas</label><textarea class="input" id="deal-notes" rows="3" placeholder="Observações..."></textarea></div>
