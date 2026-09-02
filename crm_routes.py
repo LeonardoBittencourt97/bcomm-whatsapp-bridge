@@ -31,7 +31,7 @@ CONVERSATIONS_TABLE = "bcomm_inbox.conversations"
 MESSAGES_TABLE = "bcomm_inbox.messages"
 SESSIONS_TABLE = "bcomm_inbox.sessions"
 DEALS_TABLE = "bcomm_inbox.deals"
-PIPELINE_STAGES_TABLE = "bcomm_inbox.pipeline_stages"
+PIPELINE_STAGES_TABLE = "bcomm_inbox.stages"
 PIPELINES_TABLE = "bcomm_inbox.pipelines"
 
 
