@@ -185,16 +185,15 @@ async def update_deal_stage(request: Request, deal_id: str, data: dict):
                 if deal_org not in org_ids:
                     raise HTTPException(status_code=403, detail="Sem acesso a esta organização")
 
-        stage_id = data.get("stage_id")
-        if not stage_id:
-            raise HTTPException(status_code=400, detail="stage_id is required")
-        
+        stage = data.get("stage") or data.get("stage_id")
+        if not stage:
+            raise HTTPException(status_code=400, detail="stage is required")
+
         result = await update(
             table="deals",
             filters={"id": deal_id},
             data={
-                "stage_id": stage_id,
-                "stage": stage_id,
+                "stage": stage,
                 "updated_at": datetime.utcnow().isoformat()
             },
 

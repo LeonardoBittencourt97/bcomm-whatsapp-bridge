@@ -861,6 +861,7 @@ async function getDefaultPipelineId(){
 async function loadPipeline(){
     const d=await api(`/crm/pipelines/${await getDefaultPipelineId()}`);
     if(!d)return;
+    window._pipelineStages=d.stages||[];
     // Stats
     let totalVal=0,totalOpen=0,totalWon=0,totalLost=0;
     (d.stages||[]).forEach(s=>{(s.deals||[]).forEach(dl=>{totalVal+=parseFloat(dl.value||0);if(dl.status==='open')totalOpen++;if(dl.status==='won')totalWon++;if(dl.status==='lost')totalLost++})});
@@ -883,9 +884,18 @@ async function loadPipeline(){
 }
 let draggedDealId=null;
 function dragDeal(e,dealId){draggedDealId=dealId;e.dataTransfer.effectAllowed='move'}
+function getStageKey(stageId){
+    const s=(window._pipelineStages||[]).find(x=>x.id===stageId);
+    if(!s)return stageId;
+    const n=s.name.toLowerCase();
+    if(n==='ganho')return'closed_won';
+    if(n==='perdido')return'closed_lost';
+    return n;
+}
 async function dropDeal(e,stageId){
     e.preventDefault();if(!draggedDealId)return;
-    await api(`/crm/deals/${draggedDealId}/stage`,'PUT',{stage_id:stageId});
+    const stageKey=getStageKey(stageId);
+    await api(`/crm/deals/${draggedDealId}/stage`,'PUT',{stage:stageKey});
     draggedDealId=null;loadPipeline();showToast('Deal movido');
 }
 function showDealModal(id){
