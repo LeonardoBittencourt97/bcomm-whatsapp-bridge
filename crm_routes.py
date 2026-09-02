@@ -152,9 +152,19 @@ def _cache_put(key: str, value: bytes):
 # ── Audio & Transcription Endpoints ────────────────────────────
 
 @router.get("/audio/{msg_id}")
-async def get_audio(msg_id: str):
+async def get_audio(msg_id: str, http_request: Request):
     """Retorna arquivo de áudio para reprodução no player."""
     import os
+
+    user = await get_current_user(http_request)
+    _ensure_supabase()
+
+    # Encontra a conversa da mensagem e valida acesso do usuário
+    msg_rows = await select(MESSAGES_TABLE, filters={"message_id": msg_id})
+    if msg_rows:
+        conv_rows = await select(CONVERSATIONS_TABLE, filters={"id": msg_rows[0].get("conversation_id", "")})
+        if conv_rows:
+            await _check_conversation_access(conv_rows[0], user)
 
     # Check in-memory cache first
     cached = _cache_get(msg_id)
