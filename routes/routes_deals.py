@@ -194,11 +194,12 @@ async def update_deal_stage(request: Request, deal_id: str, data: dict):
             filters={"id": deal_id},
             data={
                 "stage_id": stage_id,
+                "stage": stage_id,
                 "updated_at": datetime.utcnow().isoformat()
             },
-            
+
         )
-        
+
         return {
             "status": "success",
             "data": result,
@@ -235,13 +236,14 @@ async def win_deal(request: Request, deal_id: str):
             filters={"id": deal_id},
             data={
                 "status": "won",
+                "stage": "closed_won",
                 "probability": 100,
                 "actual_close_date": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat()
             },
-            
+
         )
-        
+
         return {
             "status": "success",
             "data": result,
@@ -280,11 +282,12 @@ async def lose_deal(request: Request, deal_id: str, data: dict):
             filters={"id": deal_id},
             data={
                 "status": "lost",
+                "stage": "closed_lost",
                 "lost_reason": lost_reason,
                 "actual_close_date": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat()
             },
-            
+
         )
         
         return {
