@@ -937,6 +937,9 @@ app.include_router(whatsapp_router)
 from routes.routes_themes import router as themes_router
 app.include_router(themes_router)
 
+from routes.routes_agents import router as agents_router
+app.include_router(agents_router)
+
 @app.get("/realtime.js")
 async def realtime_js():
     from fastapi.responses import FileResponse, HTMLResponse

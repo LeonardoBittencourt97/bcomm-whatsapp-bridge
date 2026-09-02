@@ -89,6 +89,43 @@ def _load_prompt(name: str) -> str:
         return ""
 
 
+async def _get_agent_prompt(phone: str) -> str:
+    """
+    Get the system prompt for the agent assigned to this conversation.
+    Falls back to default 'atendimento' prompt if no agent assigned.
+    """
+    try:
+        _ensure_supabase()
+        from services.database import get_client as _gc
+        
+        if _gc() is None:
+            return _load_prompt("atendimento")
+        
+        # Get conversation's agent_id
+        conv_rows = await select(CONVERSATIONS_TABLE, filters={"phone": phone})
+        if not conv_rows or not conv_rows[0].get("agent_id"):
+            return _load_prompt("atendimento")
+        
+        agent_id = conv_rows[0]["agent_id"]
+        
+        # Get agent's prompt
+        agent_rows = await select(
+            "bcomm_inbox.agents",
+            filters={"id": agent_id, "is_active": True}
+        )
+        
+        if agent_rows and agent_rows[0].get("system_prompt"):
+            agent_name = agent_rows[0].get("name", "unknown")
+            logger.info(f"Using agent '{agent_name}' for {phone}")
+            return agent_rows[0]["system_prompt"]
+        
+        return _load_prompt("atendimento")
+    
+    except Exception as e:
+        logger.warning(f"Error loading agent prompt: {e}, using default")
+        return _load_prompt("atendimento")
+
+
 def _ensure_supabase():
     """Inicializa Supabase se ainda não estiver conectado."""
     from services.database import ensure_supabase as _es
@@ -317,8 +354,8 @@ async def _process_batch(
         except Exception as e:
             logger.debug(f"Não foi possível carregar histórico: {e}")
 
-    # Carregar prompt apropriado
-    system_prompt = _load_prompt("atendimento")
+    # Carregar prompt do agente atribuído à conversa
+    system_prompt = await _get_agent_prompt(phone)
 
     response_content = None
     source = MessageSource.LLM
