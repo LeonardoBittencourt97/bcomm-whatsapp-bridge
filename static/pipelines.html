@@ -525,13 +525,15 @@ async function handleDrop(e,newStage){
 function openNewDealModal(){
     document.getElementById('modal-title').textContent='Novo Deal';
     document.getElementById('deal-id').value='';
+    document.getElementById('deal-contact-id').value='';
     document.getElementById('deal-title').value='';
     document.getElementById('deal-phone').value='';
-    document.getElementById('deal-contact').value='';
+    document.getElementById('deal-contact-search').value='';
     document.getElementById('deal-value').value='';
     document.getElementById('deal-tags').value='';
     document.getElementById('deal-notes').value='';
     document.getElementById('btn-delete-deal').style.display='none';
+    document.getElementById('deal-contact-results').style.display='none';
     
     // Populate pipeline selector
     const pipelineSel=document.getElementById('deal-pipeline');
@@ -548,13 +550,15 @@ function openEditDealModal(dealId){
     if(!deal)return;
     document.getElementById('modal-title').textContent='Editar Deal';
     document.getElementById('deal-id').value=deal.id;
+    document.getElementById('deal-contact-id').value=deal.contact_id||'';
     document.getElementById('deal-title').value=deal.title;
     document.getElementById('deal-phone').value=deal.phone||'';
-    document.getElementById('deal-contact').value=deal.contact_name||'';
+    document.getElementById('deal-contact-search').value=deal.contact_name||'';
     document.getElementById('deal-value').value=deal.value||'';
     document.getElementById('deal-tags').value=(Array.isArray(deal.tags)?deal.tags:[]).join(', ');
     document.getElementById('deal-notes').value=deal.notes||'';
     document.getElementById('btn-delete-deal').style.display='inline-flex';
+    document.getElementById('deal-contact-results').style.display='none';
     
     // Populate pipeline selector
     const pipelineSel=document.getElementById('deal-pipeline');

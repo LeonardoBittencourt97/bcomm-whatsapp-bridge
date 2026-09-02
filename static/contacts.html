@@ -337,7 +337,7 @@ function renderContacts() {
     const tbody = document.getElementById('contacts-table');
     const filtered = getFilteredContacts();
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Nenhum contato encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum contato encontrado</td></tr>';
         return;
     }
     tbody.innerHTML = filtered.map(c => {
@@ -348,13 +348,19 @@ function renderContacts() {
                             sourceType === 'import' ? '<span style="color:var(--yellow);font-size:11px">📥 Import</span>' :
                             '<span style="color:var(--muted);font-size:11px">✏️ Manual</span>';
         const dealsCount = c.deals_count || 0;
+        const dealsValue = c.deals_value || 0;
+        const pipelines = c.pipeline_names || [];
         return `<tr>
             <td><div class="name-cell"><div class="name-avatar">${escapeHtml(initial)}</div>${escapeHtml(c.name || '-')}</div></td>
             <td>${escapeHtml(c.phone || '-')}</td>
             <td>${escapeHtml(c.email || '-')}</td>
             <td><div>${sourceBadge}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(sourceName)}</div></td>
             <td><span class="${stageClass(c.lifecycle_stage)}">${escapeHtml(c.lifecycle_stage || 'lead')}</span></td>
-            <td><span style="color:${dealsCount > 0 ? 'var(--accent)' : 'var(--muted)'};font-weight:${dealsCount > 0 ? '600' : '400'}">${dealsCount}</span></td>
+            <td>
+                <div style="font-weight:${dealsCount > 0 ? '600' : '400'};color:${dealsCount > 0 ? 'var(--accent)' : 'var(--muted)'}">${dealsCount} negócios</div>
+                ${dealsValue > 0 ? `<div style="font-size:11px;color:var(--green);margin-top:2px">R$ ${dealsValue.toLocaleString('pt-BR')}</div>` : ''}
+                ${pipelines.length ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">${pipelines.map(p => escapeHtml(p)).join(', ')}</div>` : ''}
+            </td>
             <td><div class="actions">
                 <button class="btn btn-secondary btn-sm" onclick="editContact('${escapeHtml(c.id)}')">✏️ Editar</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteContact('${escapeHtml(c.id)}')">🗑️</button>

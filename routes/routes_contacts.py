@@ -46,7 +46,7 @@ async def list_contacts(
             offset=offset,
         )
         
-        # Enrich with source name and deals count
+        # Enrich with source name, deals count and pipeline info
         enriched = []
         for contact in (result or []):
             # Get source name
@@ -62,12 +62,28 @@ async def list_contacts(
             else:
                 contact["source_name"] = "Manual"
             
-            # Get deals count
+            # Get deals info
             deals_rows = await select(
                 table="deals",
                 filters={"contact_id": contact["id"]}
             )
             contact["deals_count"] = len(deals_rows) if deals_rows else 0
+            
+            # Get pipeline names from deals
+            pipeline_names = set()
+            for deal in (deals_rows or []):
+                if deal.get("pipeline_id"):
+                    p_rows = await select(
+                        table="pipelines",
+                        filters={"id": deal["pipeline_id"]}
+                    )
+                    if p_rows:
+                        pipeline_names.add(p_rows[0].get("name", ""))
+            contact["pipeline_names"] = list(pipeline_names)
+            
+            # Get total value from deals
+            total_value = sum(float(d.get("value") or 0) for d in (deals_rows or []))
+            contact["deals_value"] = total_value
             
             enriched.append(contact)
         
