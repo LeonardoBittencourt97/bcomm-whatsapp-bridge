@@ -232,6 +232,55 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Agents Modal -->
+<div class="modal-overlay" id="agentsModal">
+    <div class="modal" style="max-width:700px">
+        <h2 class="modal-title" id="agentsModalTitle">Gerenciar Agentes</h2>
+        <div id="agentsList" style="margin-bottom:16px"></div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="openCreateAgentModal()">+ Novo Agente</button>
+            <button class="btn btn-secondary" onclick="closeModal('agentsModal')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Form Modal -->
+<div class="modal-overlay" id="agentFormModal">
+    <div class="modal">
+        <h2 class="modal-title" id="agentFormTitle">Novo Agente</h2>
+        <form id="agentForm" onsubmit="saveAgent(event)">
+            <input type="hidden" id="agentId">
+            <input type="hidden" id="agentOrgId">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input class="form-input" id="agentName" required placeholder="Ex: Ana - Atendimento">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Slug * (identificador, apenas letras minúsculas e hífens)</label>
+                <input class="form-input" id="agentSlug" required pattern="[a-z0-9-]+" placeholder="Ex: atendimento">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Descrição</label>
+                <input class="form-input" id="agentDescription" placeholder="Descrição do agente">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Prompt do Sistema *</label>
+                <textarea class="form-input" id="agentPrompt" required rows="10" placeholder="Instruções para o agente..."></textarea>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                    <input type="checkbox" id="agentIsDefault">
+                    <span class="form-label" style="margin:0">Definir como agente padrão</span>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('agentFormModal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 const API = '';
 let orgs = [];
@@ -289,6 +338,7 @@ function renderOrgs() {
                 ${o.whatsapp_connected
                     ? `<button class="btn btn-secondary btn-sm" onclick="disconnectWa('${o.id}')">Desconectar WA</button>`
                     : `<button class="btn btn-primary btn-sm" onclick="connectWa('${o.id}')">Conectar WhatsApp</button>`}
+                <button class="btn btn-secondary btn-sm" onclick="openAgentsModal('${o.id}', '${esc(o.name)}')">🤖 Agentes</button>
                 <button class="btn btn-secondary btn-sm" onclick="editOrg('${o.id}')">Editar</button>
                 <button class="btn btn-danger btn-sm" onclick="deleteOrg('${o.id}','${esc(o.name)}')">Excluir</button>
             </div>
@@ -505,6 +555,136 @@ async function logout(){
     try{await fetch('/crm/auth/logout',{method:'POST'})}catch(e){}
     window.location.href='/login';
 }
+
+// === Agent Management ===
+let currentAgentsOrgId = null;
+let currentAgents = [];
+
+async function openAgentsModal(orgId, orgName) {
+    currentAgentsOrgId = orgId;
+    document.getElementById('agentsModalTitle').textContent = `Agentes - ${orgName}`;
+    document.getElementById('agentsModal').classList.add('visible');
+    await loadAgents();
+}
+
+async function loadAgents() {
+    if (!currentAgentsOrgId) return;
+    try {
+        const d = await api(`/crm/organizations/${currentAgentsOrgId}/agents`);
+        currentAgents = d.agents || [];
+        renderAgents();
+    } catch (e) {
+        toast('Erro ao carregar agentes: ' + e.message, 'error');
+    }
+}
+
+function renderAgents() {
+    const el = document.getElementById('agentsList');
+    if (!currentAgents.length) {
+        el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Nenhum agente configurado</div>';
+        return;
+    }
+    
+    el.innerHTML = currentAgents.map(a => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-radius:10px;margin-bottom:8px;border:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size:20px">${a.is_default ? '⭐' : '🤖'}</span>
+                <div>
+                    <div style="font-size:14px;font-weight:600">${esc(a.name)}</div>
+                    <div style="font-size:12px;color:var(--muted)">${esc(a.slug)} ${a.is_default ? '· Padrão' : ''}</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px">
+                ${!a.is_default ? `<button class="btn btn-secondary btn-sm" onclick="setDefaultAgent('${a.id}')">Tornar Padrão</button>` : ''}
+                <button class="btn btn-secondary btn-sm" onclick="editAgent('${a.id}')">Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteAgent('${a.id}', '${esc(a.name)}')" ${currentAgents.length <= 1 ? 'disabled title="Último agente não pode ser excluído"' : ''}>Excluir</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function openCreateAgentModal() {
+    document.getElementById('agentFormTitle').textContent = 'Novo Agente';
+    document.getElementById('agentForm').reset();
+    document.getElementById('agentId').value = '';
+    document.getElementById('agentOrgId').value = currentAgentsOrgId;
+    document.getElementById('agentFormModal').classList.add('visible');
+}
+
+async function editAgent(agentId) {
+    try {
+        const d = await api(`/crm/organizations/${currentAgentsOrgId}/agents/${agentId}`);
+        const a = d.agent;
+        document.getElementById('agentFormTitle').textContent = 'Editar Agente';
+        document.getElementById('agentId').value = a.id;
+        document.getElementById('agentOrgId').value = currentAgentsOrgId;
+        document.getElementById('agentName').value = a.name || '';
+        document.getElementById('agentSlug').value = a.slug || '';
+        document.getElementById('agentDescription').value = a.description || '';
+        document.getElementById('agentPrompt').value = a.system_prompt || '';
+        document.getElementById('agentIsDefault').checked = a.is_default || false;
+        document.getElementById('agentFormModal').classList.add('visible');
+    } catch (e) {
+        toast('Erro ao carregar agente: ' + e.message, 'error');
+    }
+}
+
+async function saveAgent(e) {
+    e.preventDefault();
+    const id = document.getElementById('agentId').value;
+    const orgId = document.getElementById('agentOrgId').value;
+    const body = {
+        name: document.getElementById('agentName').value,
+        slug: document.getElementById('agentSlug').value,
+        description: document.getElementById('agentDescription').value || null,
+        system_prompt: document.getElementById('agentPrompt').value,
+        is_default: document.getElementById('agentIsDefault').checked,
+    };
+    
+    try {
+        if (id) {
+            await api(`/crm/organizations/${orgId}/agents/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            toast('Agente atualizado!');
+        } else {
+            await api(`/crm/organizations/${orgId}/agents`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            toast('Agente criado!');
+        }
+        closeModal('agentFormModal');
+        await loadAgents();
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function deleteAgent(agentId, agentName) {
+    if (!confirm(`Excluir o agente "${agentName}"? As conversas serão transferidas para o agente padrão.`)) return;
+    try {
+        await api(`/crm/organizations/${currentAgentsOrgId}/agents/${agentId}`, { method: 'DELETE' });
+        toast('Agente excluído!');
+        await loadAgents();
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function setDefaultAgent(agentId) {
+    try {
+        await api(`/crm/organizations/${currentAgentsOrgId}/agents/${agentId}/set-default`, { method: 'POST' });
+        toast('Agente padrão atualizado!');
+        await loadAgents();
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
 loadUserInfo();
 </script>
 </body>

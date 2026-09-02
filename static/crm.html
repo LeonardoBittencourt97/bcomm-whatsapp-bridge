@@ -405,6 +405,11 @@
                                 <div class="chat-header-name" id="chat-name">-</div>
                                 <div class="chat-header-status" id="chat-status">-</div>
                             </div>
+                            <div class="agent-selector" id="agent-selector" style="display:none">
+                                <label style="font-size:11px;color:var(--muted);margin-right:4px">Agente:</label>
+                                <select id="agent-select" onchange="switchAgent(this.value)" style="padding:4px 8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer">
+                                </select>
+                            </div>
                             <span class="processing-badge" id="processing-badge" style="display:none">⏳ Processando...</span>
                             <div class="chat-actions">
                                 <button class="btn btn-danger btn-sm" id="btn-transfer" onclick="showTransferModal()" style="display:none;margin-right:8px">🧑 Transferir</button>
@@ -666,6 +671,11 @@ async function selectConv(phone){
         document.getElementById('btn-pause').style.display=cv.agent_enabled?'inline-flex':'none';
         document.getElementById('btn-resume').style.display=cv.agent_enabled?'none':'inline-flex';
         document.getElementById('btn-transfer').style.display=cv.status!=='closed'?'inline-flex':'none';
+        
+        // Load agents for this conversation's organization
+        if(cv.organization_id){
+            await loadAgentsForConversation(cv.organization_id, cv.agent_id);
+        }
     }
     renderMessages(msgs);
     loadConversationSummary(phone);
@@ -745,6 +755,53 @@ async function sendMessage(){
 async function pauseAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/pause`,'POST');showToast('Agente pausado');selectConv(currentPhone);loadConversations()}
 async function resumeAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/resume`,'POST');showToast('Agente retomado');selectConv(currentPhone);loadConversations()}
 async function closeConversation(){if(!currentPhone)return;if(!confirm('Encerrar esta conversa?'))return;await api(`/crm/conversations/${currentPhone}/close`,'POST');showToast('Conversa encerrada');currentPhone=null;stopProcessingPoll();document.getElementById('chat-header').style.display='none';document.getElementById('chat-input').style.display='none';loadConversations()}
+
+// ── Agent Selector ──
+let currentOrgAgents = [];
+let currentConversationAgentId = null;
+
+async function loadAgentsForConversation(orgId, agentId) {
+    currentConversationAgentId = agentId;
+    const selector = document.getElementById('agent-selector');
+    const select = document.getElementById('agent-select');
+    
+    try {
+        const d = await api(`/crm/organizations/${orgId}/agents`);
+        currentOrgAgents = d.agents || [];
+        
+        if (currentOrgAgents.length <= 1) {
+            selector.style.display = 'none';
+            return;
+        }
+        
+        selector.style.display = 'flex';
+        select.innerHTML = currentOrgAgents.map(a => 
+            `<option value="${a.id}" ${a.id === agentId ? 'selected' : ''}>${a.name}${a.is_default ? ' ⭐' : ''}</option>`
+        ).join('');
+    } catch (e) {
+        selector.style.display = 'none';
+    }
+}
+
+async function switchAgent(agentId) {
+    if (!currentPhone || !agentId) return;
+    
+    try {
+        const result = await api(`/crm/conversations/${currentPhone}/agent`, 'PUT', { agent_id: agentId });
+        if (result) {
+            const agentName = currentOrgAgents.find(a => a.id === agentId)?.name || 'desconhecido';
+            showToast(`Agente alterado para ${agentName}`, 'success');
+            currentConversationAgentId = agentId;
+            loadConversations();
+        }
+    } catch (e) {
+        showToast('Erro ao trocar agente: ' + e.message, 'error');
+        // Revert selection
+        const select = document.getElementById('agent-select');
+        select.value = currentConversationAgentId;
+    }
+}
+
 function showTransferModal(){
     if(!currentPhone)return;
     const cv=conversations.find(c=>c.phone===currentPhone);
