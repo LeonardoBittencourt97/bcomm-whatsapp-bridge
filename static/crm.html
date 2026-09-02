@@ -967,8 +967,17 @@ function createDealFromChat(){
         <div class="modal-footer"><button class="btn btn-secondary" onclick="hideModal()">Cancelar</button><button class="btn btn-primary" onclick="saveDealFromChat()">Criar</button></div>`);
 }
 async function saveDealFromChat(){
-    const data={title:document.getElementById('d-title').value,value:parseFloat(document.getElementById('d-value').value)||0,pipeline_id:await getDefaultPipelineId(),conversation_phone:currentPhone};
-    await api('/crm/deals','POST',data);hideModal();showToast('Deal criado');
+    const currentConv = conversations.find(c => c.phone === currentPhone);
+    const conversation_id = currentConv ? currentConv.id : null;
+    const data = {
+        title: document.getElementById('d-title').value,
+        value: parseFloat(document.getElementById('d-value').value) || 0,
+        pipeline_id: await getDefaultPipelineId(),
+        conversation_id
+    };
+    await api('/crm/deals', 'POST', data);
+    hideModal();
+    showToast('Deal criado');
 }
 
 // ── Conversation Summary ──
