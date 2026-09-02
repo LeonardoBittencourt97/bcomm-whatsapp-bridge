@@ -867,13 +867,15 @@ async def get_stats(http_request: Request):
 async def get_pipeline_stages(pipeline_id: str = None):
     """
     Retorna estágios do pipeline ordenados por posição.
-    Usa a tabela pipeline_stages (IDs de texto como "lead", "qualified").
+    Se pipeline_id for informado, filtra apenas os estágios desse pipeline;
+    caso contrário, retorna todos os estágios (backwards compatible).
     """
     _ensure_supabase()
     
-    # pipeline_stages é uma tabela global (sem pipeline_id)
-    # Retorna todos os estágios ordenados por posição
-    stages = await select(PIPELINE_STAGES_TABLE, order="position.asc")
+    filters = {}
+    if pipeline_id:
+        filters["pipeline_id"] = pipeline_id
+    stages = await select(PIPELINE_STAGES_TABLE, filters=filters if filters else None, order="position.asc")
     return {"stages": stages or []}
 
 
