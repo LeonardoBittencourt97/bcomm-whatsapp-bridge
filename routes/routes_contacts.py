@@ -46,45 +46,56 @@ async def list_contacts(
             offset=offset,
         )
         
-        # Enrich with source name, deals count and pipeline info
+        contacts_list = result or []
+        if not contacts_list:
+            return {"status": "success", "data": [], "count": 0}
+
+        source_ids = {c.get("source_id") for c in contacts_list if c.get("source_id")}
+        source_map = {}
+        if source_ids:
+            sources = await select(table="whatsapp_numbers", filters={"id": {"in": list(source_ids)}})
+            source_map = {s["id"]: s.get("phone_number", "") for s in (sources or [])}
+
+        contact_ids = [c["id"] for c in contacts_list if c.get("id")]
+        all_deals = []
+        if contact_ids:
+            deals = await select(table="deals", filters={"contact_id": {"in": contact_ids}})
+            all_deals = deals or []
+
+        deals_by_contact = {}
+        for d in all_deals:
+            cid = d.get("contact_id")
+            if cid:
+                deals_by_contact.setdefault(cid, []).append(d)
+
+        pipeline_ids = {d.get("pipeline_id") for d in all_deals if d.get("pipeline_id")}
+        pipeline_map = {}
+        if pipeline_ids:
+            pipelines = await select(table="pipelines", filters={"id": {"in": list(pipeline_ids)}})
+            pipeline_map = {p["id"]: p.get("name", "") for p in (pipelines or [])}
+
         enriched = []
-        for contact in (result or []):
-            # Get source name
-            if contact.get("source_id"):
-                source_rows = await select(
-                    table="whatsapp_numbers",
-                    filters={"id": contact["source_id"]}
-                )
-                if source_rows:
-                    contact["source_name"] = f"{source_rows[0].get('phone_number', '')}"
-                else:
-                    contact["source_name"] = "Desconhecido"
+        for contact in contacts_list:
+            source_id = contact.get("source_id")
+            if source_id and source_id in source_map:
+                contact["source_name"] = source_map[source_id]
+            elif source_id:
+                contact["source_name"] = "Desconhecido"
             else:
                 contact["source_name"] = "Manual"
-            
-            # Get deals info
-            deals_rows = await select(
-                table="deals",
-                filters={"contact_id": contact["id"]}
-            )
-            contact["deals_count"] = len(deals_rows) if deals_rows else 0
-            
-            # Get pipeline names from deals
-            pipeline_names = set()
-            for deal in (deals_rows or []):
-                if deal.get("pipeline_id"):
-                    p_rows = await select(
-                        table="pipelines",
-                        filters={"id": deal["pipeline_id"]}
-                    )
-                    if p_rows:
-                        pipeline_names.add(p_rows[0].get("name", ""))
+
+            contact_deals = deals_by_contact.get(contact.get("id"), [])
+            contact["deals_count"] = len(contact_deals)
+            contact["deals_value"] = sum(float(d.get("value") or 0) for d in contact_deals)
+
+            pipeline_names = {
+                pipeline_map.get(d.get("pipeline_id"), "")
+                for d in contact_deals
+                if d.get("pipeline_id")
+            }
+            pipeline_names.discard("")
             contact["pipeline_names"] = list(pipeline_names)
-            
-            # Get total value from deals
-            total_value = sum(float(d.get("value") or 0) for d in (deals_rows or []))
-            contact["deals_value"] = total_value
-            
+
             enriched.append(contact)
         
         return {
