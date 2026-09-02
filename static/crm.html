@@ -989,10 +989,8 @@ async function loadConversationSummary(phone){
     if(!d){el.innerHTML='<div class="conv-detail-empty">Erro ao carregar resumo</div>';return}
     const statusMap={open:'🟢 Aberta',paused:'⏸ Pausada',closed:'✕ Encerrada'};
     const statusClass={open:'badge-green',paused:'badge-yellow',closed:'badge-muted'};
-    const dur=d.duration||0;
-    const durMin=Math.floor(dur/60);
-    const durHrs=Math.floor(durMin/60);
-    const durText=durHrs>0?`${durHrs}h ${durMin%60}m`:`${durMin}m`;
+    const dur = d.duration || 'N/A';
+    const durText = (typeof dur === 'string' && dur.includes(' a ')) ? dur : 'N/A';
     el.innerHTML=`
         <div class="summary-grid">
             <div class="summary-stat highlight">
