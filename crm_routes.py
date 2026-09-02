@@ -797,38 +797,36 @@ async def get_stats(http_request: Request):
     _ensure_supabase()
     user = await get_current_user(http_request)
 
-    # Buscar conversas com filtro de org
     conv_filters = await apply_org_filter(user, {}, http_request)
     all_convs = await select(CONVERSATIONS_TABLE, filters=conv_filters if conv_filters else None)
     conv_list = all_convs or []
 
-    # Stats
     total = len(conv_list)
     open_count = sum(1 for c in conv_list if c.get("status") == "open")
     paused_count = sum(1 for c in conv_list if c.get("status") == "paused")
     closed_count = sum(1 for c in conv_list if c.get("status") == "closed")
-
-    # Total de mensagens (busca todas)
-    all_msgs = await select(MESSAGES_TABLE)
-    total_messages = len(all_msgs) if all_msgs else 0
-
-    # Mensagens hoje
-    today = datetime.now().strftime("%Y-%m-%d")
-    messages_today = sum(
-        1 for m in (all_msgs or [])
-        if m.get("created_at", "").startswith(today)
-    )
-
-    # Agentes ativos
     active_agents = sum(1 for c in conv_list if c.get("agent_enabled", True))
 
-    # Avg response time: average seconds between first user msg and first agent reply per conversation
+    # Mensagens hoje (apenas do dia — não carrega histórico inteiro)
+    today = datetime.now().strftime("%Y-%m-%d")
+    today_msgs = await select(
+        MESSAGES_TABLE,
+        filters={"created_at": {"gte": today}},
+        limit=1000,
+    )
+    messages_today = len(today_msgs) if today_msgs else 0
+
+    # Total: cap em 1000 (últimas mensagens) para evitar scan completo
+    recent_msgs = await select(MESSAGES_TABLE, order="created_at.desc", limit=1000)
+    total_messages = len(recent_msgs) if recent_msgs else 0
+
+    # Avg response time: usa apenas as 1000 mensagens mais recentes
     avg_response_time = 0
     response_times = []
-    all_msgs_sorted = sorted(all_msgs or [], key=lambda x: x.get("created_at", ""))
+    msgs_sorted = sorted(recent_msgs or [], key=lambda x: x.get("created_at", ""))
     conv_id_to_first_user_msg = {}
     conv_id_to_first_agent_msg = {}
-    for msg in all_msgs_sorted:
+    for msg in msgs_sorted:
         cid = msg.get("conversation_id", "")
         if not cid:
             continue
@@ -853,10 +851,7 @@ async def get_stats(http_request: Request):
     if response_times:
         avg_response_time = round(sum(response_times) / len(response_times), 1)
 
-    # Resolution rate: closed conversations / total conversations * 100
-    resolution_rate = 0
-    if total > 0:
-        resolution_rate = round((closed_count / total) * 100, 1)
+    resolution_rate = round((closed_count / total) * 100, 1) if total > 0 else 0
 
     return {
         "total_conversations": total,
