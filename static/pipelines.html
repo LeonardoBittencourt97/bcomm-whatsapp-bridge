@@ -458,11 +458,13 @@ function renderList(){
         <thead>
             <tr>
                 <th>Título</th>
+                <th>Pipeline</th>
+                <th>Estágio</th>
                 <th>Contato</th>
                 <th>Telefone</th>
                 <th>Valor</th>
-                <th>Estágio</th>
-                <th>Criado em</th>
+                <th>Tags</th>
+                <th>Atualizado</th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -470,17 +472,28 @@ function renderList(){
             ${deals.map(d=>{
                 const stageName=d.stage_name||d.stage||'';
                 const stageColor=stageColors[d.stage]||'#6e727a';
-                const created=d.created_at?new Date(d.created_at).toLocaleDateString('pt-BR'):'-';
-                return`<tr>
-                    <td><div class="list-title">${esc(d.title)}</div></td>
-                    <td>${esc(d.contact_name)||'-'}</td>
+                const pipelineName=d.pipeline_name||'Sem pipeline';
+                const updated=d.updated_at?timeAgo(d.updated_at):'-';
+                const tags=Array.isArray(d.tags)?d.tags:[];
+                const isClosed=d.stage==='closed_won'||d.stage==='closed_lost';
+                const statusBadge=d.stage==='closed_won'?'<span style="color:var(--green);font-size:11px">✓ Ganho</span>':
+                                  d.stage==='closed_lost'?'<span style="color:var(--red);font-size:11px">✗ Perdido</span>':'';
+                return`<tr style="${isClosed?'opacity:.7':''}">
+                    <td>
+                        <div class="list-title">${esc(d.title)}</div>
+                        ${d.contact_name?`<div style="font-size:12px;color:var(--muted);margin-top:2px">👤 ${esc(d.contact_name)}</div>`:''}
+                        ${statusBadge?`<div style="margin-top:2px">${statusBadge}</div>`:''}
+                    </td>
+                    <td><span style="font-size:13px;color:var(--text2)">${esc(pipelineName)}</span></td>
+                    <td><span class="list-stage" style="background:${stageColor}20;color:${stageColor};border:1px solid ${stageColor}40">${stageName}</span></td>
+                    <td style="font-size:13px">${esc(d.contact_name)||'-'}</td>
                     <td><div class="list-phone">${esc(d.phone)||'-'}</div></td>
                     <td><div class="list-value">R$ ${(parseFloat(d.value)||0).toLocaleString('pt-BR')}</div></td>
-                    <td><span class="list-stage" style="background:${stageColor}20;color:${stageColor};border:1px solid ${stageColor}40">${stageName}</span></td>
-                    <td style="color:var(--muted);font-size:13px">${created}</td>
+                    <td>${tags.length?`<div style="display:flex;gap:4px;flex-wrap:wrap">${tags.map(t=>`<span style="padding:2px 6px;background:var(--elevated);border-radius:4px;font-size:11px;color:var(--text2)">${esc(t)}</span>`).join('')}</div>`:'<span style="color:var(--muted);font-size:12px">-</span>'}</td>
+                    <td style="color:var(--muted);font-size:13px">${updated}</td>
                     <td>
                         <div class="list-actions">
-                            <button class="list-btn list-btn-edit" onclick="openEditDealModal('${d.id}')">✏️ Editar</button>
+                            <button class="list-btn list-btn-edit" onclick="openEditDealModal('${d.id}')">✏️</button>
                             <button class="list-btn list-btn-delete" onclick="deleteDeal('${d.id}')">🗑️</button>
                         </div>
                     </td>
