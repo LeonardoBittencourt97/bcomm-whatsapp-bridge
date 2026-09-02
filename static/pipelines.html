@@ -733,15 +733,14 @@ async function saveNewContactFromDeal(){
     if(!name||!phone){showToast('Nome e telefone são obrigatórios','error');return}
     
     try{
-        const r=await api('/crm/contacts',{method:'POST',body:{name,phone,email:email||null,lifecycle_stage:stage,source_type:'manual'}});
-        const data=await r.json();
-        if(r.ok){
+        const data=await api('/crm/contacts',{method:'POST',body:{name,phone,email:email||null,lifecycle_stage:stage,source_type:'manual'}});
+        if(data&&data.status==='success'){
             const contact=data.data;
             selectContactForDeal(contact.id,contact.name,contact.phone);
             closeCreateContactModal();
             showToast('Contato criado com sucesso');
         }else{
-            showToast('Erro: '+(data.detail||'falha ao criar'),'error');
+            showToast('Erro: '+(data?.detail||data?.message||'falha ao criar'),'error');
         }
     }catch(e){
         showToast('Erro ao criar contato','error');
