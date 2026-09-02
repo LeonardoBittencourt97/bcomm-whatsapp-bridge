@@ -1157,11 +1157,11 @@ async def win_deal(request: Request, deal_id: str):
                     raise HTTPException(status_code=403, detail="Sem acesso")
 
         now = datetime.now().isoformat()
-        await update(DEALS_TABLE, filters={"id": deal_id}, data={
+        await update(DEALS_TABLE, {
             "stage": "closed_won",
             "closed_at": now,
             "updated_at": now,
-        })
+        }, filters={"id": deal_id})
 
         return {"status": "success", "message": "Deal marcado como ganho"}
     except HTTPException:
@@ -1190,11 +1190,11 @@ async def lose_deal(request: Request, deal_id: str):
                     raise HTTPException(status_code=403, detail="Sem acesso")
 
         now = datetime.now().isoformat()
-        await update(DEALS_TABLE, filters={"id": deal_id}, data={
+        await update(DEALS_TABLE, {
             "stage": "closed_lost",
             "closed_at": now,
             "updated_at": now,
-        })
+        }, filters={"id": deal_id})
 
         return {"status": "success", "message": "Deal marcado como perdido"}
     except HTTPException:
