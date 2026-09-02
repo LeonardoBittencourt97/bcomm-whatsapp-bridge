@@ -266,6 +266,26 @@
     </div>
 </div>
 
+<!-- Modal Organizações do Usuário -->
+<div class="modal-overlay" id="modal-user-orgs">
+    <div class="modal" style="width:520px">
+        <div class="modal-header">
+            <span class="modal-title">🏢 Organizações — <span id="orgs-user-name"></span></span>
+            <button class="modal-close" onclick="closeModal('modal-user-orgs')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+                <select class="form-select" id="orgs-select" style="flex:1"></select>
+                <button class="btn btn-primary" onclick="addUserOrg()">+ Adicionar</button>
+            </div>
+            <div id="orgs-list" style="border-top:1px solid var(--border);padding-top:12px"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('modal-user-orgs')">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Confirmar Deletar -->
 <div class="modal-overlay" id="modal-confirm">
     <div class="modal" style="width:400px">
@@ -302,6 +322,64 @@ async function api(u,m='GET',b=null){
 
 let allUsers=[];
 
+let allOrgsCache=[];
+let orgsModalUserId=null;
+
+async function openOrgsModal(userId,userName){
+    orgsModalUserId=userId;
+    document.getElementById('orgs-user-name').textContent=userName||'';
+    openModal('modal-user-orgs');
+    await loadOrgsForModal();
+    await loadAllOrgsForSelect();
+}
+
+async function loadOrgsForModal(){
+    const el=document.getElementById('orgs-list');
+    el.innerHTML='<div style="color:var(--muted);font-size:13px">Carregando...</div>';
+    try{
+        await loadAllOrgsForSelect();
+        const r=await api('/crm/users/'+orgsModalUserId+'/organizations');
+        const assigned=r.organizations||[];
+        if(!assigned.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">Nenhuma organização vinculada</div>';return}
+        el.innerHTML=assigned.map(o=>{
+            const orgId=o.organization_id;
+            const found=allOrgsCache.find(x=>x.id===orgId);
+            const name=o.name||(found&&found.name)||orgId;
+            return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1">🏢 ${name}</span><button class="action-btn danger" onclick="removeUserOrg('${orgId}')" title="Remover">🗑️</button></div>`;
+        }).join('');
+    }catch(e){el.innerHTML='<div style="color:var(--red);font-size:13px">Erro: '+e.message+'</div>'}
+}
+
+async function loadAllOrgsForSelect(){
+    if(allOrgsCache.length)return;
+    try{
+        const r=await api('/crm/organizations?limit=200');
+        allOrgsCache=r.data||r||[];
+    }catch(e){allOrgsCache=[]}
+    const sel=document.getElementById('orgs-select');
+    sel.innerHTML='<option value="">Selecione uma organização...</option>'+
+        allOrgsCache.map(o=>`<option value="${o.id}">${o.name||o.id}</option>`).join('');
+}
+
+async function addUserOrg(){
+    const orgId=document.getElementById('orgs-select').value;
+    if(!orgId){showToast('Selecione uma organização','error');return}
+    try{
+        await api('/crm/users/'+orgsModalUserId+'/organizations','POST',{organization_id:orgId});
+        showToast('Organização adicionada');
+        await loadOrgsForModal();
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
+async function removeUserOrg(orgId){
+    if(!confirm('Remover esta organização do usuário?'))return;
+    try{
+        await api('/crm/users/'+orgsModalUserId+'/organizations/'+orgId,'DELETE');
+        showToast('Organização removida');
+        await loadOrgsForModal();
+    }catch(e){showToast('Erro: '+e.message,'error')}
+}
+
 async function loadUsers(){
     try{
         const role=document.getElementById('filter-role').value;
@@ -332,6 +410,7 @@ function renderUsers(){
             <td style="font-size:13px;color:var(--muted)">${lastLogin}</td>
             <td><div class="actions" style="justify-content:flex-end">
                 <button class="action-btn" onclick="openEditModal('${u.id}')" title="Editar">✏️</button>
+                <button class="action-btn" onclick="openOrgsModal('${u.id}','${(u.name||u.email).replace(/'/g,"\\'")}')" title="Organizações">🏢</button>
                 <button class="action-btn" onclick="toggleActive('${u.id}',${active})" title="${active?'Desativar':'Ativar'}">${active?'⏸️':'▶️'}</button>
                 <button class="action-btn danger" onclick="confirmDelete('${u.id}','${(u.name||u.email).replace(/'/g,"\\'")}')" title="Deletar">🗑️</button>
             </div></td>
