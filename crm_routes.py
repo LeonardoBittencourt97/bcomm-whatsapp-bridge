@@ -1055,6 +1055,12 @@ async def create_deal(body: DealCreate, http_request: Request):
     # Auto-assign organization_id da pipeline
     deal_data["organization_id"] = pipeline_rows[0].get("organization_id")
 
+    # Resolve stage_id from stages table
+    if deal_data.get("stage"):
+        stage_rows = await select(PIPELINE_STAGES_TABLE, filters={"id": deal_data["stage"]})
+        if stage_rows:
+            deal_data["stage_id"] = stage_rows[0]["id"]
+
     result = await insert(DEALS_TABLE, deal_data)
     if result is None:
         raise HTTPException(status_code=400, detail="Erro ao criar deal")
@@ -1097,6 +1103,12 @@ async def update_deal(deal_id: str, body: DealUpdate):
     # Se moveu para estágio fechado, registrar data
     if update_data.get("stage") in ("closed_won", "closed_lost"):
         update_data["closed_at"] = datetime.now().isoformat()
+
+    # Resolve stage_id from stages table
+    if update_data.get("stage"):
+        stage_rows = await select(PIPELINE_STAGES_TABLE, filters={"id": update_data["stage"]})
+        if stage_rows:
+            update_data["stage_id"] = stage_rows[0]["id"]
 
     result = await update(DEALS_TABLE, update_data, filters={"id": deal_id})
     updated = result[0] if isinstance(result, list) and result else update_data
