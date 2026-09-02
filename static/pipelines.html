@@ -392,12 +392,19 @@ function updateScrollButtons(){
     rightBtn.style.display=hasOverflow&&kanban.scrollLeft<kanban.scrollWidth-kanban.clientWidth-10?'flex':'none';
 }
 
+function stageKey(stage){
+    const n=(stage.name||'').toLowerCase();
+    if(n==='ganho')return'closed_won';
+    if(n==='perdido')return'closed_lost';
+    return n;
+}
 function renderKanban(){
     const k=document.getElementById('kanban');
     k.innerHTML=stages.map(s=>{
-        const stageDeals=deals.filter(d=>d.stage===s.id);
+        const sk=stageKey(s);
+        const stageDeals=deals.filter(d=>d.stage===sk||d.stage===s.name.toLowerCase()||d.stage===s.id);
         const stageValue=stageDeals.reduce((sum,d)=>sum+parseFloat(d.value||0),0);
-        return`<div class="column" ondragover="handleDragOver(event)" ondrop="handleDrop(event,'${s.id}')" ondragleave="handleDragLeave(event)">
+        return`<div class="column" ondragover="handleDragOver(event)" ondrop="handleDrop(event,'${stageKey(s)}')" ondragleave="handleDragLeave(event)">
             <div class="column-header">
                 <div class="column-title"><span style="color:${s.color}">●</span>${s.name}<span class="column-count">${stageDeals.length}</span></div>
                 <div class="column-value">R$ ${stageValue.toLocaleString('pt-BR')}</div>
