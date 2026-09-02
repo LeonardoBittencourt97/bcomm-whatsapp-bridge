@@ -140,24 +140,42 @@ async def create_contact(request: Request, data: dict):
     try:
         ensure_supabase()
         
-        if not is_unrestricted(user):
-            org_ids = await get_user_org_ids(user["id"])
-            if org_ids:
-                data["organization_id"] = data.get("organization_id") or list(org_ids)[0]
+        # Get organization_id from request or user's orgs
+        if not data.get("organization_id"):
+            if is_unrestricted(user):
+                # Master/admin_geral - try to get from user's orgs
+                org_ids = await get_user_org_ids(user["id"])
+                if org_ids:
+                    data["organization_id"] = list(org_ids)[0]
+            else:
+                # Regular user - get from their orgs
+                org_ids = await get_user_org_ids(user["id"])
+                if org_ids:
+                    data["organization_id"] = list(org_ids)[0]
         
         # Add timestamps
         data["created_at"] = datetime.utcnow().isoformat()
         data["updated_at"] = datetime.utcnow().isoformat()
         
+        # Remove fields that might cause issues
+        data.pop("id", None)
+        
         result = await insert(
             table="contacts",
             data=data,
-            
         )
+        
+        # Handle different result formats
+        if isinstance(result, list) and result:
+            created = result[0]
+        elif isinstance(result, dict):
+            created = result
+        else:
+            created = data
         
         return {
             "status": "success",
-            "data": result,
+            "data": created,
             "message": "Contact created successfully"
         }
     except Exception as e:
