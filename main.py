@@ -309,10 +309,9 @@ async def _save_audio_for_disabled(message, msg_id: str):
             f.write(audio_bytes)
         logger.info(f"[disabled] Áudio salvo em {audio_path}")
 
-        # Transcribe and save transcription
-        stt = STTClient()
+        # Transcribe and save transcription (reuse global stt_client)
         try:
-            transcription = await stt.transcribe(audio_bytes=audio_bytes, filename="audio.ogg", language="pt")
+            transcription = await stt_client.transcribe(audio_bytes=audio_bytes, filename="audio.ogg", language="pt")
             if transcription:
                 txt_path = os.path.join(audio_dir, f"{msg_id}.txt")
                 with open(txt_path, "w", encoding="utf-8") as f:
@@ -320,8 +319,6 @@ async def _save_audio_for_disabled(message, msg_id: str):
                 logger.info(f"[disabled] Transcrição salva: {txt_path} ({len(transcription)} chars)")
         except Exception as e:
             logger.error(f"[disabled] Erro ao transcrever: {e}")
-        finally:
-            await stt.close()
 
     except Exception as e:
         logger.error(f"[disabled] Erro ao salvar áudio: {e}")
