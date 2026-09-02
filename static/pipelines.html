@@ -106,6 +106,10 @@
         .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;background:var(--elevated);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;display:none;z-index:300}
         .toast.success{border-color:var(--green)}
         .toast.error{border-color:var(--red)}
+        .scroll-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:10;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:all .15s}
+        .scroll-btn:hover{background:var(--accent2);transform:translateY(-50%) scale(1.1)}
+        .scroll-left{left:8px}
+        .scroll-right{right:8px}
         @media(max-width:768px){.column{min-width:260px}.sidebar{width:0}.main{margin-left:0}}
         /* === Realtime Toast === */
         .realtime-toast{position:fixed;bottom:24px;right:24px;background:var(--elevated);border:1px solid var(--accent);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;max-width:380px;z-index:9999;animation:slideIn .3s ease;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.4)}
@@ -167,6 +171,9 @@
         <div class="content">
             <div class="toolbar">
                 <div class="toolbar-left">
+                    <select id="pipeline-selector" onchange="switchPipeline(this.value)" style="padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:14px;cursor:pointer;min-width:200px">
+                        <option value="">Carregando...</option>
+                    </select>
                     <div class="stats-bar">
                         <div class="stat-item">Deals: <span class="stat-value" id="total-deals">0</span></div>
                         <div class="stat-item">Valor: <span class="stat-value" id="total-value">R$ 0</span></div>
@@ -177,7 +184,11 @@
                 <button class="btn btn-primary" onclick="openNewDealModal()">+ Novo Deal</button>
             </div>
 
-            <div class="kanban" id="kanban"></div>
+            <div style="position:relative;flex:1;display:flex;flex-direction:column;overflow:hidden">
+                <button class="scroll-btn scroll-left" onclick="scrollKanban(-300)" style="display:none">◀</button>
+                <div class="kanban" id="kanban"></div>
+                <button class="scroll-btn scroll-right" onclick="scrollKanban(300)" style="display:none">▶</button>
+            </div>
 
             <div class="modal-overlay" id="deal-modal">
                 <div class="modal">
@@ -267,16 +278,69 @@
 let stages=[];
 let deals=[];
 let draggedDeal=null;
+let allPipelines=[];
+let currentPipelineId=null;
 
 function showToast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t||'success');e.style.display='block';setTimeout(()=>{e.style.display='none'},3000)}
 async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);try{const r=await fetch(u,o);return await r.json()}catch(e){console.error(e);return null}}
 
+async function loadPipelinesSelector(){
+    try{
+        const r=await api('/crm/pipelines');
+        allPipelines=r.pipelines||r||[];
+        const sel=document.getElementById('pipeline-selector');
+        if(!allPipelines.length){
+            sel.innerHTML='<option value="">Nenhuma pipeline</option>';
+            return;
+        }
+        sel.innerHTML=allPipelines.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+        // Select first pipeline if none selected
+        if(!currentPipelineId && allPipelines.length){
+            currentPipelineId=allPipelines[0].id;
+            sel.value=currentPipelineId;
+        }
+    }catch(e){console.error(e)}
+}
+
+function switchPipeline(pipelineId){
+    currentPipelineId=pipelineId;
+    loadPipeline();
+}
+
 async function loadPipeline(){
-    const [s,d]=await Promise.all([api('/crm/pipeline/stages'),api('/crm/pipelines/deals')]);
+    if(!currentPipelineId){
+        stages=[];
+        deals=[];
+        renderKanban();
+        updateStats();
+        return;
+    }
+    const [s,d]=await Promise.all([
+        api(`/crm/pipeline/stages?pipeline_id=${currentPipelineId}`),
+        api(`/crm/pipelines/deals?pipeline_id=${currentPipelineId}`)
+    ]);
     if(s)stages=s.stages||s;
     if(d)deals=d.deals||d||[];
     renderKanban();
     updateStats();
+    updateScrollButtons();
+}
+
+function scrollKanban(amount){
+    const kanban=document.getElementById('kanban');
+    kanban.scrollBy({left:amount,behavior:'smooth'});
+}
+
+function updateScrollButtons(){
+    const kanban=document.getElementById('kanban');
+    const leftBtn=document.querySelector('.scroll-left');
+    const rightBtn=document.querySelector('.scroll-right');
+    
+    if(!kanban||!leftBtn||!rightBtn)return;
+    
+    const hasOverflow=kanban.scrollWidth>kanban.clientWidth;
+    leftBtn.style.display=hasOverflow&&kanban.scrollLeft>10?'flex':'none';
+    rightBtn.style.display=hasOverflow&&kanban.scrollLeft<kanban.scrollWidth-kanban.clientWidth-10?'flex':'none';
 }
 
 function renderKanban(){
@@ -307,6 +371,8 @@ function renderKanban(){
             </div>
         </div>`;
     }).join('');
+    // Update scroll buttons after rendering
+    setTimeout(updateScrollButtons, 100);
 }
 
 function updateStats(){
@@ -420,7 +486,18 @@ function timeAgo(ts){
     return d.toLocaleDateString('pt-BR');
 }
 
-loadPipeline();
+// Initial load
+loadPipelinesSelector().then(()=>loadPipeline());
+
+// Update scroll buttons on kanban scroll
+document.addEventListener('DOMContentLoaded',()=>{
+    const kanban=document.getElementById('kanban');
+    if(kanban){
+        kanban.addEventListener('scroll',updateScrollButtons);
+        window.addEventListener('resize',updateScrollButtons);
+    }
+});
+
 async function loadUserInfo(){
     try{
         const r=await fetch('/crm/auth/me',{headers:{'Accept':'application/json'}});
@@ -520,7 +597,6 @@ async function logout(){
 loadUserInfo();
 
 // ── Pipeline Management ──
-let allPipelines=[];
 
 function openPipelinesModal(){
     document.getElementById('pipelines-modal').classList.add('active');
@@ -590,7 +666,7 @@ async function savePipeline(){
         else{await api('/crm/pipelines','POST',{name})}
         closePipelineFormModal();
         loadPipelinesList();
-        loadPipeline();
+        loadPipelinesSelector().then(()=>loadPipeline());
         showToast(id?'Pipeline atualizada!':'Pipeline criada!');
     }catch(e){showToast('Erro: '+e.message,'error')}
 }
@@ -606,8 +682,12 @@ async function deletePipeline(id,name){
     if(!confirm('Excluir a pipeline "'+name+'"? Os estágios serão removidos também.'))return;
     try{
         await api(`/crm/pipelines/${id}`,'DELETE');
+        // If deleted pipeline was selected, switch to first available
+        if(currentPipelineId===id){
+            currentPipelineId=null;
+        }
         loadPipelinesList();
-        loadPipeline();
+        loadPipelinesSelector().then(()=>loadPipeline());
         showToast('Pipeline excluída!');
     }catch(e){showToast('Erro: '+e.message,'error')}
 }

@@ -861,14 +861,18 @@ async def get_stats(http_request: Request):
 # ══════════════════════════════════════════════════════════════════
 
 @router.get("/pipeline/stages")
-async def get_pipeline_stages():
+async def get_pipeline_stages(pipeline_id: str = None):
     """
-    Retorna todos os estágios do pipeline ordenados por posição.
-    Cada stage tem: id, name, color, position, created_at
+    Retorna estágios do pipeline ordenados por posição.
+    Se pipeline_id fornecido, filtra por pipeline.
     """
     _ensure_supabase()
 
-    stages = await select(PIPELINE_STAGES_TABLE, order="position.asc")
+    filters = {}
+    if pipeline_id:
+        filters["pipeline_id"] = pipeline_id
+    
+    stages = await select(PIPELINE_STAGES_TABLE, filters=filters if filters else None, order="position.asc")
     return {"stages": stages or []}
 
 
@@ -942,6 +946,7 @@ async def delete_pipeline_stage(stage_id: str):
 @router.get("/pipelines/deals")
 async def get_deals(
     http_request: Request,
+    pipeline_id: Optional[str] = None,
     stage: Optional[str] = None,
     search: Optional[str] = None,
     limit: int = Query(default=100, le=500),
@@ -951,6 +956,7 @@ async def get_deals(
     Retorna lista de deals do pipeline.
 
     Query params:
+    - pipeline_id: Filtrar por pipeline específica
     - stage: Filtrar por estágio (lead, qualified, proposal, negotiation, closed_won, closed_lost)
     - search: Busca por título, nome do contato ou telefone
     - limit / offset: paginação
@@ -960,6 +966,8 @@ async def get_deals(
 
     # Buscar deals com filtros básicos
     filters = {}
+    if pipeline_id:
+        filters["pipeline_id"] = pipeline_id
     if stage:
         filters["stage"] = stage
     filters = await apply_org_filter(user, filters, http_request)
