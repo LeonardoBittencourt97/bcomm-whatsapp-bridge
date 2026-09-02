@@ -199,10 +199,11 @@
                     <div class="modal-body">
                         <input type="hidden" id="deal-id">
                         <div class="input-group"><label class="input-label">Título *</label><input type="text" class="input" id="deal-title" placeholder="Ex: Consultoria BCOMM"></div>
+                        <div class="input-group"><label class="input-label">Pipeline *</label><select class="input" id="deal-pipeline" onchange="loadStagesForDeal(this.value)"></select></div>
+                        <div class="input-group"><label class="input-label">Estágio *</label><select class="input" id="deal-stage"></select></div>
                         <div class="input-group"><label class="input-label">Telefone</label><input type="text" class="input" id="deal-phone" placeholder="554197054071"></div>
                         <div class="input-group"><label class="input-label">Nome do Contato</label><input type="text" class="input" id="deal-contact" placeholder="João Silva"></div>
                         <div class="input-group"><label class="input-label">Valor (R$)</label><input type="number" class="input" id="deal-value" placeholder="0.00" step="0.01"></div>
-                        <div class="input-group"><label class="input-label">Estágio</label><select class="input" id="deal-stage"></select></div>
                         <div class="input-group"><label class="input-label">Tags (separadas por vírgula)</label><input type="text" class="input" id="deal-tags" placeholder="quente, estética"></div>
                         <div class="input-group"><label class="input-label">Notas</label><textarea class="input" id="deal-notes" rows="3" placeholder="Observações..."></textarea></div>
                     </div>
@@ -412,7 +413,14 @@ function openNewDealModal(){
     document.getElementById('deal-tags').value='';
     document.getElementById('deal-notes').value='';
     document.getElementById('btn-delete-deal').style.display='none';
-    populateStageSelect('lead');
+    
+    // Populate pipeline selector
+    const pipelineSel=document.getElementById('deal-pipeline');
+    pipelineSel.innerHTML=allPipelines.map(p=>`<option value="${p.id}"${p.id===currentPipelineId?' selected':''}>${p.name}</option>`).join('');
+    
+    // Load stages for selected pipeline
+    loadStagesForDeal(pipelineSel.value);
+    
     document.getElementById('deal-modal').classList.add('active');
 }
 
@@ -428,13 +436,31 @@ function openEditDealModal(dealId){
     document.getElementById('deal-tags').value=(Array.isArray(deal.tags)?deal.tags:[]).join(', ');
     document.getElementById('deal-notes').value=deal.notes||'';
     document.getElementById('btn-delete-deal').style.display='inline-flex';
-    populateStageSelect(deal.stage);
+    
+    // Populate pipeline selector
+    const pipelineSel=document.getElementById('deal-pipeline');
+    pipelineSel.innerHTML=allPipelines.map(p=>`<option value="${p.id}"${p.id===deal.pipeline_id?' selected':''}>${p.name}</option>`).join('');
+    
+    // Load stages for deal's pipeline
+    loadStagesForDeal(deal.pipeline_id, deal.stage);
+    
     document.getElementById('deal-modal').classList.add('active');
 }
 
-function populateStageSelect(selected){
-    const sel=document.getElementById('deal-stage');
-    sel.innerHTML=stages.map(s=>`<option value="${s.id}"${s.id===selected?' selected':''}>${s.name}</option>`).join('');
+async function loadStagesForDeal(pipelineId, selectedStageId){
+    const stageSel=document.getElementById('deal-stage');
+    if(!pipelineId){
+        stageSel.innerHTML='<option value="">Selecione uma pipeline</option>';
+        return;
+    }
+    
+    try{
+        const r=await api(`/crm/pipeline/stages?pipeline_id=${pipelineId}`);
+        const pipelineStages=r.stages||[];
+        stageSel.innerHTML=pipelineStages.map(s=>`<option value="${s.id}"${s.id===selectedStageId?' selected':''}>${s.name}</option>`).join('');
+    }catch(e){
+        stageSel.innerHTML='<option value="">Erro ao carregar estágios</option>';
+    }
 }
 
 function closeModal(){document.getElementById('deal-modal').classList.remove('active')}
@@ -443,6 +469,7 @@ async function saveDeal(){
     const id=document.getElementById('deal-id').value;
     const data={
         title:document.getElementById('deal-title').value,
+        pipeline_id:document.getElementById('deal-pipeline').value,
         phone:document.getElementById('deal-phone').value,
         contact_name:document.getElementById('deal-contact').value,
         value:parseFloat(document.getElementById('deal-value').value)||0,
@@ -451,6 +478,7 @@ async function saveDeal(){
         notes:document.getElementById('deal-notes').value
     };
     if(!data.title)return showToast('Informe o título','error');
+    if(!data.pipeline_id)return showToast('Selecione uma pipeline','error');
     if(id){await api(`/crm/pipelines/deals/${id}`,'PUT',data)}
     else{await api('/crm/pipelines/deals','POST',data)}
     closeModal();loadPipeline();showToast(id?'Deal atualizado!':'Deal criado!');

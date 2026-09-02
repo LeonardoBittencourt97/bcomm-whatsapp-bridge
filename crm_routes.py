@@ -32,6 +32,7 @@ MESSAGES_TABLE = "bcomm_inbox.messages"
 SESSIONS_TABLE = "bcomm_inbox.sessions"
 DEALS_TABLE = "bcomm_inbox.deals"
 PIPELINE_STAGES_TABLE = "bcomm_inbox.pipeline_stages"
+PIPELINES_TABLE = "bcomm_inbox.pipelines"
 
 
 # ── Helpers ─────────────────────────────────────────────────────
@@ -392,6 +393,7 @@ class PipelineStageUpdate(BaseModel):
 class DealCreate(BaseModel):
     """Request para criar deal (campos do schema real bcomm_inbox.deals)"""
     title: str
+    pipeline_id: str  # Obrigatório - qual pipeline
     phone: Optional[str] = None
     contact_name: str = ""
     value: float = 0.0
@@ -411,6 +413,7 @@ class DealUpdate(BaseModel):
     value: Optional[float] = None
     currency: Optional[str] = None
     stage: Optional[str] = None
+    pipeline_id: Optional[str] = None  # Mover para outra pipeline
     tags: Optional[List[str]] = None
     notes: Optional[str] = None
     conversation_id: Optional[str] = None
@@ -980,6 +983,25 @@ async def get_deals(
 
     deals_list = all_deals or []
 
+    # Enriquecer com nomes de pipeline e stage
+    pipeline_cache = {}
+    stage_cache = {}
+    
+    for deal in deals_list:
+        # Buscar nome da pipeline
+        pid = deal.get("pipeline_id")
+        if pid and pid not in pipeline_cache:
+            p_rows = await select(PIPELINES_TABLE, filters={"id": pid})
+            pipeline_cache[pid] = p_rows[0]["name"] if p_rows else "Desconhecida"
+        deal["pipeline_name"] = pipeline_cache.get(pid, "Sem pipeline")
+        
+        # Buscar nome do stage
+        sid = deal.get("stage")
+        if sid and sid not in stage_cache:
+            s_rows = await select(PIPELINE_STAGES_TABLE, filters={"id": sid})
+            stage_cache[sid] = s_rows[0]["name"] if s_rows else sid
+        deal["stage_name"] = stage_cache.get(sid, deal.get("stage", ""))
+
     # Busca textual (client-side)
     if search:
         search_lower = search.lower()
@@ -1007,10 +1029,16 @@ async def create_deal(body: DealCreate, http_request: Request):
     _ensure_supabase()
     user = await get_current_user(http_request)
 
+    # Validar se pipeline existe
+    pipeline_rows = await select(PIPELINES_TABLE, filters={"id": body.pipeline_id})
+    if not pipeline_rows:
+        raise HTTPException(status_code=404, detail="Pipeline não encontrada")
+
     now = datetime.now().isoformat()
 
     deal_data = {
         "title": body.title,
+        "pipeline_id": body.pipeline_id,
         "phone": body.phone,
         "contact_name": body.contact_name or "",
         "value": body.value,
@@ -1024,11 +1052,8 @@ async def create_deal(body: DealCreate, http_request: Request):
         "updated_at": now,
     }
 
-    # Auto-assign organization_id para usuários não restritos
-    if not is_unrestricted(user):
-        org_ids = await get_user_org_ids(user["id"])
-        if org_ids:
-            deal_data["organization_id"] = list(org_ids)[0]
+    # Auto-assign organization_id da pipeline
+    deal_data["organization_id"] = pipeline_rows[0].get("organization_id")
 
     result = await insert(DEALS_TABLE, deal_data)
     if result is None:
