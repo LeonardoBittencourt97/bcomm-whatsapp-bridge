@@ -602,7 +602,7 @@ async function loadDashboard(){
     if(d){const open=d.filter(x=>x.status==='open').length;const val=d.reduce((s,x)=>s+parseFloat(x.value||0),0);document.getElementById('stat-deals').textContent=open;document.getElementById('stat-value').textContent='R$ '+val.toLocaleString('pt-BR')}
     if(a){document.getElementById('stat-msgs').textContent=a.length||'-'}
     // Funnel
-    const pl=await api('/crm/pipelines/a0000000-0000-0000-0000-000000000001');
+    const pl=await api(`/crm/pipelines/${await getDefaultPipelineId()}`);
     if(pl&&pl.stages){
         let html='';const max=Math.max(...pl.stages.map(s=>(s.deals||[]).length),1);
         pl.stages.forEach(s=>{
@@ -845,8 +845,21 @@ async function saveOrg(id){
 }
 
 // ── Pipeline / Deals ──
+let _defaultPipelineId=null;
+async function getDefaultPipelineId(){
+    if(_defaultPipelineId)return _defaultPipelineId;
+    try{
+        const resp=await api('/crm/pipelines');
+        const pipelines=resp?.pipelines||resp?.data||resp||[];
+        if(pipelines.length>0){
+            const def=pipelines.find(p=>p.is_default)||pipelines[0];
+            _defaultPipelineId=def.id;
+        }
+    }catch(e){console.error('Failed to load pipelines:',e)}
+    return _defaultPipelineId;
+}
 async function loadPipeline(){
-    const d=await api('/crm/pipelines/a0000000-0000-0000-0000-000000000001');
+    const d=await api(`/crm/pipelines/${await getDefaultPipelineId()}`);
     if(!d)return;
     // Stats
     let totalVal=0,totalOpen=0,totalWon=0,totalLost=0;
@@ -882,7 +895,7 @@ function showDealModal(id){
         <div class="modal-footer"><button class="btn btn-secondary" onclick="hideModal()">Cancelar</button><button class="btn btn-primary" onclick="saveDeal()">Criar</button></div>`);
 }
 async function saveDeal(){
-    const data={title:document.getElementById('d-title').value,value:parseFloat(document.getElementById('d-value').value)||0,pipeline_id:'a0000000-0000-0000-0000-000000000001'};
+    const data={title:document.getElementById('d-title').value,value:parseFloat(document.getElementById('d-value').value)||0,pipeline_id:await getDefaultPipelineId()};
     await api('/crm/deals','POST',data);hideModal();loadPipeline();showToast('Deal criado');
 }
 
@@ -944,7 +957,7 @@ function createDealFromChat(){
         <div class="modal-footer"><button class="btn btn-secondary" onclick="hideModal()">Cancelar</button><button class="btn btn-primary" onclick="saveDealFromChat()">Criar</button></div>`);
 }
 async function saveDealFromChat(){
-    const data={title:document.getElementById('d-title').value,value:parseFloat(document.getElementById('d-value').value)||0,pipeline_id:'a0000000-0000-0000-0000-000000000001',conversation_phone:currentPhone};
+    const data={title:document.getElementById('d-title').value,value:parseFloat(document.getElementById('d-value').value)||0,pipeline_id:await getDefaultPipelineId(),conversation_phone:currentPhone};
     await api('/crm/deals','POST',data);hideModal();showToast('Deal criado');
 }
 
