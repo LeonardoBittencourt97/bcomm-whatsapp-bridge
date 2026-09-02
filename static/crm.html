@@ -416,6 +416,7 @@
                                 <button class="btn btn-warning btn-sm" id="btn-pause" onclick="pauseAgent()">⏸ Pausar</button>
                                 <button class="btn btn-success btn-sm" id="btn-resume" onclick="resumeAgent()" style="display:none">▶ Retomar</button>
                                 <button class="btn btn-secondary btn-sm" onclick="closeConversation()">✕ Encerrar</button>
+                                <button class="btn btn-secondary btn-sm" onclick="importHistory()" title="Importar histórico do WhatsApp">📥 Importar</button>
                                 <button class="btn btn-primary btn-sm" onclick="createDealFromChat()">💰 Criar Deal</button>
                             </div>
                         </div>
@@ -752,6 +753,14 @@ async function sendMessage(){
 }
 
 // ── Agent Actions ──
+async function importHistory(){
+    if(!currentPhone)return;
+    if(!confirm('Importar últimas 50 mensagens do WhatsApp?'))return;
+    showToast('Importando histórico...');
+    const r=await api(`/crm/conversations/${currentPhone}/import-history?limit=50`,'POST');
+    if(r&&r.count>0){showToast(`${r.count} mensagens importadas!`);selectConv(currentPhone)}
+    else showToast('Nenhuma nova mensagem encontrada');
+}
 async function pauseAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/pause`,'POST');showToast('Agente pausado');selectConv(currentPhone);loadConversations()}
 async function resumeAgent(){if(!currentPhone)return;const r=await api(`/crm/conversations/${currentPhone}/resume`,'POST');showToast('Agente retomado');selectConv(currentPhone);loadConversations()}
 async function closeConversation(){if(!currentPhone)return;if(!confirm('Encerrar esta conversa?'))return;await api(`/crm/conversations/${currentPhone}/close`,'POST');showToast('Conversa encerrada');currentPhone=null;stopProcessingPoll();document.getElementById('chat-header').style.display='none';document.getElementById('chat-input').style.display='none';loadConversations()}
