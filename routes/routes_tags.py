@@ -70,6 +70,25 @@ async def create_tag(request: Request, tag: TagCreate):
     return created
 
 
+@router.put("/tags/{tag_id}")
+async def update_tag(request: Request, tag_id: str, data: dict):
+    """Atualiza nome/cor de uma tag."""
+    user = await get_current_user(request)
+    ensure_supabase()
+
+    existing = await select(TABLE, filters={"id": tag_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Tag não encontrada")
+
+    update_data = {k: v for k, v in data.items() if k in ("name", "color")}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Nada para atualizar")
+
+    await update(TABLE, update_data, filters={"id": tag_id})
+    logger.info(f"Tag atualizada: {tag_id} ({list(update_data.keys())})")
+    return {"status": "success", "id": tag_id}
+
+
 @router.delete("/tags/{tag_id}")
 async def delete_tag(request: Request, tag_id: str):
     """Deleta uma tag."""
