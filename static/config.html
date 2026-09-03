@@ -832,11 +832,10 @@ async function saveTestMode(){const n=document.getElementById('test-numbers').va
 
 async function refreshLogs(){
     const el=document.getElementById('log-container');
-    const h=await api('/health');
-    const m=await api('/admin/metrics');
+    const d=await api('/admin/logs?limit=50');
     const logs=[];
-    if(h)logs.push({level:'success',msg:'Sistema online - Uptime: '+Math.floor(h.uptime_seconds/60)+'min'});
-    if(m){logs.push({level:'info',msg:'Clientes pausados: '+m.paused_clients});logs.push({level:'info',msg:'Contatos pausados: '+m.paused_contacts});logs.push({level:'info',msg:'Modo teste: '+(m.test_mode?'Ativado':'Desativado')})}
+    if(d&&d.logs){logs.push(...d.logs.slice().reverse().map(l=>({level:l.level==='WARNING'?'warning':(l.level==='ERROR'?'error':(l.level==='DEBUG'?'info':'info')),msg:'['+l.module+'] '+l.message}))}
+    if(!logs.length){logs.push({level:'info',msg:'Sem logs registrados ainda.'})}
     el.innerHTML=logs.map(l=>'<div class="log-entry '+l.level+'">['+new Date().toLocaleTimeString()+'] '+l.msg+'</div>').join('');
 }
 

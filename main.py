@@ -56,6 +56,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger("bridge")
 
+
+# ── In-memory log buffer for /admin/logs ─────────────────────────────
+
+_log_buffer: collections.deque = collections.deque(maxlen=500)
+
+
+class BufferLogHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            _log_buffer.append(
+                {
+                    "time": datetime.now().isoformat(),
+                    "level": record.levelname,
+                    "message": self.format(record),
+                    "module": record.name,
+                }
+            )
+        except Exception:
+            pass
+
+
+logger.addHandler(BufferLogHandler())
+
 # ── Multi-tenant client loader
 client_loader = ClientLoader(settings.clients_dir)
 
@@ -675,6 +698,16 @@ async def get_config(request: Request):
         "batch_max_wait": settings.batch_max_wait,
         "log_level": settings.log_level,
     }
+
+
+@app.get("/admin/logs")
+async def get_admin_logs(request: Request, limit: int = 50):
+    """Retorna as últimas entradas do buffer de logs (master/admin_geral)."""
+    user = await get_current_user(request)
+    if user.get("role") not in ("master", "admin_geral"):
+        raise HTTPException(status_code=403, detail="Sem acesso")
+    safe_limit = max(1, min(limit, 500))
+    return {"logs": list(_log_buffer)[-safe_limit:]}
 
 @app.post("/admin/config")
 async def update_config(
