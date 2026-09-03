@@ -4,11 +4,15 @@ bcomm-whatsapp-bridge — FastAPI server
 Bridge entre Evolution API (WhatsApp) e Hermes/LLM.
 """
 import asyncio
+import collections
+import hashlib
+import hmac
 import json
 import os
 import logging
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -326,12 +330,26 @@ async def _save_audio_for_disabled(message, msg_id: str):
 async def webhook_evolution(request: Request):
     """
     Endpoint principal de webhook da Evolution API.
-    
+
     Recebe eventos, extrai mensagens e despacha para processamento.
     Retorna imediatamente — processamento acontece em background via batch.
     """
+    body_bytes = await request.body()
+
+    webhook_secret = settings.evolution_webhook_secret
+    if webhook_secret:
+        signature = request.headers.get("X-Evolution-Signature", "")
+        expected = hmac.new(
+            webhook_secret.encode(),
+            body_bytes,
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            logger.warning("Webhook signature mismatch — rejecting")
+            raise HTTPException(status_code=403, detail="Invalid signature")
+
     try:
-        body = await request.json()
+        body = json.loads(body_bytes)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 

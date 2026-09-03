@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     evolution_api_url: str = Field(default="https://evolution-api.agent-bcomm.space", description="URL base da Evolution API")
     evolution_api_key: str = Field(default="1F0C0840D74A-4EFF-B413-AF2DE616B30E", description="API key da Evolution API")
     evolution_instance: str = Field(default="BCOMM", description="Nome da instância Evolution")
+    evolution_webhook_secret: str = Field(default="", description="Secret HMAC-SHA256 para verificar assinatura de webhooks (vazio = sem verificação)")
 
     # Hermes
     hermes_profile: str = Field(default="bcomm-atendente", description="Profile do Hermes CLI")
