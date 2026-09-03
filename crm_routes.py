@@ -868,6 +868,14 @@ async def get_stats(http_request: Request):
 
 # ══════════════════════════════════════════════════════════════════
 # PIPELINE STAGES
+#
+# TODO(cleanup): These /pipeline/stages endpoints DUPLICATE the
+# /crm/pipelines/{id}/stages endpoints in routes/routes_pipelines.py.
+# The frontend still uses BOTH:
+#   - crm.html       -> /crm/pipeline/stages  (this file)
+#   - pipelines.html -> /crm/pipelines/{id}/stages (routes_pipelines.py)
+# Migrate crm.html to the canonical /crm/pipelines/{id}/stages path
+# and DELETE this block. Cannot remove yet without breaking crm.html.
 # ══════════════════════════════════════════════════════════════════
 
 @router.get("/pipeline/stages")
