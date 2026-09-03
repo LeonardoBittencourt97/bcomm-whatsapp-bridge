@@ -105,6 +105,7 @@
         @keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
     </style>
 <script src="/realtime.js"></script>
+<script src="/search.js"></script>
 </head>
 <body>
 <div class="app">
@@ -130,6 +131,7 @@
 
     <div class="main">
         <div class="topbar">
+            <div class="search-trigger"><span>🔍</span><span>Buscar contatos, deals, mensagens...</span><span class="shortcut">Ctrl+K</span></div>
             <div class="topbar-right">
                 <div class="org-selector" id="org-selector" style="display:none">
                     <button class="org-select-btn" onclick="toggleOrgDropdown()">
