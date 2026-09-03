@@ -22,8 +22,6 @@ from handlers.messages import process_incoming_message
 from handlers.webhook import extract_message, is_test_mode_allowed
 from models.schemas import (
     HealthResponse,
-    SendMessageRequest,
-    SendMessageResponse,
     WebhookEvent,
 )
 from services.evolution import EvolutionClient
@@ -439,25 +437,6 @@ async def webhook_evolution(request: Request):
         "status": "queued",
         "message_id": message.message_id,
     }
-
-
-@app.post("/send", response_model=SendMessageResponse)
-async def send_message(request: Request, req: SendMessageRequest):
-    """
-    Enviar mensagem manualmente via Evolution API.
-    """
-    user = await get_current_user(request)
-    result = await evolution_client.send_text(
-        to_number=req.to_number,
-        message=req.message,
-        instance=req.instance,
-    )
-
-    return SendMessageResponse(
-        success=result["success"],
-        message_id=result.get("message_id"),
-        error=result.get("error"),
-    )
 
 
 @app.post("/admin/clear-sessions")
