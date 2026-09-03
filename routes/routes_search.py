@@ -6,9 +6,10 @@ Uses database-level ilike filtering for efficiency.
 import logging
 from typing import Optional, List
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from services.database import select, ensure_supabase, get_client, _get_table_ref
+from routes.deps import get_current_user
 
 logger = logging.getLogger("bridge")
 
@@ -53,6 +54,7 @@ async def _db_ilike_search(table: str, fields: list, query: str, limit: int = 5)
 
 @router.get("/search")
 async def search(
+    request: Request,
     q: str = Query(..., min_length=1),
     limit: int = Query(default=5, ge=1, le=20),
 ):
@@ -60,6 +62,7 @@ async def search(
     Busca global no CRM — contatos, deals, organizações e mensagens.
     Retorna resultados agrupados por tipo, com limite por tipo.
     """
+    await get_current_user(request)
     ensure_supabase()
 
     results = {}
