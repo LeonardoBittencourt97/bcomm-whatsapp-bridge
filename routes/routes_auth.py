@@ -228,14 +228,6 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=6)
 
 
-class RegisterRequest(BaseModel):
-    """Request para registro (apenas master)."""
-    email: EmailStr
-    password: str = Field(..., min_length=6)
-    name: str = Field(..., min_length=2, max_length=255)
-    role: str = Field(default="agent")
-
-
 class ChangePasswordRequest(BaseModel):
     """Request para alteração de senha."""
     current_password: str = Field(..., min_length=1)
@@ -408,79 +400,6 @@ async def get_me(request: Request):
     return {
         "user": _sanitize_user(user),
         "organizations": orgs,
-    }
-
-
-@router.post("/auth/register")
-async def register(request: Request, body: RegisterRequest):
-    """
-    Registra novo usuário via Supabase Auth. Apenas master pode registrar.
-    """
-    current_user = await get_current_user(request)
-
-    # Verificar permissão
-    if current_user.get("role") != "master":
-        raise HTTPException(status_code=403, detail="Apenas master pode registrar usuários")
-
-    if body.role not in VALID_ROLES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Role inválida. Valores aceitos: {', '.join(sorted(VALID_ROLES))}"
-        )
-
-    # Create user in Supabase Auth
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{SUPABASE_URL}/auth/v1/admin/users",
-                headers={
-                    "apikey": SUPABASE_SERVICE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "email": body.email,
-                    "password": body.password,
-                    "email_confirm": True,
-                },
-                timeout=10,
-            )
-    except Exception as e:
-        logger.error(f"Erro ao criar usuário no Supabase Auth: {e}")
-        raise HTTPException(status_code=500, detail="Erro ao criar usuário")
-
-    if resp.status_code not in (200, 201):
-        error_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-        msg = error_data.get("msg", error_data.get("error_description", "Erro ao criar usuário"))
-        raise HTTPException(status_code=400, detail=msg)
-
-    auth_user = resp.json()
-    supabase_user_id = auth_user.get("id")
-
-    # Create in our DB
-    _ensure_supabase()
-    now = datetime.now(timezone.utc).isoformat()
-    new_user = {
-        "email": body.email,
-        "name": body.name,
-        "role": body.role,
-        "is_active": True,
-        "supabase_user_id": supabase_user_id,
-        "created_at": now,
-        "updated_at": now,
-    }
-
-    result = await insert(USERS_TABLE, new_user)
-    created = result[0] if isinstance(result, list) and result else new_user
-
-    logger.info(
-        f"Usuário registrado: {body.email} (role={body.role}) "
-        f"por {current_user['email']}"
-    )
-
-    return {
-        "status": "ok",
-        "user": _sanitize_user(created),
     }
 
 
