@@ -211,6 +211,9 @@
                         <option value="pending">Pendente</option>
                         <option value="completed">Concluída</option>
                     </select>
+                    <input class="input" type="text" id="filter-deal-id" placeholder="ID do Deal (opcional)" style="max-width:180px;padding:8px 12px;font-size:13px" onkeyup="if(event.key==='Enter')loadActivities()">
+                    <input class="input" type="text" id="filter-contact-id" placeholder="ID do Contato (opcional)" style="max-width:180px;padding:8px 12px;font-size:13px" onkeyup="if(event.key==='Enter')loadActivities()">
+                    <button class="btn btn-secondary" onclick="document.getElementById('filter-deal-id').value='';document.getElementById('filter-contact-id').value='';loadActivities()" style="padding:8px 12px;font-size:13px">Limpar</button>
                 </div>
                 <button class="btn btn-primary" style="margin-left:auto" onclick="openNewActivityModal()">+ Nova Atividade</button>
             </div>
@@ -395,12 +398,18 @@ async function loadActivities() {
 
     const typeFilter = document.getElementById('filter-type').value;
     const statusFilter = document.getElementById('filter-status').value;
+    const dealFilter = document.getElementById('filter-deal-id').value.trim();
+    const contactFilter = document.getElementById('filter-contact-id').value.trim();
 
-    const r = await api('/crm/activities');
+    const params = new URLSearchParams();
+    if (typeFilter) params.set('type', typeFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (dealFilter) params.set('deal_id', dealFilter);
+    if (contactFilter) params.set('contact_id', contactFilter);
+    const url = '/crm/activities' + (params.toString() ? '?' + params.toString() : '');
+
+    const r = await api(url);
     let acts = (r && r.activities) || r || [];
-
-    if (typeFilter) acts = acts.filter(a => a.type === typeFilter);
-    if (statusFilter) acts = acts.filter(a => a.status === statusFilter);
 
     if (!acts.length) {
         list.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhuma atividade</div><div class="empty-sub">Clique em "+ Nova Atividade" para criar</div></div>';
