@@ -678,6 +678,10 @@ async def pause_conversation(phone: str, http_request: Request):
     context_summary = "\n".join(context_lines) if context_lines else "Nenhuma mensagem recente"
     
     # Salvar contexto na conversa
+    # TODO(cleanup): pause_context is WRITTEN here but never INJECTED into
+    # the agent's prompt on resume. The /resume endpoint reads it only to
+    # log and then clears it. Either implement the injection in the agent
+    # pipeline or drop the column write/read entirely.
     now = datetime.now().isoformat()
     await update(CONVERSATIONS_TABLE, {
         "agent_enabled": False,
