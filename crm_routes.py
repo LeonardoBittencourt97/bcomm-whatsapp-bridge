@@ -602,6 +602,10 @@ async def send_message(phone: str, body: SendMessageRequest, http_request: Reque
     return {"status": "sent", "message": message, "evolution_message_id": result.get("message_id")}
 
 
+# TODO(cleanup): /conversations/{phone}/receive duplicates the inbound
+# webhook path (handlers/messages.process_incoming_message). It is not
+# called by any frontend code. Internal services (e.g. test harnesses)
+# may rely on it, so confirm before removal.
 @router.post("/conversations/{phone}/receive")
 async def receive_message(phone: str, request: SendMessageRequest):
     """Registra mensagem recebida do cliente"""
@@ -629,6 +633,9 @@ async def receive_message(phone: str, request: SendMessageRequest):
     }
 
 
+# TODO(cleanup): /conversations/{phone}/agent-response duplicates the
+# outbound agent path in handlers/messages. Not called by any frontend
+# code. Confirm no internal callers depend on it before removing.
 @router.post("/conversations/{phone}/agent-response")
 async def agent_response(phone: str, request: SendMessageRequest, model: str = ""):
     """Registra resposta da IA"""
