@@ -709,6 +709,60 @@ async def get_admin_logs(request: Request, limit: int = 50):
     safe_limit = max(1, min(limit, 500))
     return {"logs": list(_log_buffer)[-safe_limit:]}
 
+
+@app.get("/admin/system-info")
+async def get_system_info(request: Request):
+    """
+    Retorna informações de configuração read-only do sistema (master/admin_geral).
+    Mostra valores atuais de env vars, status de serviços e configuração do runtime.
+    Variáveis sensíveis (secrets, keys) NÃO são expostas.
+    """
+    user = await get_current_user(request)
+    if user.get("role") not in ("master", "admin_geral"):
+        raise HTTPException(status_code=403, detail="Sem acesso")
+
+    evo_ok = await evolution_client.health_check()
+    llm_ok = await llm_client.health_check()
+    stt_ok = await stt_client.health_check()
+    hermes_ok = await hermes_client.is_available()
+    db_ok = get_client() is not None
+
+    return {
+        "uptime_seconds": round(time.time() - _start_time, 1),
+        "evolution": {
+            "url": settings.evolution_api_url,
+            "instance": settings.evolution_instance,
+            "status": "ok" if evo_ok else "unavailable",
+        },
+        "llm": {
+            "model": settings.opencode_model,
+            "api_url": settings.opencode_api_url,
+            "status": "ok" if llm_ok else "unavailable",
+        },
+        "stt": {
+            "api_url": settings.stt_api_url,
+            "model": settings.stt_model,
+            "status": "ok" if stt_ok else "unavailable",
+        },
+        "hermes": {
+            "profile": settings.hermes_profile,
+            "status": "ok" if hermes_ok else "unavailable",
+        },
+        "database": {
+            "url": settings.supabase_url,
+            "status": "ok" if db_ok else "unavailable",
+        },
+        "auth": {
+            "jwt_algorithm": settings.jwt_algorithm,
+            "jwt_expire_hours": settings.jwt_expire_hours,
+            "cookie_secure": settings.cookie_secure,
+        },
+        "cors": {
+            "origins": settings.cors_origins,
+        },
+    }
+
+
 @app.post("/admin/config")
 async def update_config(
     request: Request,

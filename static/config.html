@@ -217,6 +217,9 @@
                     <a href="#sobre" class="config-submenu-item" data-section="sobre" onclick="showSection('sobre')">
                         <span class="icon">ℹ️</span> Sobre
                     </a>
+                    <a href="#avancado" class="config-submenu-item" data-section="avancado" onclick="showSection('avancado')">
+                        <span class="icon">🔧</span> Avançado
+                    </a>
                     <a href="#agent" class="config-submenu-item" data-section="agent" onclick="showSection('agent')">
                         <span class="icon">🤖</span> Agente
                     </a>
@@ -396,6 +399,46 @@
                         </div>
                     </div>
 
+                    <!-- AVANCADO (Informacoes de Sistema) -->
+                    <div data-page="avancado" style="display:none">
+                        <h1 class="page-title">Avançado</h1>
+                        <p class="page-subtitle">Configurações do sistema. Apenas leitura — altere via variáveis de ambiente no Coolify.</p>
+
+                        <div class="section">
+                            <div class="card">
+                                <div class="card-header"><span class="card-title">🤖 LLM</span></div>
+                                <div class="config-row"><span class="config-label">Modelo</span><span id="sys-llm-model" style="color:var(--text2);font-family:monospace">-</span></div>
+                                <div class="config-row"><span class="config-label">API URL</span><span id="sys-llm-url" style="color:var(--text2);font-family:monospace;font-size:12px">-</span></div>
+                                <div class="config-row"><span class="config-label">Status</span><span id="sys-llm-status">-</span></div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><span class="card-title">🎙️ STT</span></div>
+                                <div class="config-row"><span class="config-label">API URL</span><span id="sys-stt-url" style="color:var(--text2);font-family:monospace;font-size:12px">-</span></div>
+                                <div class="config-row"><span class="config-label">Modelo</span><span id="sys-stt-model" style="color:var(--text2);font-family:monospace">-</span></div>
+                                <div class="config-row"><span class="config-label">Status</span><span id="sys-stt-status">-</span></div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><span class="card-title">📡 Evolution API</span></div>
+                                <div class="config-row"><span class="config-label">URL</span><span id="sys-evo-url" style="color:var(--text2);font-family:monospace;font-size:12px">-</span></div>
+                                <div class="config-row"><span class="config-label">Instância</span><span id="sys-evo-instance" style="color:var(--text2);font-family:monospace">-</span></div>
+                                <div class="config-row"><span class="config-label">Status</span><span id="sys-evo-status">-</span></div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><span class="card-title">🔐 Auth & CORS</span></div>
+                                <div class="config-row"><span class="config-label">JWT Algorithm</span><span id="sys-jwt-alg" style="color:var(--text2);font-family:monospace">-</span></div>
+                                <div class="config-row"><span class="config-label">JWT Expiry (h)</span><span id="sys-jwt-exp" style="color:var(--text)">-</span></div>
+                                <div class="config-row"><span class="config-label">Cookie Secure</span><span id="sys-cookie-secure">-</span></div>
+                                <div class="config-row"><span class="config-label">CORS Origins</span><span id="sys-cors-origins" style="color:var(--text2);font-family:monospace;font-size:12px">-</span></div>
+                            </div>
+                            <div class="card" style="border-color:var(--yellow)">
+                                <div style="display:flex;align-items:center;gap:8px;color:var(--yellow);font-size:13px">
+                                    <span>⚠️</span>
+                                    <span>Estes parâmetros são definidos via variáveis de ambiente no Coolify. Reinicie o container para aplicar mudanças.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- AGENTE -->
                     <div data-page="agent" style="display:none">
                         <h1 class="page-title">Agente</h1>
@@ -539,6 +582,7 @@ function showSection(name) {
     else if (name === 'geral') loadConfig();
     else if (name === 'agent') loadAgentConfig();
     else if (name === 'whatsapp') loadWhatsAppStatus();
+    else if (name === 'avancado') loadSystemInfo();
 }
 
 // Ler secao da URL
@@ -552,6 +596,25 @@ async function updateStatus(){
         document.getElementById('uptime').textContent=Math.floor(h.uptime_seconds/60)+'min';
         document.getElementById('evo-status').textContent=h.evolution_api==='ok'?'✅ Conectado':'❌ Indisponível';
     }
+}
+
+async function loadSystemInfo(){
+    const d=await api('/admin/system-info');
+    if(!d){return}
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+    set('sys-llm-model', d.llm?.model||'-');
+    set('sys-llm-url', d.llm?.api_url||'-');
+    set('sys-llm-status', d.llm?.status==='ok'?'✅ OK':'❌ Indisponível');
+    set('sys-stt-url', d.stt?.api_url||'-');
+    set('sys-stt-model', d.stt?.model||'-');
+    set('sys-stt-status', d.stt?.status==='ok'?'✅ OK':'❌ Indisponível');
+    set('sys-evo-url', d.evolution?.url||'-');
+    set('sys-evo-instance', d.evolution?.instance||'-');
+    set('sys-evo-status', d.evolution?.status==='ok'?'✅ OK':'❌ Indisponível');
+    set('sys-jwt-alg', d.auth?.jwt_algorithm||'-');
+    set('sys-jwt-exp', d.auth?.jwt_expire_hours??'-');
+    set('sys-cookie-secure', d.auth?.cookie_secure?'✅ Sim':'❌ Não');
+    set('sys-cors-origins', d.cors?.origins||'-');
 }
 
 async function loadConfig(){
