@@ -221,7 +221,7 @@ async def auth_middleware(request: Request, call_next):
     # Rotas públicas (não precisam de auth)
     public_exact = {"/login", "/health", "/docs", "/openapi.json", "/redoc", "/",
                     "/dashboard", "/config", "/pipelines", "/organizations",
-                    "/setup-master", "/crm", "/contacts", "/activities", "/users"}
+                    "/setup-master", "/crm", "/contacts", "/activities", "/users", "/agents", "/notes"}
     public_prefixes = ("/webhook/", "/health", "/docs", "/openapi", "/redoc", "/invite/", "/crm/auth/accept-invite")
     crm_auth_exact = {"/crm/auth/login"}
 
@@ -843,6 +843,17 @@ async def users_page():
     """Página de gestão de usuários."""
     from fastapi.responses import HTMLResponse
     path = os.path.join(os.path.dirname(__file__), "static", "users.html")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Página não encontrada</h1>", status_code=404)
+
+
+@app.get("/agents")
+async def agents_page():
+    """Página de gestão de agentes."""
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(__file__), "static", "agents.html")
     if os.path.exists(path):
         with open(path, "r") as f:
             return HTMLResponse(content=f.read())
